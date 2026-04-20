@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { FiCheckCircle } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 
 export default function PaymentSuccess() {
-  const navigate = useNavigate();
   const [countdown, setCountdown] = useState(5);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -22,41 +22,22 @@ export default function PaymentSuccess() {
   }, [navigate]);
 
   return (
-    <section className="bg-white">
-      <Breadcrumb items={[{ label: "Trang chu", to: "/" }, { label: "Thanh toan thanh cong" }]} />
-
-      <div className="max-w-3xl mx-auto px-4 py-24">
-        <div className="bg-white rounded-[20px] border border-gray-200 p-12 text-center">
-          <div className="flex justify-center mb-6">
-            <FiCheckCircle className="text-green-600" size={56} />
-          </div>
-
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">Thanh toan thanh cong</h1>
-
-          <p className="text-gray-600 text-lg mb-2">
-            Cam on ban da mua khoa hoc. Ban co the bat dau hoc ngay bay gio.
-          </p>
-
-          <p className="text-gray-500 mb-8">
-            Dang chuyen huong ve trang chinh trong <span className="font-bold text-primary">{countdown}</span> giay...
-          </p>
-
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition"
-            >
-              Ve trang chu
-            </button>
-            <button
-              onClick={() => navigate("/khoa-hoc")}
-              className="px-8 py-3 bg-white text-primary font-semibold rounded-full border-2 border-primary hover:bg-primary/5 transition"
-            >
-              Xem khoa hoc
-            </button>
-          </div>
+    <>
+      <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Thanh toán thành công" }]} />
+      <div className="max-w-lg mx-auto px-5 py-20 text-center">
+        <FiCheckCircle size={64} className="text-success mx-auto mb-6" />
+        <h1 className="text-3xl font-heading font-bold text-secondary">Thanh toán thành công</h1>
+        <p className="text-gray-600 mt-4">Cảm ơn bạn đã mua khóa học. Bạn có thể bắt đầu học ngay bây giờ.</p>
+        <p className="text-sm text-gray-500 mt-3">Tự động chuyển về trang chủ sau {countdown} giây</p>
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <Link to="/" className="px-8 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors">
+            Về trang chủ
+          </Link>
+          <Link to="/khoa-hoc" className="px-8 py-3 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary hover:text-white transition-colors">
+            Xem khóa học
+          </Link>
         </div>
       </div>
-    </section>
+    </>
   );
 }

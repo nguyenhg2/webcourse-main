@@ -1,65 +1,57 @@
 import { useState } from "react";
 
 export default function CommentForm() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [comment, setComment] = useState("");
-  const [save, setSave] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", comment: "", save: false });
 
-  const handleSubmit = (e) => {
+  function handleChange(e) {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  }
+
+  function handleSubmit(e) {
     e.preventDefault();
-  };
+    setForm({ name: "", email: "", comment: "", save: false });
+  }
 
   return (
-    <div className="flex flex-col gap-7">
-      <div className="flex flex-col gap-3">
-        <h3 className="text-secondary text-xl font-semibold">
-          De lai binh luan
-        </h3>
-        <p className="text-gray-600 text-lg">
-          Email cua ban se khong duoc hien thi. Cac truong bat buoc duoc danh
-          dau *
-        </p>
-      </div>
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <h3 className="text-xl font-semibold text-secondary">Để lại bình luận</h3>
+      <p className="text-sm text-gray-500">Email của bạn sẽ không được hiển thị công khai.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <input
-          type="text"
-          placeholder="Ten*"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="flex-1 min-w-[200px] h-12 px-4 rounded-lg border border-gray-400 text-lg focus:outline-none focus:border-primary"
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Tên *"
+          required
+          className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors"
         />
         <input
+          name="email"
           type="email"
-          placeholder="Email*"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 min-w-[200px] h-12 px-4 rounded-lg border border-gray-400 text-lg focus:outline-none focus:border-primary"
+          value={form.email}
+          onChange={handleChange}
+          placeholder="Email *"
+          required
+          className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors"
         />
-        <textarea
-          placeholder="Binh luan"
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          className="w-full h-28 px-4 py-2.5 rounded-lg border border-gray-400 text-lg resize-none focus:outline-none focus:border-primary"
-        />
-        <label className="w-full flex items-center gap-1 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={save}
-            onChange={(e) => setSave(e.target.checked)}
-            className="size-4 accent-primary"
-          />
-          <span className="text-gray-600 text-lg">
-            Luu ten va email cho lan binh luan tiep theo
-          </span>
-        </label>
-        <button
-          type="submit"
-          className="h-12 px-6 bg-primary text-white text-lg font-medium rounded-full hover:bg-primary/90 transition-colors"
-        >
-          Dang binh luan
-        </button>
-      </form>
-    </div>
+      </div>
+      <textarea
+        name="comment"
+        value={form.comment}
+        onChange={handleChange}
+        placeholder="Bình luận"
+        rows={5}
+        required
+        className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors resize-none"
+      />
+      <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+        <input type="checkbox" name="save" checked={form.save} onChange={handleChange} className="accent-primary" />
+        Lưu tên và email cho lần bình luận tiếp theo
+      </label>
+      <button type="submit" className="self-start px-8 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors">
+        Đăng bình luận
+      </button>
+    </form>
   );
 }

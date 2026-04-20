@@ -1,310 +1,202 @@
 import { useState } from "react";
-import {
-  FiClock,
-  FiUsers,
-  FiBarChart,
-  FiBookOpen,
-  FiFileText,
-  FiChevronDown,
-  FiChevronUp,
-  FiPlay,
-  FiLock,
-} from "react-icons/fi";
-import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaYoutube, FiStar } from "react-icons/fa";
+import { Link } from "react-router-dom";
+import { FiClock, FiUsers, FiBookOpen, FiBarChart, FiPlay, FiLock, FiCheckCircle, FiChevronDown, FiChevronUp, FiStar } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import CommentForm from "../components/ui/CommentForm";
 import CommentList from "../components/ui/CommentList";
 
-const TABS = ["Tong quan", "Chuong trinh", "Giang vien", "FAQs", "Danh gia"];
-
 const CURRICULUM = [
   {
-    title: "Gioi thieu React.js",
-    lessons: 5,
-    duration: "45 Mins",
-    open: false,
-    items: [],
-  },
-  {
-    title: "React Hooks",
-    lessons: 3,
-    duration: "45 Mins",
-    open: true,
+    title: "Giới thiệu React.js",
+    lessonsCount: 5,
+    duration: "45 Phút",
     items: [
-      { title: "useState Hook", time: "12:30", type: "video" },
-      { title: "useEffect Hook", time: "10:05", type: "video", active: true },
-      { title: "Xu ly su kien trong React", time: "2:25", type: "video" },
+      { title: "React là gì?", duration: "08:30", type: "video" },
+      { title: "Cài đặt môi trường", duration: "12:00", type: "video" },
+      { title: "Tạo ứng dụng đầu tiên", duration: "10:15", type: "video" },
+      { title: "Cấu trúc thư mục dự án", duration: "07:45", type: "video" },
+      { title: "Bài kiểm tra: Giới thiệu", duration: "5 câu", type: "quiz" },
     ],
   },
   {
-    title: "Quan ly State nang cao",
-    lessons: 5,
-    duration: "45 Mins",
-    open: false,
-    items: [],
+    title: "React Hooks",
+    lessonsCount: 3,
+    duration: "45 Phút",
+    open: true,
+    items: [
+      { title: "useState Hook", duration: "12:30", type: "video" },
+      { title: "useEffect Hook", duration: "10:05", type: "video", active: true },
+      { title: "Xử lý sự kiện trong React", duration: "02:25", type: "video" },
+    ],
   },
 ];
 
 const FAQS = [
-  {
-    q: "Khoa hoc nay phu hop voi ai?",
-    a: "Khoa hoc phu hop cho nguoi moi bat dau muon hoc React.js, sinh vien CNTT muon thuc hanh du an thuc te, va developer muon nang cao ky nang frontend.",
-  },
-  {
-    q: "Toi can kien thuc gi truoc khi hoc?",
-    a: null,
-  },
-  {
-    q: "Hoc xong co duoc chung chi khong?",
-    a: null,
-  },
+  { q: "Khóa học này phù hợp với ai?", a: "Khóa học phù hợp với người mới bắt đầu lập trình web hoặc những ai muốn nâng cao kỹ năng React.js." },
+  { q: "Tôi cần kiến thức gì trước khi học?", a: "Bạn cần có kiến thức cơ bản về HTML, CSS và JavaScript." },
+  { q: "Khóa học có cập nhật không?", a: "Có, khóa học được cập nhật thường xuyên để theo kịp các phiên bản mới nhất của React." },
 ];
 
 export default function CourseSingle() {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [expandedSections, setExpandedSections] = useState({ 1: true });
+  const [expandedFaqs, setExpandedFaqs] = useState({});
+
+  function toggleSection(i) {
+    setExpandedSections((prev) => ({ ...prev, [i]: !prev[i] }));
+  }
+
+  function toggleFaq(i) {
+    setExpandedFaqs((prev) => ({ ...prev, [i]: !prev[i] }));
+  }
+
+  const tabs = [
+    { id: "overview", label: "Tổng quan" },
+    { id: "curriculum", label: "Chương trình" },
+    { id: "instructor", label: "Giảng viên" },
+    { id: "faqs", label: "FAQs" },
+    { id: "reviews", label: "Đánh giá" },
+  ];
 
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "Trang chu", href: "/" },
-          { label: "Khoa hoc", href: "/khoa-hoc" },
-          { label: "React.js Tu Co Ban Den Nang Cao" },
-        ]}
-      />
-
-      <section className="bg-secondary py-12">
-        <div className="max-w-[1290px] mx-auto px-4 flex flex-col lg:flex-row gap-10">
-          <div className="flex-1 flex flex-col gap-5 lg:pr-96">
-            <div className="flex items-center gap-5">
-              <span className="px-3 py-2 bg-gray-700 text-white text-base font-medium rounded-lg">
-                Web Development
-              </span>
-              <span className="text-gray-500 text-lg">
-                boi Dinh Thanh Nguyen
-              </span>
+      <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Khóa học", to: "/khoa-hoc" }, { label: "React.js Từ Cơ Bản Đến Nâng Cao" }]} />
+      <div className="max-w-[1290px] mx-auto px-5 py-10">
+        <div className="flex flex-col lg:flex-row gap-10">
+          <div className="flex-1">
+            <span className="text-sm font-medium text-primary bg-primary-light px-3 py-1 rounded-full">Web Development</span>
+            <h1 className="text-3xl font-heading font-bold text-secondary mt-4">React.js Từ Cơ Bản Đến Nâng Cao</h1>
+            <p className="text-gray-600 mt-3">Học React.js từ cơ bản đến nâng cao với các dự án thực tế, được giảng dạy bởi chuyên gia hàng đầu.</p>
+            <div className="flex items-center gap-6 mt-5 text-sm text-gray-500">
+              <span className="flex items-center gap-1"><FiClock size={14} /> 2 Tuần</span>
+              <span className="flex items-center gap-1"><FiUsers size={14} /> 156 học viên</span>
+              <span className="flex items-center gap-1"><FiBookOpen size={14} /> 20 bài học</span>
+              <span className="flex items-center gap-1"><FiBarChart size={14} /> Tất cả cấp độ</span>
             </div>
-            <h1 className="font-heading text-white text-4xl font-semibold capitalize leading-10">
-              React.js Tu Co Ban Den Nang Cao
-            </h1>
-            <div className="flex flex-wrap gap-6">
-              <span className="flex items-center gap-2 text-gray-400 text-base">
-                <FiClock size={16} className="text-primary" /> 2 Tuan
-              </span>
-              <span className="flex items-center gap-2 text-gray-400 text-base">
-                <FiUsers size={16} className="text-primary" /> 156 Hoc vien
-              </span>
-              <span className="flex items-center gap-2 text-gray-400 text-base">
-                <FiBarChart size={16} className="text-primary" /> Tat ca cap do
-              </span>
-              <span className="flex items-center gap-2 text-gray-400 text-base">
-                <FiBookOpen size={16} className="text-primary" /> 20 Tiet
-              </span>
-              <span className="flex items-center gap-2 text-gray-400 text-base">
-                <FiFileText size={16} className="text-primary" /> 3 Bai kiem tra
-              </span>
+
+            <div className="flex gap-1 mt-8 border-b border-gray-100">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-secondary"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          </div>
 
-          <div className="lg:w-[410px] shrink-0 bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <img
-              src="https://placehold.co/410x250"
-              alt="Course"
-              className="w-full h-64 object-cover"
-            />
-            <div className="p-7 flex items-center justify-center gap-7">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400 text-base line-through">
-                  799.000 VND
-                </span>
-                <span className="text-error text-xl font-semibold">
-                  599.000 VND
-                </span>
-              </div>
-              <button className="h-12 px-6 bg-primary text-white text-lg font-medium rounded-full hover:bg-primary/90 transition-colors">
-                Bat dau ngay
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+            <div className="mt-8">
+              {activeTab === "overview" && (
+                <div className="prose max-w-none text-gray-600 leading-7">
+                  <p>Khóa học React.js từ cơ bản đến nâng cao sẽ giúp bạn nắm vững thư viện phổ biến nhất hiện nay cho phát triển giao diện web. Bạn sẽ học cách xây dựng các ứng dụng web hiện đại, tối ưu hiệu suất và triển khai dự án thực tế.</p>
+                  <p className="mt-4">Sau khi hoàn thành khóa học, bạn sẽ có thể tự tin xây dựng các ứng dụng Single Page Application, quản lý state phức tạp, và làm việc với API thực tế.</p>
+                </div>
+              )}
 
-      <section className="py-12">
-        <div className="max-w-[1290px] mx-auto px-4 flex flex-col lg:flex-row gap-12">
-          <div className="flex-1 flex flex-col gap-10 lg:max-w-[850px]">
-            <div className="rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="flex">
-                {TABS.map((tab, i) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(i)}
-                    className={`flex-1 px-7 py-5 text-xl font-semibold text-center border-b transition-colors ${
-                      activeTab === i
-                        ? "bg-gray-50 text-primary border-primary"
-                        : "text-secondary border-gray-100 hover:text-primary"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <div className="p-7 bg-gray-50">
-                {activeTab === 0 && (
-                  <p className="text-gray-600 text-lg leading-7">
-                    React.js la thu vien JavaScript pho bien nhat de xay dung
-                    giao dien nguoi dung. Khoa hoc nay se giup ban nam vung
-                    React tu co ban den nang cao, bao gom Hooks, Context API,
-                    Redux Toolkit, React Router va trien khai du an thuc te.
-                    Ban se hoc qua video bai giang chat luong cao va thuc hanh
-                    tren cac du an thuc te.
-                  </p>
-                )}
-
-                {activeTab === 1 && (
-                  <div className="flex flex-col gap-3">
-                    {CURRICULUM.map((section, i) => (
-                      <div key={i} className="rounded-lg overflow-hidden">
-                        <div className="px-5 py-4 bg-white flex items-center gap-2">
-                          {section.open ? (
-                            <FiChevronUp size={16} className="text-gray-600" />
-                          ) : (
-                            <FiChevronDown
-                              size={16}
-                              className="text-gray-600"
-                            />
-                          )}
-                          <span
-                            className={`flex-1 text-base font-semibold ${
-                              section.open ? "text-primary" : "text-secondary"
-                            }`}
-                          >
-                            {section.title}
-                          </span>
-                          <span className="text-gray-600 text-base">
-                            {section.lessons} Tiet
-                          </span>
-                          <span className="text-gray-600 text-base">
-                            {section.duration}
-                          </span>
+              {activeTab === "curriculum" && (
+                <div className="flex flex-col gap-4">
+                  {CURRICULUM.map((section, i) => (
+                    <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
+                      <button onClick={() => toggleSection(i)} className="w-full flex items-center justify-between px-6 py-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div>
+                          <span className="text-base font-semibold text-secondary">{section.title}</span>
+                          <span className="text-sm text-gray-500 ml-3">{section.lessonsCount} bài - {section.duration}</span>
                         </div>
-                        {section.open &&
-                          section.items.map((item, j) => (
-                            <div
-                              key={j}
-                              className="pl-11 pr-5 py-3 bg-white flex items-center gap-2"
-                            >
-                              <FiPlay
-                                size={16}
-                                className="text-gray-600 shrink-0"
-                              />
-                              <span
-                                className={`flex-1 text-lg ${
-                                  item.active
-                                    ? "text-primary"
-                                    : "text-secondary"
-                                }`}
-                              >
-                                {item.title}
-                              </span>
-                              <span className="px-3 py-1 bg-info text-white text-base rounded-lg">
-                                Danh gia
-                              </span>
-                              <span className="w-16 text-right text-gray-600 text-base">
-                                {item.time}
-                              </span>
-                              <FiLock size={16} className="text-gray-600" />
+                        {expandedSections[i] ? <FiChevronUp size={18} /> : <FiChevronDown size={18} />}
+                      </button>
+                      {expandedSections[i] && (
+                        <div className="divide-y divide-gray-100">
+                          {section.items.map((item, j) => (
+                            <div key={j} className={`flex items-center justify-between px-6 py-3 ${item.active ? "bg-primary-light" : ""}`}>
+                              <div className="flex items-center gap-3">
+                                {item.type === "video" ? <FiPlay size={14} className="text-primary" /> : <FiCheckCircle size={14} className="text-success" />}
+                                <span className={`text-sm ${item.active ? "text-primary font-medium" : "text-gray-600"}`}>{item.title}</span>
+                              </div>
+                              <span className="text-xs text-gray-500">{item.duration}</span>
                             </div>
                           ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                {activeTab === 2 && (
-                  <div className="flex gap-6">
-                    <img
-                      src="https://placehold.co/200x112"
-                      alt="Instructor"
-                      className="w-48 h-28 object-cover rounded"
-                    />
-                    <div className="flex-1 flex flex-col gap-3">
-                      <h3 className="font-heading text-secondary text-xl font-semibold">
-                        React.js
-                      </h3>
-                      <p className="text-gray-600 text-lg leading-7">
-                        React.js la thu vien JavaScript pho bien nhat de xay
-                        dung giao dien nguoi dung. Khoa hoc nay se giup ban nam
-                        vung React tu co ban den nang cao.
-                      </p>
-                      <span className="flex items-center gap-2 text-gray-600 text-base">
-                        <FiUsers size={16} className="text-secondary" /> 156 Hoc
-                        vien
-                      </span>
-                      <span className="flex items-center gap-2 text-gray-600 text-base">
-                        <FiBookOpen size={16} className="text-secondary" /> 20
-                        Tiet
-                      </span>
+              {activeTab === "instructor" && (
+                <div className="flex items-start gap-6">
+                  <img src="https://placehold.co/120/564FFD/fff?text=GV" alt="Giảng viên" className="w-28 h-28 rounded-xl object-cover" />
+                  <div>
+                    <h3 className="text-xl font-semibold text-secondary">Đinh Thành Nguyên</h3>
+                    <p className="text-sm text-gray-500 mt-1">Senior Frontend Developer</p>
+                    <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                      <span className="flex items-center gap-1"><FiUsers size={14} /> 156 học viên</span>
+                      <span className="flex items-center gap-1"><FiBookOpen size={14} /> 20 khóa học</span>
+                    </div>
+                    <p className="text-gray-600 mt-4 leading-7">Hơn 10 năm kinh nghiệm phát triển phần mềm, chuyên gia React.js và kiến trúc frontend. Từng làm việc tại các công ty công nghệ hàng đầu.</p>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "faqs" && (
+                <div className="flex flex-col gap-4">
+                  {FAQS.map((faq, i) => (
+                    <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
+                      <button onClick={() => toggleFaq(i)} className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors">
+                        <span className="text-base font-medium text-secondary">{faq.q}</span>
+                        {expandedFaqs[i] ? <FiChevronUp size={18} className="text-gray-500 shrink-0" /> : <FiChevronDown size={18} className="text-gray-500 shrink-0" />}
+                      </button>
+                      {expandedFaqs[i] && (
+                        <div className="px-6 pb-4 text-sm text-gray-600 leading-7">{faq.a}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === "reviews" && (
+                <div className="flex flex-col gap-10">
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <span className="text-4xl font-heading font-bold text-secondary">4.0</span>
+                      <div className="flex gap-1 justify-center mt-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <FiStar key={i} size={16} className={i < 4 ? "text-warning fill-warning" : "text-gray-200"} />
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">146.951 đánh giá</p>
                     </div>
                   </div>
-                )}
+                  <CommentList />
+                  <CommentForm />
+                </div>
+              )}
+            </div>
+          </div>
 
-                {activeTab === 3 && (
-                  <div className="flex flex-col gap-5">
-                    {FAQS.map((faq, i) => (
-                      <div key={i} className="px-7 py-5 bg-white rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-secondary text-base font-semibold">
-                            {faq.q}
-                          </span>
-                          <FiChevronDown
-                            size={24}
-                            className="text-gray-400 shrink-0"
-                          />
-                        </div>
-                        {faq.a && (
-                          <p className="text-gray-600 text-lg leading-7 mt-5">
-                            {faq.a}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === 4 && (
-                  <div className="flex flex-col gap-5">
-                    <h3 className="font-heading text-secondary text-xl font-semibold">
-                      Binh luan
-                    </h3>
-                    <div className="flex items-center gap-3">
-                      <span className="font-heading text-secondary text-4xl font-semibold">
-                        4.0
-                      </span>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex gap-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <span
-                              key={i}
-                              className="size-5 bg-warning rounded"
-                            />
-                          ))}
-                        </div>
-                        <span className="text-gray-600 text-base">
-                          dua tren 146,951 ratings
-                        </span>
-                      </div>
-                    </div>
-                    <CommentList />
-                  </div>
-                )}
+          <div className="w-full lg:w-80 shrink-0">
+            <div className="sticky top-28 border border-gray-100 rounded-xl p-6 flex flex-col gap-5">
+              <img src="https://placehold.co/320x180" alt="Khóa học" className="w-full rounded-lg" />
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-bold text-primary">599.000đ</span>
+                <span className="text-sm text-gray-400 line-through">799.000đ</span>
+              </div>
+              <Link to="/thanh-toan" className="w-full py-3 bg-primary text-white font-semibold rounded-lg text-center hover:bg-orange-600 transition-colors">
+                Bắt đầu ngay
+              </Link>
+              <div className="flex flex-col gap-3 text-sm text-gray-600">
+                <div className="flex justify-between"><span>Thời lượng</span><span className="font-medium text-secondary">2 Tuần</span></div>
+                <div className="flex justify-between"><span>Bài học</span><span className="font-medium text-secondary">20</span></div>
+                <div className="flex justify-between"><span>Bài kiểm tra</span><span className="font-medium text-secondary">3</span></div>
+                <div className="flex justify-between"><span>Học viên</span><span className="font-medium text-secondary">156</span></div>
+                <div className="flex justify-between"><span>Cấp độ</span><span className="font-medium text-secondary">Tất cả cấp độ</span></div>
               </div>
             </div>
-
-            <CommentForm />
           </div>
         </div>
-      </section>
+      </div>
     </>
   );
 }

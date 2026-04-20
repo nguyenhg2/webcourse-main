@@ -3,81 +3,76 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 const COMMENTS = [
   {
-    id: 1,
-    name: "Tran Minh Khoa",
-    date: "October 03, 2026",
-    avatar: "https://placehold.co/60x60",
-    content:
-      "Khoa hoc rat chi tiet va de hieu. Giang vien giai thich tung buoc mot, minh da ap dung duoc vao du an cong ty ngay. Rat dang tien!",
+    name: "Nguyễn Văn An",
+    date: "20 Tháng 1, 2026",
+    avatar: "https://placehold.co/48/564FFD/fff?text=A",
+    content: "Bài viết rất hữu ích, cảm ơn tác giả đã chia sẻ kiến thức chi tiết và dễ hiểu như vậy.",
   },
   {
-    id: 2,
-    name: "Le Thi Mai",
-    date: "October 03, 2026",
-    avatar: "https://placehold.co/60x60",
-    content:
-      "Noi dung hay, cau truc ro rang. Minh tu zero ma gio da tu code duoc app React. Chi mong co them bai tap thuc hanh.",
+    name: "Trần Thị Bích",
+    date: "18 Tháng 1, 2026",
+    avatar: "https://placehold.co/48/FF6636/fff?text=B",
+    content: "Mình đã áp dụng được ngay vào dự án thực tế. Mong tác giả viết thêm nhiều bài nữa nhé!",
   },
   {
-    id: 3,
-    name: "Pham Hoang Long",
-    date: "October 03, 2026",
-    avatar: "https://placehold.co/60x60",
-    content:
-      "Day la khoa React tot nhat minh tung hoc. Video chat luong cao, vi du thuc te, va giang vien rat nhiet tinh ho tro.",
+    name: "Phạm Quốc Hùng",
+    date: "15 Tháng 1, 2026",
+    avatar: "https://placehold.co/48/23BD33/fff?text=H",
+    content: "Nội dung chất lượng, trình bày khoa học. Đây là một trong những bài viết hay nhất mình từng đọc.",
   },
 ];
 
+const PER_PAGE = 3;
+
 export default function CommentList() {
   const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(COMMENTS.length / PER_PAGE);
+  const visible = COMMENTS.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
-    <div className="flex flex-col gap-5">
-      {COMMENTS.map((c) => (
-        <div
-          key={c.id}
-          className="pt-5 border-t border-gray-100 flex gap-5"
-        >
-          <img
-            src={c.avatar}
-            alt={c.name}
-            className="size-14 rounded-full object-cover shrink-0"
-          />
-          <div className="flex-1 flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-              <span className="text-secondary text-base font-semibold">
-                {c.name}
-              </span>
-              <span className="text-gray-600 text-base">{c.date}</span>
+    <div className="flex flex-col gap-8">
+      {visible.map((c, i) => (
+        <div key={i} className="flex gap-4">
+          <img src={c.avatar} alt={c.name} className="w-12 h-12 rounded-full shrink-0" />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold text-secondary">{c.name}</span>
+              <span className="text-xs text-gray-500">{c.date}</span>
             </div>
-            <p className="text-gray-600 text-lg leading-7">{c.content}</p>
-            <button className="flex items-center gap-2 text-secondary text-base hover:text-primary transition-colors">
-              Tra loi
-            </button>
+            <p className="text-sm text-gray-600 leading-6">{c.content}</p>
+            <button className="text-xs text-primary font-medium self-start">Trả lời</button>
           </div>
         </div>
       ))}
-      <div className="flex items-center gap-3 mt-4">
-        <button className="size-12 rounded-full border border-gray-100 flex items-center justify-center hover:border-primary transition-colors">
-          <FiChevronLeft size={20} />
-        </button>
-        {[1, 2, 3].map((p) => (
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
           <button
-            key={p}
-            onClick={() => setPage(p)}
-            className={`size-12 rounded-full flex items-center justify-center text-lg font-medium transition-colors ${
-              p === page
-                ? "bg-secondary text-white"
-                : "border border-gray-100 text-secondary hover:border-primary"
-            }`}
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="w-9 h-9 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-40"
           >
-            {p}
+            <FiChevronLeft size={16} />
           </button>
-        ))}
-        <button className="size-12 rounded-full border border-gray-100 flex items-center justify-center hover:border-primary transition-colors">
-          <FiChevronRight size={20} />
-        </button>
-      </div>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i + 1)}
+              className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium ${
+                page === i + 1 ? "bg-primary text-white" : "border border-gray-200 text-gray-600"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages}
+            className="w-9 h-9 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 disabled:opacity-40"
+          >
+            <FiChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

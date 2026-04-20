@@ -1,119 +1,53 @@
-import { useState } from "react";
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
+import FAQItem from "../components/ui/FAQItem";
 
 const faqData = [
   {
     category: "Chung",
     items: [
-      {
-        q: "CodeCamp la gi?",
-        a: "CodeCamp la nen tang hoc lap trinh truc tuyen hang dau Viet Nam, cung cap cac khoa hoc tu co ban den nang cao ve lap trinh web, mobile, data science va nhieu linh vuc cong nghe khac.",
-      },
-      {
-        q: "Lam the nao de dang ky tai khoan?",
-        a: "Ban chi can nhan vao nut Dang ky o goc phai phia tren trang web, dien day du thong tin ca nhan va xac nhan email de hoan tat qua trinh dang ky.",
-      },
-      {
-        q: "Toi co the hoc tren dien thoai duoc khong?",
-        a: "Co, nen tang cua chung toi ho tro responsive hoan toan. Ban co the hoc tren moi thiet bi: may tinh, tablet, dien thoai thong minh.",
-      },
-      {
-        q: "Co duoc hoan tien neu khong hai long?",
-        a: "Chung toi co chinh sach hoan tien trong vong 7 ngay ke tu ngay mua khoa hoc neu ban khong hai long voi noi dung.",
-      },
+      { q: "CodeCamp là gì?", a: "CodeCamp là nền tảng học lập trình trực tuyến hàng đầu Việt Nam, cung cấp hàng trăm khóa học chất lượng cao về lập trình và công nghệ." },
+      { q: "Tôi có thể học trên thiết bị nào?", a: "Bạn có thể học trên máy tính, tablet, hoặc điện thoại di động thông qua trình duyệt web." },
+      { q: "Khóa học có thời hạn truy cập không?", a: "Không, khi bạn đã đăng ký khóa học, bạn có thể truy cập mãi mãi bao gồm cả các bản cập nhật mới." },
     ],
   },
   {
-    category: "Khoa hoc",
+    category: "Khóa học",
     items: [
-      {
-        q: "Cac khoa hoc co thoi han truy cap khong?",
-        a: "Khong, khi ban da mua khoa hoc, ban co quyen truy cap vinh vien va co the xem lai bat cu luc nao.",
-      },
-      {
-        q: "Toi co nhan duoc chung chi sau khi hoan thanh khong?",
-        a: "Co, sau khi hoan thanh khoa hoc va vuot qua bai kiem tra cuoi khoa, ban se nhan duoc chung chi hoan thanh co the tai ve va chia se.",
-      },
-      {
-        q: "Co ho tro giang vien truc tiep khong?",
-        a: "Co, moi khoa hoc deu co phan hoi dap voi giang vien. Ngoai ra, cac khoa hoc premium con co ho tro 1-1 qua video call.",
-      },
-      {
-        q: "Noi dung khoa hoc co duoc cap nhat khong?",
-        a: "Co, chung toi thuong xuyen cap nhat noi dung khoa hoc de dam bao kien thuc luon moi va phu hop voi xu huong cong nghe hien tai.",
-      },
+      { q: "Làm sao để đăng ký khóa học?", a: "Bạn chỉ cần tạo tài khoản, chọn khóa học mong muốn và tiến hành thanh toán. Sau khi thanh toán thành công, bạn có thể bắt đầu học ngay." },
+      { q: "Tôi có nhận được chứng chỉ không?", a: "Có, sau khi hoàn thành khóa học, bạn sẽ nhận được chứng chỉ hoàn thành có thể thêm vào hồ sơ cá nhân." },
+      { q: "Tôi có thể hỏi giảng viên không?", a: "Có, mỗi khóa học đều có phần hỏi đáp nơi bạn có thể đặt câu hỏi trực tiếp cho giảng viên." },
     ],
   },
   {
-    category: "Thanh toan",
+    category: "Thanh toán",
     items: [
-      {
-        q: "Cac hinh thuc thanh toan nao duoc ho tro?",
-        a: "Chung toi ho tro thanh toan qua the ngan hang, vi dien tu (MoMo, ZaloPay, VNPay), chuyen khoan ngan hang va the Visa/Mastercard.",
-      },
-      {
-        q: "Co chuong trinh giam gia nao khong?",
-        a: "Co, chung toi thuong xuyen co cac chuong trinh khuyen mai, giam gia dac biet. Hay theo doi trang web va dang ky nhan email de khong bo lo.",
-      },
-      {
-        q: "Toi co the mua khoa hoc tang nguoi khac khong?",
-        a: "Co, ban co the mua khoa hoc lam qua tang. Chon khoa hoc, chon Mua lam qua tang va nhap email nguoi nhan.",
-      },
+      { q: "CodeCamp hỗ trợ phương thức thanh toán nào?", a: "Chúng tôi hỗ trợ thanh toán qua thẻ tín dụng (Visa, Mastercard), PayPal và chuyển khoản ngân hàng." },
+      { q: "Tôi có thể hoàn tiền không?", a: "Có, chúng tôi có chính sách hoàn tiền trong vòng 30 ngày kể từ ngày mua nếu bạn không hài lòng với khóa học." },
+      { q: "Có ưu đãi cho sinh viên không?", a: "Có, chúng tôi cung cấp mã giảm giá đặc biệt cho sinh viên. Vui lòng liên hệ với chúng tôi để biết thêm chi tiết." },
     ],
   },
 ];
 
-function FAQItem({ question, answer }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition"
-      >
-        <span className="font-medium text-gray-900 pr-4">{question}</span>
-        {open ? (
-          <FiChevronUp className="text-primary shrink-0" size={20} />
-        ) : (
-          <FiChevronDown className="text-gray-400 shrink-0" size={20} />
-        )}
-      </button>
-      {open && (
-        <div className="px-5 pb-4 text-gray-600 text-sm leading-relaxed border-t border-gray-100 pt-3">
-          {answer}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function FAQ() {
   return (
-    <section className="bg-white">
-      <Breadcrumb items={[{ label: "Trang chu", to: "/" }, { label: "Cau hoi thuong gap" }]} />
-
-      <div className="max-w-4xl mx-auto px-4 py-16">
+    <>
+      <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Câu hỏi thường gặp" }]} />
+      <div className="max-w-3xl mx-auto px-5 py-10">
         <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Cau Hoi Thuong Gap</h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Tim cau tra loi cho nhung thac mac pho bien nhat ve CodeCamp va cac khoa hoc cua chung toi.
-          </p>
+          <h1 className="text-3xl font-heading font-bold text-secondary">Câu hỏi thường gặp</h1>
+          <p className="text-gray-600 mt-3">Tìm câu trả lời cho những thắc mắc phổ biến nhất</p>
         </div>
-
-        <div className="space-y-10">
-          {faqData.map((section, i) => (
-            <div key={i}>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">{section.category}</h2>
-              <div className="space-y-3">
-                {section.items.map((item, j) => (
-                  <FAQItem key={j} question={item.q} answer={item.a} />
-                ))}
-              </div>
+        {faqData.map((section) => (
+          <div key={section.category} className="mb-10">
+            <h2 className="text-xl font-heading font-semibold text-secondary mb-5">{section.category}</h2>
+            <div className="flex flex-col gap-3">
+              {section.items.map((item, i) => (
+                <FAQItem key={i} question={item.q} answer={item.a} />
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
-    </section>
+    </>
   );
 }

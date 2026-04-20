@@ -1,87 +1,67 @@
+import { Link } from "react-router-dom";
 import { FiCalendar, FiArrowRight } from "react-icons/fi";
 
 const POSTS = [
   {
     id: 1,
-    title: "10 xu huong lap trinh web noi bat nam 2026",
-    excerpt: "Kham pha nhung cong nghe va framework dang dan dau thi truong...",
-    date: "10/04/2026",
-    image: "https://placehold.co/400x220/564FFD/fff?text=Blog+1",
-    category: "Cong nghe",
+    title: "5 Ngôn ngữ lập trình nên học năm 2026",
+    excerpt: "Khám phá các ngôn ngữ lập trình đang được doanh nghiệp săn đón nhất hiện nay và lộ trình học hiệu quả.",
+    date: "24 Tháng 1, 2026",
+    image: "https://placehold.co/410x267",
+    category: "Lập trình",
   },
   {
     id: 2,
-    title: "Huong dan bat dau hoc AI cho nguoi moi",
-    excerpt: "Lo trinh hoc tri tue nhan tao tu co ban den ung dung thuc te...",
-    date: "08/04/2026",
-    image: "https://placehold.co/400x220/FF6636/fff?text=Blog+2",
-    category: "AI",
+    title: "Hướng dẫn triển khai ứng dụng với Docker",
+    excerpt: "Từng bước triển khai ứng dụng web lên môi trường production sử dụng Docker và Docker Compose.",
+    date: "20 Tháng 1, 2026",
+    image: "https://placehold.co/410x267",
+    category: "DevOps",
   },
   {
     id: 3,
-    title: "5 sai lam thuong gap khi hoc lap trinh",
-    excerpt: "Nhung sai lam can tranh de qua trinh hoc hieu qua hon...",
-    date: "05/04/2026",
-    image: "https://placehold.co/400x220/23BD33/fff?text=Blog+3",
-    category: "Kinh nghiem",
+    title: "Xu hướng thiết kế UI/UX năm 2026",
+    excerpt: "Tổng hợp các xu hướng thiết kế giao diện người dùng nổi bật trong năm 2026.",
+    date: "15 Tháng 1, 2026",
+    image: "https://placehold.co/410x267",
+    category: "Thiết kế",
   },
 ];
 
 export default function BlogSection() {
   return (
-    <section id="blog" className="py-16">
-      <div className="max-w-7xl mx-auto px-4">
+    <section className="py-16 lg:py-20">
+      <div className="max-w-[1290px] mx-auto px-5">
         <div className="flex items-end justify-between mb-12">
           <div>
-            <h2 className="font-heading text-3xl font-bold text-secondary mb-3">
-              Bai viet moi nhat
-            </h2>
-            <p className="text-gray-500">
-              Cap nhat kien thuc va xu huong cong nghe moi
-            </p>
+            <h2 className="text-3xl font-heading font-bold text-secondary">Bài viết mới nhất</h2>
+            <p className="text-gray-600 mt-3">Cập nhật kiến thức và xu hướng công nghệ mới nhất</p>
           </div>
-          <a
-            href="#"
-            className="hidden md:flex items-center gap-2 text-primary font-medium hover:underline"
-          >
-            Xem tat ca <FiArrowRight size={16} />
-          </a>
+          <Link to="/blog" className="hidden lg:flex items-center gap-2 text-primary font-semibold hover:gap-3 transition-all">
+            Xem tất cả <FiArrowRight size={18} />
+          </Link>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {POSTS.map((post) => (
-            <a
-              key={post.id}
-              href="#"
-              className="group bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <img
-                src={post.image}
-                alt={post.title}
-                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="p-5">
-                <span className="text-xs font-medium text-primary bg-primary-light px-2 py-1 rounded">
-                  {post.category}
-                </span>
-                <h3 className="font-semibold text-secondary mt-3 mb-2 group-hover:text-primary transition-colors">
-                  {post.title}
+            <div key={post.id} className="rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+              <img src={post.image} alt={post.title} className="w-full h-52 object-cover" />
+              <div className="p-6 flex flex-col gap-3">
+                <span className="text-xs font-medium text-primary bg-primary-light px-3 py-1 rounded-full self-start">{post.category}</span>
+                <h3 className="text-lg font-semibold text-secondary hover:text-primary transition-colors">
+                  <Link to="/blog/bai-viet">{post.title}</Link>
                 </h3>
-                <p className="text-sm text-gray-500 mb-3">{post.excerpt}</p>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <FiCalendar size={12} />
-                  {post.date}
+                <p className="text-sm text-gray-600 leading-6">{post.excerpt}</p>
+                <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                  <FiCalendar size={14} className="text-primary" /> {post.date}
                 </div>
               </div>
-            </a>
+            </div>
           ))}
         </div>
-        <div className="md:hidden text-center mt-8">
-          <a
-            href="#"
-            className="inline-flex items-center gap-2 text-primary font-medium"
-          >
-            Xem tat ca <FiArrowRight size={16} />
-          </a>
+        <div className="lg:hidden text-center mt-8">
+          <Link to="/blog" className="inline-flex items-center gap-2 text-primary font-semibold">
+            Xem tất cả <FiArrowRight size={18} />
+          </Link>
         </div>
       </div>
     </section>

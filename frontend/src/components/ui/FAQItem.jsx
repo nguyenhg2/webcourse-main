@@ -1,32 +1,20 @@
 import { useState } from "react";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 
-export default function FAQItem({ question, answer, defaultOpen }) {
-  const [open, setOpen] = useState(defaultOpen || false);
+export default function FAQItem({ question, answer }) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="bg-gray-50 rounded-lg">
+    <div className="border border-gray-100 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full px-7 py-5 flex justify-between items-center gap-4"
+        className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
       >
-        <span
-          className={`text-left text-base font-semibold ${
-            open ? "text-primary" : "text-secondary"
-          }`}
-        >
-          {question}
-        </span>
-        {open ? (
-          <FiChevronUp size={24} className="text-gray-400 shrink-0" />
-        ) : (
-          <FiChevronDown size={24} className="text-gray-400 shrink-0" />
-        )}
+        <span className="text-base font-medium text-secondary">{question}</span>
+        {open ? <FiChevronUp size={18} className="text-gray-500 shrink-0" /> : <FiChevronDown size={18} className="text-gray-500 shrink-0" />}
       </button>
-      {open && answer && (
-        <div className="px-7 pb-5">
-          <p className="text-gray-600 text-lg leading-7">{answer}</p>
-        </div>
+      {open && (
+        <div className="px-6 pb-4 text-sm text-gray-600 leading-7">{answer}</div>
       )}
     </div>
   );
