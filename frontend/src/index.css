@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ff6636;
+  --color-primary-light: #ffeee8;
+  --color-secondary: #1d2026;
+  --color-secondary-light: #363b47;
+  --color-accent: #564ffd;
+  --color-accent-light: #ebebff;
+  --color-success: #23bd33;
+  --color-success-light: #e1f7e3;
+  --color-warning: #ffc107;
+  --color-warning-light: #fff4cc;
+  --color-error: #e53935;
+  --color-info: #3b82f6;
+  --color-gray-50: #f5f7fa;
+  --color-gray-100: #e9eaf0;
+  --color-gray-200: #cdd0d8;
+  --color-gray-300: #b7bac7;
+  --color-gray-400: #8c94a3;
+  --color-gray-500: #6e7485;
+  --color-gray-600: #4e5566;
+  --color-gray-700: #363b47;
+  --color-gray-800: #1d2026;
+  --color-gray-900: #0f1119;
+  --color-white: #ffffff;
+
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Exo", "Be Vietnam Pro", sans-serif;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-gray-800);
+    background-color: var(--color-white);
+    line-height: 1.6;
+  }
+}
