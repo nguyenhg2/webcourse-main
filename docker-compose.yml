@@ -1,7 +1,23 @@
 version: "3.8"
 
 services:
+  #DEV — hot reload
+  frontend-dev:
+    profiles: ["dev"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app          
+      - /app/node_modules        
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+  #PROD — nginx static
   frontend:
+    profiles: ["prod"]
     build: ./frontend
     ports:
       - "3000:80"
