@@ -47,7 +47,6 @@ async def get_lesson_content(lesson_id: str, db = Depends(get_db),current_user =
         "course_id": lesson["course_id"],
         "payment_id": {"$exists": True}, # Đảm bảo đã thanh toán    
         "created_at": {"$lte": lesson["created_at"]} # Đảm bảo đã đăng ký trước khi bài học được tạo
-
     })
 
     if not enrollment:
