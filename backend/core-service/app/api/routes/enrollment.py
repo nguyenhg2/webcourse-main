@@ -13,7 +13,8 @@ async def enroll(course_id: str,db = Depends(get_db),user = Depends(get_current_
 
     existing = await db["enrollments"].find_one({
         "user_id": user["_id"],
-        "course_id": course_id
+        "course_id": course_id,
+        "payment_id": {"$exists": True} 
     })
 
     if existing:

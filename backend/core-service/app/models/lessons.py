@@ -8,9 +8,13 @@ class Lesson(BaseModel):
     video_url: str
     duration: int
     is_free_preview: bool
+    attachments: Optional[list] = None
+    order: int
 
 class UpdateLesson(BaseModel):
     title: Optional[str] = None
     video_url: Optional[str] = None
     duration: Optional[int] = None
     is_free_preview: Optional[bool] = None
+    attachments: Optional[list] = None
+    order: Optional[int] = None
