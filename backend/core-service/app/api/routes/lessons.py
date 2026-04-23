@@ -6,7 +6,7 @@ from app.core.deps import get_current_user, require_role
 router=APIRouter()
 
 @router.post("/api/sections/{section_id}/lessons")
-async def create_lesson(section_id: str, lesson: Lesson, db=Depends(get_db), user=Depends(require_role("admin"))):
+async def create_lesson(section_id: str, lesson: Lesson, db=Depends(get_db), user=Depends(require_role("admin","instructor"))):
     lesson_data = lesson.model_dump()
     lesson_data["section_id"] = section_id
     result = await db["lessons"].insert_one(lesson_data)
@@ -14,7 +14,7 @@ async def create_lesson(section_id: str, lesson: Lesson, db=Depends(get_db), use
     return serialize_doc(new_lesson)
 
 @router.put("/api/lessons/{lesson_id}")
-async def update_lesson(lesson_id: str, lesson: UpdateLesson, db=Depends(get_db), user=Depends(require_role("admin"))):
+async def update_lesson(lesson_id: str, lesson: UpdateLesson, db=Depends(get_db), user=Depends(require_role("admin","instructor"))):
     lesson_data = lesson.model_dump()
     result = await db["lessons"].update_one({"_id": lesson_id}, {"$set": lesson_data})
     if result.modified_count == 0:
@@ -23,7 +23,7 @@ async def update_lesson(lesson_id: str, lesson: UpdateLesson, db=Depends(get_db)
     return serialize_doc(updated_lesson)
 
 @router.delete("/api/lessons/{lesson_id}")
-async def delete_lesson(lesson_id: str, db=Depends(get_db), user=Depends(require_role("admin"))):
+async def delete_lesson(lesson_id: str, db=Depends(get_db), user=Depends(require_role("admin","instructor"))):
     result = await db["lessons"].delete_one({"_id": lesson_id})
     if result.deleted_count == 0:
         return {"error": "Không tìm thấy lesson"}
@@ -45,7 +45,9 @@ async def get_lesson_content(lesson_id: str, db = Depends(get_db),current_user =
     enrollment = await db["enrollments"].find_one({
         "user_id": current_user["sub"],
         "course_id": lesson["course_id"],
-        #"status": "completed" # Đảm bảo đã thanh toán thành công
+        "payment_id": {"$exists": True}, # Đảm bảo đã thanh toán    
+        "created_at": {"$lte": lesson["created_at"]} # Đảm bảo đã đăng ký trước khi bài học được tạo
+
     })
 
     if not enrollment:
