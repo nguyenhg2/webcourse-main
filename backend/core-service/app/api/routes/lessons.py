@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.models.lessons import Lesson, UpdateLesson
-from app.db.mongo import get_db, serialize_doc
-from app.core.deps import require_role
+from app.db.mongo import get_db, oid, serialize_doc
+from app.core.deps import get_current_user, require_role
 
 router=APIRouter()
 
@@ -28,3 +28,27 @@ async def delete_lesson(lesson_id: str, db=Depends(get_db), user=Depends(require
     if result.deleted_count == 0:
         return {"error": "Không tìm thấy lesson"}
     return {"message": "Đã xóa thành công lesson"}
+
+@router.get("/api/lessons/{lesson_id}")
+async def get_lesson_content(lesson_id: str, db = Depends(get_db),current_user = Depends(get_current_user)):
+
+    if not oid.is_valid(lesson_id):
+        raise HTTPException(status_code=400, detail="ID bài học không hợp lệ")
+
+    lesson = await db["lessons"].find_one({"_id": oid(lesson_id)})
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bài học")
+
+    if lesson.get("is_free_preview"):
+        return serialize_doc(lesson)
+
+    enrollment = await db["enrollments"].find_one({
+        "user_id": current_user["sub"],
+        "course_id": lesson["course_id"],
+        #"status": "completed" # Đảm bảo đã thanh toán thành công
+    })
+
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="Bạn cần mua khóa học này để xem nội dung bài học")
+
+    return serialize_doc(lesson)
