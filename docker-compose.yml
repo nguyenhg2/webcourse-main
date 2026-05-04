@@ -1,9 +1,22 @@
 version: "3.8"
 
 services:
+  backend:
+    build: ./backend/core-service
+    container_name: webcourse-backend
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGODB_URI=mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0
+      - MONGODB_DB=codecamp_core
+      - JWT_SECRET=dev-secret
+      - CORS_ORIGINS=*
+    restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     container_name: webcourse-frontend
     ports:
       - "5173:5173"
@@ -12,7 +25,23 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8001
     command: npm run dev -- --host 0.0.0.0
     stdin_open: true
     tty: true
     restart: unless-stopped
+    depends_on:
+      - backend
+
+  seed:
+    build: ./backend/core-service
+    container_name: webcourse-seed
+    working_dir: /app
+    command: python -c "import sys; sys.path.insert(0,'/seed'); exec(open('/seed/seed.py').read())"
+    volumes:
+      - ./backend:/seed
+    environment:
+      - MONGODB_URI=mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0
+      - MONGODB_DB=codecamp_core
+    profiles:
+      - seed
