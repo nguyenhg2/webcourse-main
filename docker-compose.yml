@@ -45,3 +45,14 @@ services:
       - MONGODB_DB=codecamp_core
     profiles:
       - seed
+
+  payment:
+    build: ./backend/payment-service
+    container_name: webcourse-payment
+    ports:
+      - "8002:8002"
+    environment:
+      - MONGODB_URI=mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0
+    restart: unless-stopped
+    depends_on:
+      - backend
