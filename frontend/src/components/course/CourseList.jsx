@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import CourseCard from "./CourseCard";
+<<<<<<< HEAD
 import { getCoursesAPI } from "../../services/api";
+=======
+
+const COURSES = [
+  { id: 1, slug: "react-js-tu-co-ban-den-nang-cao", title: "React.js Từ Cơ Bản Đến Nâng Cao", category: "Web Development", instructor: "Đinh Thành Nguyên", image: "/images/react.png", duration: "2 Tuần", students: 156, level: "Tất cả cấp độ", lessons: 20, price: 0, originalPrice: 399000 },
+  { id: 2, slug: "python-cho-nguoi-moi-bat-dau", title: "Python Cho Người Mới Bắt Đầu", category: "Python", instructor: "Nguyễn Phương Tây", image: "/images/python.png", duration: "3 Tuần", students: 234, level: "Người mới", lessons: 25, price: 299000, originalPrice: 599000 },
+  { id: 3, slug: "nodejs-va-express", title: "Node.js và Express Framework", category: "Web Development", instructor: "Đinh Thành Nguyên", image: "/images/nodejs.png", duration: "4 Tuần", students: 98, level: "Cơ bản", lessons: 30, price: 0, originalPrice: 499000 },
+  { id: 4, slug: "lap-trinh-android-voi-kotlin", title: "Lập Trình Android Với Kotlin", category: "Ứng dụng di động", instructor: "Nguyễn Phương Tây", image: "/images/kotlin.png", duration: "5 Tuần", students: 120, level: "Cơ bản", lessons: 35, price: 499000, originalPrice: 799000 },
+];
+>>>>>>> 4d5aac28504ee93ec1f3aeacaf0235f248c2cc25
 
 export default function CourseList() {
   const [courses, setCourses] = useState([]);

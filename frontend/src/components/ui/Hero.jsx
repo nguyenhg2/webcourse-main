@@ -3,48 +3,56 @@ import { FiPlay } from "react-icons/fi";
 
 export default function Hero() {
   return (
-    <section className="bg-gray-50">
-      <div className="max-w-[1290px] mx-auto px-5 py-16 lg:py-24 flex flex-col lg:flex-row items-center gap-12">
-        <div className="flex-1 flex flex-col gap-6">
-          <span className="text-primary font-semibold text-sm uppercase tracking-wider">
-            Nền tảng học trực tuyến #1 Việt Nam
-          </span>
-          <h1 className="text-4xl lg:text-5xl font-heading font-bold text-secondary leading-tight">
-            Học lập trình trực tuyến từ zero đến hero
+    <section className="relative min-h-screen flex items-center overflow-hidden">
+      
+      <img 
+        src="/images/Home_image.png" 
+        alt="ảnh trang chủ"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+
+      <div className="absolute inset-0 bg-linear-to-r from-black/50 via-black/30 to-transparent"></div>
+
+      <div className="relative z-10 max-w-[1290px] mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-12 items-center h-full">
+        
+        <div className="flex flex-col gap-6 max-w-lg">
+                    
+          <h1 className="text-4xl lg:text-5xl py-2 xl:text-6xl font-bold leading-tight text-primary-light">
+            Nền tảng học lập trình trực tuyến từ<br/>
+            <span className="text-primary"> zero đến heroooooo</span>
           </h1>
-          <p className="text-gray-600 text-lg leading-8 max-w-lg">
+
+          <p className="text-primary-light text-xl leading-6">
             Khám phá hàng trăm khóa học chất lượng cao được thiết kế bởi các chuyên gia hàng đầu trong ngành công nghệ.
           </p>
-          <div className="flex items-center gap-4 mt-2">
-            <Link
+
+          <div className="flex items-center gap-4 mt-4">
+            <Link 
               to="/khoa-hoc"
-              className="px-8 py-3.5 bg-primary text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors"
+              className="px-8 py-4 bg-primary text-primary-light font-semibold rounded-full hover:bg-orange-600 transition-colors"
             >
               Khám phá khóa học
             </Link>
-            <button className="flex items-center gap-2 px-6 py-3.5 text-secondary font-semibold hover:text-primary transition-colors">
-              <span className="w-10 h-10 rounded-full bg-primary-light text-primary flex items-center justify-center">
-                <FiPlay size={16} />
+            
+            <button className="flex items-center gap-3 px-6 py-4 text-primary-light font-semibold hover:text-orange-300 transition-colors">
+              <span className="w-10 h-10 rounded-full bg-primary-light/20 backdrop-blur-md flex items-center justify-center">
+                <FiPlay size={18} />
               </span>
               Xem giới thiệu
             </button>
           </div>
         </div>
-        <div className="flex-1 relative">
-          <img
-            src="https://placehold.co/600x450"
-            alt="Học lập trình trực tuyến"
-            className="rounded-2xl w-full"
-          />
-          <div className="hidden lg:flex absolute -bottom-6 -left-6 bg-white rounded-xl shadow-lg px-5 py-4 items-center gap-3">
-            <span className="text-3xl font-heading font-bold text-primary">25K+</span>
-            <span className="text-sm text-gray-600">Học viên<br />đang học</span>
-          </div>
-          <div className="hidden lg:flex absolute -top-6 -right-6 bg-white rounded-xl shadow-lg px-5 py-4 items-center gap-3">
-            <span className="text-3xl font-heading font-bold text-accent">899</span>
-            <span className="text-sm text-gray-600">Khóa học<br />chất lượng</span>
-          </div>
-        </div>
+
+      </div>
+
+      <div className="absolute bottom-12 left-12 bg-primary-light rounded-full shadow-2xl px-6 py-4 hidden xl:flex items-center gap-4">
+        <span className="text-4xl font-bold text-[#FF782D]">25K+</span>
+        <span className="text-sm text-gray-700">Học viên<br />đang học</span>
+      </div>
+
+      <div className="absolute bottom-12 right-12 bg-primary-light rounded-full shadow-2xl px-6 py-4 hidden xl:flex items-center gap-4">
+        <span className="text-4xl font-bold text-[#FF782D]">899</span>
+        <span className="text-sm text-gray-700">Khóa học<br />chất lượng</span>
       </div>
     </section>
   );

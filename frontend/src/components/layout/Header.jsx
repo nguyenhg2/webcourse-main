@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { FiPhone, FiMail, FiSearch, FiMenu, FiX, FiChevronDown, FiUser, FiBookOpen, FiLogOut } from "react-icons/fi";
-import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 
 const navLinks = [
   { to: "/", label: "Trang chủ" },
   { to: "/khoa-hoc", label: "Khóa học" },
-  { to: "/blog", label: "Blog" },
+  { to: "/blog", label: "Chia sẻ" },
   { to: "/lien-he", label: "Liên hệ" },
-  { to: "/faq", label: "FAQ" },
+  { to: "/faq", label: "Câu hỏi" },
 ];
 
 export default function Header() {
@@ -30,27 +29,9 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-      <div className="bg-gray-900 text-white text-sm hidden lg:block">
-        <div className="max-w-[1290px] mx-auto px-5 flex items-center justify-between h-12">
-          <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2">
-              <FiPhone size={14} /> +(123) 2500-567-8988
-            </span>
-            <span className="flex items-center gap-2">
-              <FiMail size={14} /> supportlms@gmail.com
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-primary transition-colors"><FaFacebookF size={14} /></a>
-            <a href="#" className="hover:text-primary transition-colors"><FaTwitter size={14} /></a>
-            <a href="#" className="hover:text-primary transition-colors"><FaLinkedinIn size={14} /></a>
-            <a href="#" className="hover:text-primary transition-colors"><FaInstagram size={14} /></a>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-[1290px] mx-auto px-5 flex items-center justify-between h-20">
-        <Link to="/" className="text-2xl font-heading font-bold text-primary">
+      <div className="max-w-[1290px] mx-auto px-5 flex items-center justify-between h-15">
+                
+        <Link to="/" className="text-2xl font-heading font-bold text-primary justify-self-start">
           CodeCamp
         </Link>
 
@@ -118,13 +99,13 @@ export default function Header() {
             <>
               <Link
                 to="/dang-nhap"
-                className="px-5 py-2.5 text-sm font-semibold text-primary border border-primary rounded-lg hover:bg-primary-light transition-colors"
+                className="px-5 py-2.5 text-sm font-semibold text-primary border-primary rounded-full hover:bg-primary-light transition-colors"
               >
                 Đăng nhập
               </Link>
               <Link
                 to="/dang-ky"
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-orange-600 transition-colors"
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-full hover:bg-orange-600 transition-colors"
               >
                 Đăng ký
               </Link>
@@ -184,14 +165,14 @@ export default function Header() {
               <Link
                 to="/dang-nhap"
                 onClick={() => setMobileOpen(false)}
-                className="text-center px-5 py-2.5 text-sm font-semibold text-primary border border-primary rounded-lg"
+                className="text-center px-5 py-2.5 font-semibold text-primary border-primary rounded-full"
               >
                 Đăng nhập
               </Link>
               <Link
                 to="/dang-ky"
                 onClick={() => setMobileOpen(false)}
-                className="text-center px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-lg"
+                className="text-center px-5 py-2.5 font-semibold text-white bg-primary rounded-full"
               >
                 Đăng ký
               </Link>

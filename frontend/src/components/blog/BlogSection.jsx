@@ -7,7 +7,7 @@ const POSTS = [
     title: "5 Ngôn ngữ lập trình nên học năm 2026",
     excerpt: "Khám phá các ngôn ngữ lập trình đang được doanh nghiệp săn đón nhất hiện nay và lộ trình học hiệu quả.",
     date: "24 Tháng 1, 2026",
-    image: "https://placehold.co/410x267",
+    image: "/images/blog1.png",
     category: "Lập trình",
   },
   {
@@ -15,7 +15,7 @@ const POSTS = [
     title: "Hướng dẫn triển khai ứng dụng với Docker",
     excerpt: "Từng bước triển khai ứng dụng web lên môi trường production sử dụng Docker và Docker Compose.",
     date: "20 Tháng 1, 2026",
-    image: "https://placehold.co/410x267",
+    image: "/images/blog2.png",
     category: "DevOps",
   },
   {
@@ -23,7 +23,7 @@ const POSTS = [
     title: "Xu hướng thiết kế UI/UX năm 2026",
     excerpt: "Tổng hợp các xu hướng thiết kế giao diện người dùng nổi bật trong năm 2026.",
     date: "15 Tháng 1, 2026",
-    image: "https://placehold.co/410x267",
+    image: "/images/blog3.png",
     category: "Thiết kế",
   },
 ];
