@@ -3,12 +3,17 @@ from pydantic import Field
 
 
 class Settings(BaseSettings):
-    mongo_url: str = Field(default="mongodb://localhost:27017", alias="MONGODB_URI")
-    mongo_db: str = Field(default="webcourse", alias="MONGODB_DB")
+    mongo_url: str = Field(
+        default="mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0",
+        alias="MONGODB_URI",
+    )
+    mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
     jwt_secret: str = Field(default="dev-secret", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    access_token_expire_minutes: int = Field(default=60 * 12, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
-    cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
+    access_token_expire_minutes: int = Field(
+        default=60 * 12, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
+    )
+    cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
 
     class Config:
         env_file = ".env"
