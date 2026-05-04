@@ -20,6 +20,11 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import MyCourses from "./pages/MyCourses";
 
+// Dashboard Components
+import DashboardLayout from "./components/layout/DashboardLayout";
+import DashboardOverview from "./pages/dashboard/DashboardOverview";
+import PlaceholderPage from "./pages/dashboard/PlaceholderPage";
+
 function MainLayout() {
   return (
     <>
@@ -53,6 +58,28 @@ export default function App() {
               <Route path="/trang-ca-nhan" element={<Profile />} />
               <Route path="/khoa-hoc-cua-toi" element={<MyCourses />} />
               <Route path="*" element={<NotFound />} />
+            </Route>
+
+            {/* Dashboard Routes for Admin, Operator, Instructor */}
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<DashboardOverview />} />
+              
+              {/* Instructor Routes */}
+              <Route path="courses" element={<PlaceholderPage title="Quản lý khóa học" description="Thêm, sửa, xóa khóa học và bài giảng." />} />
+              <Route path="students" element={<PlaceholderPage title="Quản lý học viên" description="Xem danh sách học viên và tiến độ học tập." />} />
+              <Route path="qa" element={<PlaceholderPage title="Giải đáp Q&A" description="Trả lời các câu hỏi của học viên." />} />
+              
+              {/* Operator Routes */}
+              <Route path="reviews" element={<PlaceholderPage title="Kiểm duyệt khóa học" description="Phê duyệt nội dung trước khi xuất bản." />} />
+              <Route path="payments" element={<PlaceholderPage title="Hỗ trợ thanh toán" description="Kiểm tra và xử lý các giao dịch lỗi." />} />
+              <Route path="complaints" element={<PlaceholderPage title="Giải quyết khiếu nại" description="Xử lý khiếu nại từ học viên và giảng viên." />} />
+              
+              {/* Admin Routes */}
+              <Route path="users" element={<PlaceholderPage title="Quản lý người dùng" description="Quản trị tài khoản toàn hệ thống." />} />
+              <Route path="categories" element={<PlaceholderPage title="Quản lý danh mục" description="Thiết lập danh mục khóa học và blog." />} />
+              <Route path="coupons" element={<PlaceholderPage title="Mã giảm giá" description="Tạo và quản lý các mã khuyến mãi." />} />
+              <Route path="blogs" element={<PlaceholderPage title="Quản lý Blog" description="Đăng và chỉnh sửa bài viết trên Blog." />} />
+              <Route path="settings" element={<PlaceholderPage title="Cấu hình hệ thống" description="Thiết lập các thông số chung cho website." />} />
             </Route>
           </Routes>
         </BrowserRouter>
