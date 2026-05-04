@@ -12,6 +12,7 @@ class RegisterRequest(BaseModel):
     password: str
     role: Role = Role.student
     avatar: Optional[str] = None
+    created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -23,3 +24,4 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     avatar: Optional[str] = None
+    created_at: Optional[str] = None

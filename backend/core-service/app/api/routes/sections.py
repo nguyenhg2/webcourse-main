@@ -6,7 +6,7 @@ from app.db.mongo import get_db, serialize_doc
 router=APIRouter()
 
 @router.post("/api/courses/{course_id}/sections")
-async def create_section(course_id: str, payload: Section, db=Depends(get_db),user=Depends(require_role("admin"))):
+async def create_section(course_id: str, payload: Section, db=Depends(get_db),user=Depends(require_role("admin","instructor"))):
     new_section = {
         "course_id": course_id,
         "title": payload.title,
@@ -17,7 +17,7 @@ async def create_section(course_id: str, payload: Section, db=Depends(get_db),us
     return serialize_doc(new_section)
 
 @router.put("/api/sections/{section_id}")
-async def update_section(section_id: str, payload: UpdateSection, db=Depends(get_db), user=Depends(require_role("admin"))):
+async def update_section(section_id: str, payload: UpdateSection, db=Depends(get_db), user=Depends(require_role("admin","instructor"))):
     result = await db["sections"].update_one(
         {"_id": section_id},
         {"$set": {
@@ -31,7 +31,7 @@ async def update_section(section_id: str, payload: UpdateSection, db=Depends(get
     return serialize_doc(updated_section)
 
 @router.delete("/api/sections/{section_id}")
-async def delete_section(section_id: str, db=Depends(get_db), user=Depends(require_role("admin"))):
+async def delete_section(section_id: str, db=Depends(get_db), user=Depends(require_role("admin","instructor"))):
     result = await db["sections"].delete_one({"_id": section_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Không tìm thấy section")
