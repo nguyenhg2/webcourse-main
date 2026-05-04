@@ -25,8 +25,12 @@ export default function Login() {
     setError("");
     setSubmitting(true);
     try {
-      await login(form.email, form.password);
-      navigate("/");
+      const user = await login(form.email, form.password);
+      if (user.role === 'student') {
+        navigate('/khoa-hoc-cua-toi');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       const msg =
         err.response?.data?.detail || "Email hoặc mật khẩu không đúng";

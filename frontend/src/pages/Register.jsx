@@ -31,15 +31,21 @@ export default function Register() {
       return;
     }
     setSubmitting(true);
+
     try {
-      await register(form.username, form.email, form.password);
-      navigate("/");
+      const user = await register(form.username, form.email, form.password);
+      if (user.role === 'student') {
+        navigate('/khoa-hoc-cua-toi');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       const msg = err.response?.data?.detail || "Đăng ký thất bại";
       setError(msg);
     } finally {
       setSubmitting(false);
     }
+
   }
 
   return (
