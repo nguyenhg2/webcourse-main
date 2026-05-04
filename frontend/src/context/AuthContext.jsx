@@ -1,46 +1,46 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { loginAPI, registerAPI, getMeAPI } from "../services/api";
+import { getMeAPI, loginAPI, registerAPI } from "../services/api";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("codecamp_token");
-    if (token) {
-      getMeAPI()
-        .then((data) => setUser(data))
-        .catch(() => {
-          localStorage.removeItem("codecamp_token");
-          localStorage.removeItem("codecamp_user");
-        })
-        .finally(() => setLoading(false));
-    } else {
+    const token = localStorage.getItem("token");
+    if (!token) {
       setLoading(false);
+      return;
     }
+    getMeAPI()
+      .then((data) => setUser(data))
+      .catch(() => {
+        localStorage.removeItem("token");
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  async function login(email, password) {
+  const login = async (email, password) => {
     const data = await loginAPI(email, password);
-    localStorage.setItem("codecamp_token", data.access_token);
+    localStorage.setItem("token", data.access_token);
     const me = await getMeAPI();
     setUser(me);
-    localStorage.setItem("codecamp_user", JSON.stringify(me));
+    localStorage.setItem("user", JSON.stringify(me));
     return me;
-  }
+  };
 
-  async function register(name, email, password) {
+  const register = async (name, email, password) => {
     await registerAPI(name, email, password);
-    return await login(email, password);
-  }
+    return login(email, password);
+  };
 
-  function logout() {
+  const logout = () => {
     setUser(null);
-    localStorage.removeItem("codecamp_token");
-    localStorage.removeItem("codecamp_user");
-  }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading }}>

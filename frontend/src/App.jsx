@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ScrollToTop from "./components/ui/ScrollToTop";
@@ -20,11 +20,11 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import MyCourses from "./pages/MyCourses";
 
-function MainLayout({ children }) {
+function MainLayout() {
   return (
     <>
       <Header />
-      {children}
+      <Outlet />
       <Footer />
     </>
   );
@@ -38,29 +38,22 @@ export default function App() {
           <ScrollToTop />
           <Routes>
             <Route path="/khoa-hoc/:slug/hoc/:lessonId" element={<LessonPlayer />} />
-            <Route
-              path="*"
-              element={
-                <MainLayout>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/khoa-hoc" element={<CourseListingPage />} />
-                    <Route path="/khoa-hoc/:slug" element={<CourseSingle />} />
-                    <Route path="/blog" element={<BlogListing />} />
-                    <Route path="/blog/:slug" element={<BlogSingle />} />
-                    <Route path="/lien-he" element={<Contact />} />
-                    <Route path="/faq" element={<FAQ />} />
-                    <Route path="/dang-nhap" element={<Login />} />
-                    <Route path="/dang-ky" element={<Register />} />
-                    <Route path="/thanh-toan" element={<Payment />} />
-                    <Route path="/thanh-toan-thanh-cong" element={<PaymentSuccess />} />
-                    <Route path="/trang-ca-nhan" element={<Profile />} />
-                    <Route path="/khoa-hoc-cua-toi" element={<MyCourses />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </MainLayout>
-              }
-            />
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/khoa-hoc" element={<CourseListingPage />} />
+              <Route path="/khoa-hoc/:slug" element={<CourseSingle />} />
+              <Route path="/blog" element={<BlogListing />} />
+              <Route path="/blog/:slug" element={<BlogSingle />} />
+              <Route path="/lien-he" element={<Contact />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/dang-nhap" element={<Login />} />
+              <Route path="/dang-ky" element={<Register />} />
+              <Route path="/thanh-toan" element={<Payment />} />
+              <Route path="/thanh-toan-thanh-cong" element={<PaymentSuccess />} />
+              <Route path="/trang-ca-nhan" element={<Profile />} />
+              <Route path="/khoa-hoc-cua-toi" element={<MyCourses />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

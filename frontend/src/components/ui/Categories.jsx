@@ -30,7 +30,13 @@ export default function Categories() {
 
   useEffect(() => {
     getCategoriesAPI()
-      .then((data) => setCategories(data))
+      .then((data) => {
+        // API trả về mảng object {_id, name, icon} — chỉ lấy name
+        const names = data.map((item) =>
+          typeof item === "string" ? item : item.name
+        );
+        setCategories(names);
+      })
       .catch(() => setCategories([]))
       .finally(() => setLoading(false));
   }, []);
@@ -58,7 +64,7 @@ export default function Categories() {
             Khám phá các lĩnh vực công nghệ đang được săn đón nhất hiện nay
           </p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
           {categories.map((name) => (
             <div
               key={name}
