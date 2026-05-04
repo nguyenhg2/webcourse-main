@@ -1,10 +1,11 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
+import os
 
 
 class Settings(BaseSettings):
     mongo_url: str = Field(
-        default="mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0",
+        default=os.getenv("MONGODB_URI"),
         alias="MONGODB_URI",
     )
     mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
