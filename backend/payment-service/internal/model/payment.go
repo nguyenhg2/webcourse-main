@@ -19,9 +19,16 @@ type Payment struct {
 type PaymentRequest struct {
 	CourseIDs  []string `json:"course_ids"`
 	CouponCode string   `json:"coupon_code,omitempty"`
+	Amount     int64    `json:"amount,omitempty"`
 }
 
 type PaymentResponse struct {
 	ClientSecret string `json:"client_secret"`
 	PaymentID    string `json:"payment_id"`
+	Amount       int64  `json:"amount"`
+	Status       string `json:"status"`
+}
+
+type ConfirmPaymentRequest struct {
+	PaymentID string `json:"payment_id"`
 }

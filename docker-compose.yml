@@ -1,17 +1,26 @@
-version: "3.8"
-
 services:
+  mongo:
+    image: mongo:7
+    container_name: webcourse-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
   backend:
     build: ./backend/core-service
     container_name: webcourse-backend
     ports:
       - "8001:8001"
     environment:
-      - MONGODB_URI=mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0
-      - MONGODB_DB=codecamp_core
-      - JWT_SECRET=dev-secret
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_DB=${MONGODB_DB:-codecamp_core}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - CORS_ORIGINS=*
     restart: unless-stopped
+    depends_on:
+      - mongo
 
   frontend:
     build:
@@ -26,12 +35,14 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_URL=http://localhost:8001
+      - VITE_PAYMENT_API_URL=http://localhost:8002
     command: npm run dev -- --host 0.0.0.0
     stdin_open: true
     tty: true
     restart: unless-stopped
     depends_on:
       - backend
+      - payment
 
   seed:
     build: ./backend/core-service
@@ -41,10 +52,12 @@ services:
     volumes:
       - ./backend:/seed
     environment:
-      - MONGODB_URI=mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0
-      - MONGODB_DB=codecamp_core
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_DB=${MONGODB_DB:-codecamp_core}
     profiles:
       - seed
+    depends_on:
+      - mongo
 
   payment:
     build: ./backend/payment-service
@@ -52,7 +65,17 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - MONGODB_URI=mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
+      - PORT=8002
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
     restart: unless-stopped
     depends_on:
       - backend
+      - mongo
+
+volumes:
+  mongo_data:

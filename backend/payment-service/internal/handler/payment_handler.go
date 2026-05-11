@@ -19,7 +19,11 @@ func RegisterPaymentHandlers(g *gin.RouterGroup, db *mongo.Database, rc *redis.C
 	paymentSvc := service.NewPaymentService(paymentRepo, couponRepo, rc)
 	h := &PaymentHandler{service: paymentSvc}
 
+	g.POST("", h.CreatePaymentIntent)
 	g.POST("/create", h.CreatePaymentIntent)
+	g.POST("/confirm-test", h.ConfirmTestPayment)
+	g.GET("/history", h.PaymentHistory)
+	g.GET("/:id", h.GetPayment)
 	g.POST("/webhook", webhookHandler)
 }
 
@@ -44,7 +48,40 @@ func (h *PaymentHandler) CreatePaymentIntent(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (h *PaymentHandler) ConfirmTestPayment(c *gin.Context) {
+	var req model.ConfirmPaymentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.ConfirmTestPayment(c.Request.Context(), req.PaymentID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "completed"})
+}
+
+func (h *PaymentHandler) GetPayment(c *gin.Context) {
+	payment, err := h.service.GetPayment(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+		return
+	}
+	c.JSON(http.StatusOK, payment)
+}
+
+func (h *PaymentHandler) PaymentHistory(c *gin.Context) {
+	userID := c.GetString("user_id")
+	payments, err := h.service.PaymentHistory(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"payments": payments})
+}
+
 func webhookHandler(c *gin.Context) {
-	// TODO: Stripe webhook verification + call service.PaymentSuccess
 	c.JSON(http.StatusOK, gin.H{"status": "received"})
 }

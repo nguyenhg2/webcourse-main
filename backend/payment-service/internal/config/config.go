@@ -8,11 +8,14 @@ import (
 )
 
 type Config struct {
-	MongoURI  string
-	JWTSecret string
-	RedisURL  string
-	StripeKey string
-	Port      string
+	MongoURI         string
+	JWTSecret        string
+	RedisURL         string
+	StripeKey        string
+	CloudinaryCloud  string
+	CloudinaryKey    string
+	CloudinarySecret string
+	Port             string
 }
 
 func Load() *Config {
@@ -21,11 +24,14 @@ func Load() *Config {
 	}
 
 	return &Config{
-		MongoURI:  getEnv("MONGODB_URI", "mongodb://mongo:27017/codecamp_payment"),
-		JWTSecret: getEnv("JWT_SECRET", "dev-secret"),
-		RedisURL:  getEnv("REDIS_URL", "redis://localhost:6379"),
-		StripeKey: getEnv("STRIPE_SECRET_KEY", "sk_test_..."),
-		Port:      getEnv("PORT", "8002"),
+		MongoURI:         getEnv("MONGODB_URI", "mongodb://localhost:27017"),
+		JWTSecret:        getEnv("JWT_SECRET", "dev-secret"),
+		RedisURL:         getEnv("REDIS_URL", "localhost:6379"),
+		StripeKey:        getEnv("STRIPE_SECRET_KEY", ""),
+		CloudinaryCloud:  getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CloudinaryKey:    getEnv("CLOUDINARY_API_KEY", ""),
+		CloudinarySecret: getEnv("CLOUDINARY_API_SECRET", ""),
+		Port:             getEnv("PORT", "8002"),
 	}
 }
 

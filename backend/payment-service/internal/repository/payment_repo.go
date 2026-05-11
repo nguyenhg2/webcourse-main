@@ -7,6 +7,7 @@ import (
 	"payment-service/internal/model"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -27,12 +28,34 @@ func (r *PaymentRepo) CreatePayment(ctx context.Context, payment *model.Payment)
 }
 
 func (r *PaymentRepo) GetPaymentByID(ctx context.Context, id string) (*model.Payment, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
 	var payment model.Payment
-	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&payment)
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&payment)
 	return &payment, err
 }
 
 func (r *PaymentRepo) UpdatePayment(ctx context.Context, id string, update bson.M) error {
-	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": update})
 	return err
+}
+
+func (r *PaymentRepo) ListPaymentsByUser(ctx context.Context, userID string) ([]*model.Payment, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var payments []*model.Payment
+	if err := cursor.All(ctx, &payments); err != nil {
+		return nil, err
+	}
+	return payments, nil
 }

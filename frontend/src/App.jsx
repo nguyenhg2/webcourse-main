@@ -19,11 +19,15 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import MyCourses from "./pages/MyCourses";
-
-// Dashboard Components
+import Cart from "./pages/Cart";
+import RoadmapListing from "./pages/RoadmapListing";
+import RoadmapDetail from "./pages/RoadmapDetail";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import PlaceholderPage from "./pages/dashboard/PlaceholderPage";
+import CourseManager from "./pages/dashboard/CourseManager";
+import PaymentManager from "./pages/dashboard/PaymentManager";
+import CouponManager from "./pages/dashboard/CouponManager";
 
 function MainLayout() {
   return (
@@ -53,6 +57,9 @@ export default function App() {
               <Route path="/faq" element={<FAQ />} />
               <Route path="/dang-nhap" element={<Login />} />
               <Route path="/dang-ky" element={<Register />} />
+              <Route path="/gio-hang" element={<Cart />} />
+              <Route path="/lo-trinh" element={<RoadmapListing />} />
+              <Route path="/lo-trinh/:id" element={<RoadmapDetail />} />
               <Route path="/thanh-toan" element={<Payment />} />
               <Route path="/thanh-toan-thanh-cong" element={<PaymentSuccess />} />
               <Route path="/trang-ca-nhan" element={<Profile />} />
@@ -60,26 +67,19 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Route>
 
-            {/* Dashboard Routes for Admin, Operator, Instructor */}
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
-              
-              {/* Instructor Routes */}
-              <Route path="courses" element={<PlaceholderPage title="Quản lý khóa học" description="Thêm, sửa, xóa khóa học và bài giảng." />} />
+              <Route path="courses" element={<CourseManager />} />
               <Route path="students" element={<PlaceholderPage title="Quản lý học viên" description="Xem danh sách học viên và tiến độ học tập." />} />
-              <Route path="qa" element={<PlaceholderPage title="Giải đáp Q&A" description="Trả lời các câu hỏi của học viên." />} />
-              
-              {/* Operator Routes */}
+              <Route path="qa" element={<PlaceholderPage title="Giải đáp Q&A" description="Trả lời câu hỏi của học viên." />} />
               <Route path="reviews" element={<PlaceholderPage title="Kiểm duyệt khóa học" description="Phê duyệt nội dung trước khi xuất bản." />} />
-              <Route path="payments" element={<PlaceholderPage title="Hỗ trợ thanh toán" description="Kiểm tra và xử lý các giao dịch lỗi." />} />
-              <Route path="complaints" element={<PlaceholderPage title="Giải quyết khiếu nại" description="Xử lý khiếu nại từ học viên và giảng viên." />} />
-              
-              {/* Admin Routes */}
-              <Route path="users" element={<PlaceholderPage title="Quản lý người dùng" description="Quản trị tài khoản toàn hệ thống." />} />
-              <Route path="categories" element={<PlaceholderPage title="Quản lý danh mục" description="Thiết lập danh mục khóa học và blog." />} />
-              <Route path="coupons" element={<PlaceholderPage title="Mã giảm giá" description="Tạo và quản lý các mã khuyến mãi." />} />
-              <Route path="blogs" element={<PlaceholderPage title="Quản lý Blog" description="Đăng và chỉnh sửa bài viết trên Blog." />} />
-              <Route path="settings" element={<PlaceholderPage title="Cấu hình hệ thống" description="Thiết lập các thông số chung cho website." />} />
+              <Route path="payments" element={<PaymentManager />} />
+              <Route path="complaints" element={<PlaceholderPage title="Khiếu nại" description="Theo dõi phản hồi từ người học." />} />
+              <Route path="users" element={<PlaceholderPage title="Quản lý người dùng" description="Quản trị tài khoản và vai trò." />} />
+              <Route path="categories" element={<PlaceholderPage title="Quản lý danh mục" description="Thiết lập danh mục khóa học." />} />
+              <Route path="coupons" element={<CouponManager />} />
+              <Route path="blogs" element={<PlaceholderPage title="Quản lý Blog" description="Đăng và chỉnh sửa bài viết." />} />
+              <Route path="settings" element={<PlaceholderPage title="Cấu hình hệ thống" description="Thiết lập thông số chung." />} />
             </Route>
           </Routes>
         </BrowserRouter>

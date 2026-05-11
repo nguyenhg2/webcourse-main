@@ -1,34 +1,15 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCalendar, FiArrowRight } from "react-icons/fi";
-
-const POSTS = [
-  {
-    id: 1,
-    title: "5 Ngôn ngữ lập trình nên học năm 2026",
-    excerpt: "Khám phá các ngôn ngữ lập trình đang được doanh nghiệp săn đón nhất hiện nay và lộ trình học hiệu quả.",
-    date: "24 Tháng 1, 2026",
-    image: "/images/blog1.png",
-    category: "Lập trình",
-  },
-  {
-    id: 2,
-    title: "Hướng dẫn triển khai ứng dụng với Docker",
-    excerpt: "Từng bước triển khai ứng dụng web lên môi trường production sử dụng Docker và Docker Compose.",
-    date: "20 Tháng 1, 2026",
-    image: "/images/blog2.png",
-    category: "DevOps",
-  },
-  {
-    id: 3,
-    title: "Xu hướng thiết kế UI/UX năm 2026",
-    excerpt: "Tổng hợp các xu hướng thiết kế giao diện người dùng nổi bật trong năm 2026.",
-    date: "15 Tháng 1, 2026",
-    image: "/images/blog3.png",
-    category: "Thiết kế",
-  },
-];
+import { getBlogsAPI } from "../../services/api";
 
 export default function BlogSection() {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    getBlogsAPI().then((data) => setPosts(data.slice(0, 3))).catch(() => setPosts([]));
+  }, []);
+
   return (
     <section className="py-16 lg:py-20">
       <div className="max-w-[1290px] mx-auto px-5">
@@ -42,17 +23,17 @@ export default function BlogSection() {
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {POSTS.map((post) => (
-            <div key={post.id} className="rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-              <img src={post.image} alt={post.title} className="w-full h-52 object-cover" />
+          {posts.map((post) => (
+            <div key={post._id} className="rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+              <img src={post.image || post.thumbnail} alt={post.title} className="w-full h-52 object-cover" />
               <div className="p-6 flex flex-col gap-3">
-                <span className="text-xs font-medium text-primary bg-primary-light px-3 py-1 rounded-full self-start">{post.category}</span>
+                <span className="text-xs font-medium text-primary bg-primary-light px-3 py-1 rounded-full self-start">Blog</span>
                 <h3 className="text-lg font-semibold text-secondary hover:text-primary transition-colors">
-                  <Link to="/blog/bai-viet">{post.title}</Link>
+                  <Link to={`/blog/${post.slug}`}>{post.title}</Link>
                 </h3>
                 <p className="text-sm text-gray-600 leading-6">{post.excerpt}</p>
                 <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
-                  <FiCalendar size={14} className="text-primary" /> {post.date}
+                  <FiCalendar size={14} className="text-primary" /> {post.created_at}
                 </div>
               </div>
             </div>

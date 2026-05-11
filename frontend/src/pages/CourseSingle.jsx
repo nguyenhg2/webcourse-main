@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   FiClock,
   FiUsers,
@@ -15,7 +15,7 @@ import {
 import Breadcrumb from "../components/layout/Breadcrumb";
 import CommentForm from "../components/ui/CommentForm";
 import CommentList from "../components/ui/CommentList";
-import { getCourseBySlugAPI } from "../services/api";
+import { addCartAPI, getCourseBySlugAPI, getCourseReviewsAPI } from "../services/api";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -47,16 +47,19 @@ function formatDuration(seconds) {
 
 export default function CourseSingle() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSections, setExpandedSections] = useState({});
   const [expandedFaqs, setExpandedFaqs] = useState({});
+  const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
     getCourseBySlugAPI(slug)
       .then((data) => {
         setCourse(data);
+        getCourseReviewsAPI(data._id).then(setReviews).catch(() => setReviews([]));
         if (data.sections && data.sections.length > 0) {
           setExpandedSections({ 0: true });
         }
@@ -71,6 +74,11 @@ export default function CourseSingle() {
 
   function toggleFaq(i) {
     setExpandedFaqs((prev) => ({ ...prev, [i]: !prev[i] }));
+  }
+
+  async function addToCart() {
+    await addCartAPI(course._id);
+    navigate("/gio-hang");
   }
 
   if (loading) {
@@ -220,9 +228,15 @@ export default function CourseSingle() {
                                       className="text-gray-400"
                                     />
                                   )}
-                                  <span className="text-sm text-gray-600">
-                                    {lesson.title}
-                                  </span>
+                                  {lesson.is_free_preview ? (
+                                    <Link to={`/khoa-hoc/${slug}/hoc/${lesson._id}`} className="text-sm text-gray-600 hover:text-primary">
+                                      {lesson.title}
+                                    </Link>
+                                  ) : (
+                                    <span className="text-sm text-gray-600">
+                                      {lesson.title}
+                                    </span>
+                                  )}
                                   {lesson.is_free_preview && (
                                     <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">
                                       Xem thử
@@ -338,7 +352,7 @@ export default function CourseSingle() {
                       </p>
                     </div>
                   </div>
-                  <CommentList />
+                  <CommentList comments={reviews} />
                   <CommentForm />
                 </div>
               )}
@@ -359,10 +373,14 @@ export default function CourseSingle() {
               </div>
               <Link
                 to="/thanh-toan"
+                state={{ courseId: course._id, title: course.title, price: course.price, thumbnail: course.thumbnail }}
                 className="w-full py-3 bg-primary text-white font-semibold rounded-lg text-center hover:bg-orange-600 transition-colors"
               >
                 Bắt đầu ngay
               </Link>
+              <button onClick={addToCart} className="w-full py-3 border border-primary text-primary font-semibold rounded-lg text-center hover:bg-primary-light transition-colors">
+                Thêm vào giỏ hàng
+              </button>
               <div className="flex flex-col gap-3 text-sm text-gray-600">
                 {course.duration && (
                   <div className="flex justify-between">

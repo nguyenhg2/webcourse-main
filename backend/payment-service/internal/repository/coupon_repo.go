@@ -24,7 +24,6 @@ func (r *CouponRepo) ValidateCoupon(ctx context.Context, code string) (*model.Co
 	filter := bson.M{
 		"code":   code,
 		"active": true,
-		"used":   bson.M{"$lte": "$max_uses"},
 		"expiry": bson.M{"$gte": time.Now().Unix()},
 	}
 

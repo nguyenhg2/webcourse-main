@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.db.mongo import get_db, oid, serialize_doc
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 def decode_token(token: str) -> dict:
@@ -28,6 +29,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     user = serialize_doc(user)
     user.pop("passwordHash", None)
     return user
+
+
+async def get_optional_user(credentials: HTTPAuthorizationCredentials | None = Depends(optional_security)) -> dict | None:
+    if credentials is None:
+        return None
+    return await get_current_user(credentials)
 
 
 def require_role(*roles: str):

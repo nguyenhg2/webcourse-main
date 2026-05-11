@@ -1,26 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FiSearch, FiGrid, FiList } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import BlogListCard from "../components/blog/BlogListCard";
 import BlogGridCard from "../components/blog/BlogGridCard";
 import BlogSidebar from "../components/blog/BlogSidebar";
 import Pagination from "../components/ui/Pagination";
+import { getBlogsAPI } from "../services/api";
 
-const POSTS = [
-  { id: 1, slug: "5-ngon-ngu-lap-trinh", title: "5 Ngôn ngữ lập trình nên học năm 2026", date: "24 Tháng 1, 2026", image: "https://placehold.co/410x267", excerpt: "Khám phá các ngôn ngữ lập trình đang được săn đón nhất hiện nay.", active: true },
-  { id: 2, slug: "huong-dan-docker", title: "Hướng dẫn triển khai ứng dụng với Docker", date: "20 Tháng 1, 2026", image: "https://placehold.co/410x267", excerpt: "Từng bước triển khai ứng dụng web lên production với Docker." },
-  { id: 3, slug: "xu-huong-uiux", title: "Xu hướng thiết kế UI/UX năm 2026", date: "15 Tháng 1, 2026", image: "https://placehold.co/410x267", excerpt: "Tổng hợp xu hướng thiết kế giao diện người dùng nổi bật." },
-  { id: 4, slug: "react-hooks-nang-cao", title: "React Hooks nâng cao: useReducer và useContext", date: "10 Tháng 1, 2026", image: "https://placehold.co/410x267", excerpt: "Tìm hiểu cách quản lý state phức tạp với useReducer và useContext." },
-  { id: 5, slug: "ci-cd-github-actions", title: "CI/CD với GitHub Actions cho dự án Node.js", date: "5 Tháng 1, 2026", image: "https://placehold.co/410x267", excerpt: "Thiết lập pipeline CI/CD tự động cho dự án Node.js." },
-  { id: 6, slug: "typescript-cho-nguoi-moi", title: "TypeScript cho người mới bắt đầu", date: "1 Tháng 1, 2026", image: "https://placehold.co/410x267", excerpt: "Làm quen với TypeScript và lợi ích của việc sử dụng type safety." },
-];
+const PER_PAGE = 6;
 
 export default function BlogListing() {
+  const [posts, setPosts] = useState([]);
   const [viewMode, setViewMode] = useState("list");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const filtered = POSTS.filter((p) => p.title.toLowerCase().includes(search.toLowerCase()));
+  useEffect(() => {
+    getBlogsAPI().then(setPosts).catch(() => setPosts([]));
+  }, []);
+
+  const filtered = posts.filter((post) => post.title.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / PER_PAGE) || 1;
+  const visible = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
     <>
@@ -33,7 +34,10 @@ export default function BlogListing() {
                 <FiSearch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Tìm kiếm bài viết..."
                   className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors"
                 />
@@ -50,19 +54,19 @@ export default function BlogListing() {
 
             {viewMode === "list" ? (
               <div className="flex flex-col gap-6">
-                {filtered.map((post) => (
-                  <BlogListCard key={post.id} post={post} isActive={post.active} />
+                {visible.map((post, index) => (
+                  <BlogListCard key={post._id} post={{ ...post, date: post.created_at, image: post.image || post.thumbnail }} isActive={index === 0} />
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {filtered.map((post) => (
-                  <BlogGridCard key={post.id} post={post} isActive={post.active} />
+                {visible.map((post, index) => (
+                  <BlogGridCard key={post._id} post={{ ...post, date: post.created_at, image: post.image || post.thumbnail }} isActive={index === 0} />
                 ))}
               </div>
             )}
 
-            <Pagination current={page} total={3} onChange={setPage} />
+            <Pagination current={page} total={totalPages} onChange={setPage} />
           </div>
           <div className="hidden lg:block">
             <BlogSidebar />

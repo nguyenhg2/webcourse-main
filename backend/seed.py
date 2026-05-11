@@ -1,11 +1,12 @@
 import asyncio
+import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.context import CryptContext
 from bson import ObjectId
 from datetime import datetime, timezone
 
-MONGO_URI = "mongodb+srv://nguyendzjj:nguyenhg2@cluster0.mzobyt1.mongodb.net/?appName=Cluster0"
-DB_NAME = "codecamp_core"
+MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+DB_NAME = os.getenv("MONGODB_DB", "codecamp_core")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -14,7 +15,7 @@ async def seed():
     client = AsyncIOMotorClient(MONGO_URI)
     db = client[DB_NAME]
 
-    for col in ["users", "categories", "courses", "sections", "lessons", "enrollments"]:
+    for col in ["users", "categories", "courses", "sections", "lessons", "enrollments", "progress", "reviews", "carts", "roadmaps", "blogs", "contacts"]:
         await db[col].delete_many({})
 
     admin_id = ObjectId()
@@ -70,7 +71,7 @@ async def seed():
     courses_data = [
         {
             "title": "React.js Từ Cơ Bản Đến Nâng Cao",
-            "slug": "reactjs-tu-co-ban-den-nang-cao",
+            "slug": "react-js-tu-co-ban-den-nang-cao",
             "description": "Khóa học đầy đủ về React.js, từ cơ bản đến nâng cao. Học cách xây dựng ứng dụng web hiện đại với React Hooks, Context API, Redux và nhiều hơn nữa.",
             "thumbnail": "https://placehold.co/600x400/564FFD/fff?text=React.js",
             "price": 599000,
@@ -166,10 +167,15 @@ async def seed():
         "Thực hành nâng cao",
     ]
 
+    course_ids = {}
+    lesson_ids_by_course = {}
+
     for c in courses_data:
         c["create_at"] = datetime.now(timezone.utc).isoformat()
         course_result = await db["courses"].insert_one(c)
         course_id_str = str(course_result.inserted_id)
+        course_ids[c["slug"]] = course_id_str
+        lesson_ids_by_course[course_id_str] = []
 
         for s_order, s_title in enumerate(section_templates, start=1):
             section_result = await db["sections"].insert_one(
@@ -186,20 +192,215 @@ async def seed():
                 f"Bài {s_order}.2 - Thực hành bài tập",
             ]
             for l_order, l_title in enumerate(lesson_names, start=1):
-                await db["lessons"].insert_one(
+                lesson_result = await db["lessons"].insert_one(
                     {
                         "section_id": section_id_str,
                         "course_id": course_id_str,
                         "title": l_title,
-                        "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        "video_url": "https://res.cloudinary.com/ddskipu10/video/upload/v1778484853/codecamp/videos/bffyy4vzlsnmwfboorwu.mp4",
                         "duration": 600 + l_order * 120,
                         "is_free_preview": s_order == 1 and l_order == 1,
                         "attachments": [],
                         "order": l_order,
                     }
                 )
+                lesson_ids_by_course[course_id_str].append(str(lesson_result.inserted_id))
+
+    await db["enrollments"].insert_many(
+        [
+            {
+                "user_id": str(student_id),
+                "course_id": course_ids["react-js-tu-co-ban-den-nang-cao"],
+                "payment_id": "seed-payment-react",
+                "enrolled_at": datetime.now(timezone.utc),
+            },
+            {
+                "user_id": str(student_id),
+                "course_id": course_ids["python-cho-nguoi-moi-bat-dau"],
+                "payment_id": "seed-payment-python",
+                "enrolled_at": datetime.now(timezone.utc),
+            },
+        ]
+    )
+
+    progress_docs = []
+    for course_id in [course_ids["react-js-tu-co-ban-den-nang-cao"], course_ids["python-cho-nguoi-moi-bat-dau"]]:
+        for lesson_id in lesson_ids_by_course[course_id][:3]:
+            progress_docs.append(
+                {
+                    "user_id": str(student_id),
+                    "course_id": course_id,
+                    "lesson_id": lesson_id,
+                    "completed": True,
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+    await db["progress"].insert_many(progress_docs)
+
+    await db["carts"].insert_one(
+        {
+            "user_id": str(student_id),
+            "items": [course_ids["nodejs-va-express-framework"]],
+        }
+    )
+
+    await db["roadmaps"].insert_many(
+        [
+            {
+                "slug": "frontend",
+                "title": "Frontend Developer",
+                "description": "HTML, CSS, JavaScript, React và triển khai giao diện thực tế.",
+                "course_ids": [course_ids["react-js-tu-co-ban-den-nang-cao"], course_ids["nodejs-va-express-framework"]],
+                "thumbnail": None,
+                "order": 1,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+            {
+                "slug": "backend",
+                "title": "Backend Developer",
+                "description": "API, database, xác thực, thanh toán và triển khai dịch vụ.",
+                "course_ids": [course_ids["nodejs-va-express-framework"], course_ids["python-cho-nguoi-moi-bat-dau"]],
+                "thumbnail": None,
+                "order": 2,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+            {
+                "slug": "devops",
+                "title": "DevOps Foundation",
+                "description": "Docker, Kubernetes, cloud deployment và quy trình CI/CD.",
+                "course_ids": [course_ids["docker-va-kubernetes-thuc-chien"]],
+                "thumbnail": None,
+                "order": 3,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+        ]
+    )
+
+    await db["blogs"].insert_many(
+        [
+            {
+                "title": "5 Ngôn ngữ lập trình nên học năm 2026",
+                "slug": "5-ngon-ngu-lap-trinh",
+                "excerpt": "Khám phá các ngôn ngữ lập trình đang được săn đón nhất hiện nay.",
+                "content": "JavaScript, Python, Go, TypeScript và SQL vẫn là các kỹ năng quan trọng cho người học lập trình.",
+                "image": "https://placehold.co/410x267/564FFD/fff?text=Blog",
+                "author": "Đinh Thành Nguyên",
+                "is_published": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+            {
+                "title": "Hướng dẫn triển khai ứng dụng với Docker",
+                "slug": "huong-dan-docker",
+                "excerpt": "Từng bước triển khai ứng dụng web lên production với Docker.",
+                "content": "Docker giúp đóng gói ứng dụng, môi trường chạy và biến môi trường trong một container dễ triển khai.",
+                "image": "https://placehold.co/410x267/22C55E/fff?text=Docker",
+                "author": "Đinh Thành Nguyên",
+                "is_published": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+            {
+                "title": "React Hooks nâng cao",
+                "slug": "react-hooks-nang-cao",
+                "excerpt": "Tìm hiểu useReducer, useContext và cách tách logic bằng custom hooks.",
+                "content": "Hooks giúp component React gọn hơn và dễ tái sử dụng logic hơn trong các dự án lớn.",
+                "image": "https://placehold.co/410x267/FF6636/fff?text=React",
+                "author": "Đinh Thành Nguyên",
+                "is_published": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+        ]
+    )
+
+    await db["reviews"].insert_many(
+        [
+            {
+                "user_id": str(student_id),
+                "user_name": "Trần Văn Bình",
+                "course_id": course_ids["react-js-tu-co-ban-den-nang-cao"],
+                "rating": 5,
+                "comment": "Khóa học dễ hiểu, có lộ trình rõ ràng.",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+            {
+                "user_id": str(student_id),
+                "user_name": "Trần Văn Bình",
+                "course_id": course_ids["nodejs-va-express-framework"],
+                "rating": 4,
+                "comment": "Phần API thực hành tốt cho người mới.",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+        ]
+    )
+
+    await db["contacts"].insert_one(
+        {
+            "name": "Người dùng test",
+            "email": "test@codecamp.vn",
+            "phone": "0123456789",
+            "subject": "Tư vấn khóa học",
+            "message": "Tôi muốn được tư vấn lộ trình Frontend.",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
 
     print("Seed dữ liệu thành công!")
+    payment_db = client["codecamp_payment"]
+    await payment_db["coupons"].delete_many({})
+    await payment_db["payments"].delete_many({})
+    await payment_db["coupons"].insert_many(
+        [
+            {
+                "code": "SALE50",
+                "discount": 50,
+                "type": "percentage",
+                "max_uses": 100,
+                "used": 0,
+                "expiry": 1893456000,
+                "active": True,
+            },
+            {
+                "code": "CODECAMP",
+                "discount": 100000,
+                "type": "fixed",
+                "max_uses": 100,
+                "used": 0,
+                "expiry": 1893456000,
+                "active": True,
+            },
+        ]
+    )
+    await payment_db["payments"].insert_many(
+        [
+            {
+                "user_id": str(student_id),
+                "course_ids": [course_ids["react-js-tu-co-ban-den-nang-cao"]],
+                "amount": 599000,
+                "coupon_code": "",
+                "coupon_discount": 0,
+                "card_last4": "4242",
+                "card_brand": "visa",
+                "status": "completed",
+                "stripe_payment_id": "pi_seed_react",
+                "created_at": int(datetime.now(timezone.utc).timestamp()),
+                "updated_at": int(datetime.now(timezone.utc).timestamp()),
+            },
+            {
+                "user_id": str(student_id),
+                "course_ids": [course_ids["python-cho-nguoi-moi-bat-dau"]],
+                "amount": 0,
+                "coupon_code": "",
+                "coupon_discount": 0,
+                "card_last4": "",
+                "card_brand": "",
+                "status": "completed",
+                "stripe_payment_id": "free_seed_python",
+                "created_at": int(datetime.now(timezone.utc).timestamp()),
+                "updated_at": int(datetime.now(timezone.utc).timestamp()),
+            },
+        ]
+    )
+
     client.close()
 
 

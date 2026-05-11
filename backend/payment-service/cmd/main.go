@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/stripe/stripe-go/v81"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -17,7 +19,6 @@ func main() {
 
 	ctx := context.Background()
 
-	// MongoDB
 	clientOptions := options.Client().ApplyURI(cfg.MongoURI)
 	mongoClient, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -25,13 +26,16 @@ func main() {
 	}
 	db := mongoClient.Database("codecamp_payment")
 
-	// Redis
-	rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+	redisAddr := strings.TrimPrefix(cfg.RedisURL, "redis://")
+	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
-		log.Fatal("Redis connect error:", err)
+		log.Println("Redis is not ready, payment events will be skipped:", err)
+		rdb = nil
 	}
 
-	r := router.SetupRouter(db, rdb)
+	stripe.Key = cfg.StripeKey
+
+	r := router.SetupRouter(db, rdb, cfg)
 
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatal(err)

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiMapPin, FiPhone, FiMail, FiClock } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
+import { sendContactAPI } from "../services/api";
 
 const contactInfo = [
   { icon: <FiMapPin size={24} />, title: "Địa chỉ", detail: "236 Hoàng Quốc Việt, Phường Nghĩa Đô, Hà Nội" },
@@ -17,9 +18,10 @@ export default function Contact() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    alert("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.");
+    await sendContactAPI(form);
+    alert("Tin nhắn đã được lưu vào database.");
     setForm({ name: "", email: "", phone: "", subject: "", message: "" });
   }
 

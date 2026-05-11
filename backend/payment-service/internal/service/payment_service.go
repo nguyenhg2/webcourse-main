@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
+	"sync"
 	"time"
 
 	"payment-service/internal/model"
@@ -20,20 +22,24 @@ type PaymentService struct {
 	paymentRepo *repository.PaymentRepo
 	couponRepo  *repository.CouponRepo
 	redisClient *redis.Client
+	cache       map[string]*model.Payment
+	mu          sync.RWMutex
 }
 
 func NewPaymentService(pr *repository.PaymentRepo, cr *repository.CouponRepo, rc *redis.Client) *PaymentService {
-	stripe.Key = "sk_test..."
 	return &PaymentService{
 		paymentRepo: pr,
 		couponRepo:  cr,
 		redisClient: rc,
+		cache:       map[string]*model.Payment{},
 	}
 }
 
 func (s *PaymentService) CreatePaymentIntent(ctx context.Context, userID string, req model.PaymentRequest) (*model.PaymentResponse, error) {
-	// TODO: Get real total from core-service or cache
 	amount := int64(599000)
+	if req.Amount > 0 {
+		amount = req.Amount
+	}
 	couponDiscount := int64(0)
 
 	if req.CouponCode != "" {
@@ -46,10 +52,16 @@ func (s *PaymentService) CreatePaymentIntent(ctx context.Context, userID string,
 	}
 
 	finalAmount := amount - couponDiscount
+	if finalAmount < 1000 {
+		return nil, errors.New("amount is too small")
+	}
 
 	params := &stripe.PaymentIntentParams{
-		Amount:   stripe.Int64(finalAmount * 100), // cents
+		Amount:   stripe.Int64(finalAmount),
 		Currency: stripe.String("vnd"),
+		PaymentMethodTypes: []*string{
+			stripe.String("card"),
+		},
 	}
 
 	intent, err := paymentintent.New(params)
@@ -57,7 +69,6 @@ func (s *PaymentService) CreatePaymentIntent(ctx context.Context, userID string,
 		return nil, err
 	}
 
-	// Save payment record
 	payment := &model.Payment{
 		ID:              primitive.NewObjectID(),
 		UserID:          userID,
@@ -65,26 +76,35 @@ func (s *PaymentService) CreatePaymentIntent(ctx context.Context, userID string,
 		Amount:          amount,
 		CouponCode:      req.CouponCode,
 		CouponDiscount:  couponDiscount,
-		CardLast4:       "", // update after confirm
+		CardLast4:       "",
 		CardBrand:       "",
 		Status:          "pending",
 		StripePaymentID: intent.ID,
 		CreatedAt:       time.Now().Unix(),
 	}
 
-	err = s.paymentRepo.CreatePayment(ctx, payment)
-	if err != nil {
-		return nil, err
+	s.mu.Lock()
+	s.cache[payment.ID.Hex()] = payment
+	s.mu.Unlock()
+
+	if err := s.paymentRepo.CreatePayment(ctx, payment); err != nil {
+		log.Printf("Mongo save payment error: %v", err)
 	}
 
 	return &model.PaymentResponse{
 		ClientSecret: intent.ClientSecret,
 		PaymentID:    payment.ID.Hex(),
+		Amount:       finalAmount,
+		Status:       payment.Status,
 	}, nil
 }
 
 func (s *PaymentService) PaymentSuccess(ctx context.Context, paymentID string, cardLast4, cardBrand string) error {
-	// Update payment status
+	payment, err := s.findPayment(ctx, paymentID)
+	if err != nil {
+		return err
+	}
+
 	update := bson.M{
 		"status":     "completed",
 		"card_last4": cardLast4,
@@ -93,20 +113,91 @@ func (s *PaymentService) PaymentSuccess(ctx context.Context, paymentID string, c
 	}
 
 	if err := s.paymentRepo.UpdatePayment(ctx, paymentID, update); err != nil {
-		log.Printf("Update payment error: %v", err)
+		log.Printf("Mongo update payment error: %v", err)
 	}
 
-	// TODO: get real user/course from payment doc
+	s.mu.Lock()
+	if cached, ok := s.cache[paymentID]; ok {
+		cached.Status = "completed"
+		cached.CardLast4 = cardLast4
+		cached.CardBrand = cardBrand
+	}
+	s.mu.Unlock()
+
+	if s.redisClient == nil {
+		return nil
+	}
+
 	data, _ := json.Marshal(map[string]interface{}{
-		"user_id":    "user123", // fetch from payment.UserID
-		"course_ids": []string{"course1"},
+		"user_id":    payment.UserID,
+		"course_ids": payment.CourseIDs,
 		"payment_id": paymentID,
 	})
 
-	err := s.redisClient.Publish(ctx, "payment.success", data).Err()
+	err = s.redisClient.Publish(ctx, "payment.success", data).Err()
 	if err != nil {
 		log.Printf("Redis publish error: %v", err)
 	}
 
 	return nil
+}
+
+func (s *PaymentService) ConfirmTestPayment(ctx context.Context, paymentID string) error {
+	payment, err := s.findPayment(ctx, paymentID)
+	if err != nil {
+		return err
+	}
+
+	params := &stripe.PaymentIntentConfirmParams{
+		PaymentMethod: stripe.String("pm_card_visa"),
+	}
+
+	intent, err := paymentintent.Confirm(payment.StripePaymentID, params)
+	if err != nil {
+		return err
+	}
+
+	if intent.Status != stripe.PaymentIntentStatusSucceeded {
+		return errors.New("payment was not completed")
+	}
+
+	return s.PaymentSuccess(ctx, paymentID, "4242", "visa")
+}
+
+func (s *PaymentService) GetPayment(ctx context.Context, paymentID string) (*model.Payment, error) {
+	return s.findPayment(ctx, paymentID)
+}
+
+func (s *PaymentService) PaymentHistory(ctx context.Context, userID string) ([]*model.Payment, error) {
+	payments, err := s.paymentRepo.ListPaymentsByUser(ctx, userID)
+	if err == nil {
+		return payments, nil
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	list := []*model.Payment{}
+	for _, payment := range s.cache {
+		if payment.UserID == userID {
+			list = append(list, payment)
+		}
+	}
+	return list, nil
+}
+
+func (s *PaymentService) findPayment(ctx context.Context, paymentID string) (*model.Payment, error) {
+	payment, err := s.paymentRepo.GetPaymentByID(ctx, paymentID)
+	if err == nil {
+		return payment, nil
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if payment, ok := s.cache[paymentID]; ok {
+		return payment, nil
+	}
+
+	return nil, err
 }
