@@ -9,6 +9,8 @@ class Settings(BaseSettings):
         alias="MONGODB_URI",
     )
     mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
+    payment_db: str = Field(default="codecamp_payment", alias="PAYMENT_MONGODB_DB")
+    redis_url: str | None = Field(default=os.getenv("REDIS_URL"), alias="REDIS_URL")
     jwt_secret: str = Field(default="dev-secret", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(
