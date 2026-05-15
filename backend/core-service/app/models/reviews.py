@@ -6,3 +6,8 @@ class Review(BaseModel):
     rating: float = Field(ge=1, le=5)
     comment: str
     created_at: str
+
+class ReviewCreate(BaseModel):
+    course_id: str
+    rating: float = Field(ge=1, le=5)
+    comment: str = Field(min_length=1)
