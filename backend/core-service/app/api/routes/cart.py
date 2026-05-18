@@ -1,16 +1,11 @@
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from app.models.cart import CartItemRequest
 
 from app.core.deps import get_current_user
 from app.db.mongo import get_db, oid, serialize_doc
 
 router = APIRouter()
-
-
-class CartItemRequest(BaseModel):
-    course_id: str
-
 
 @router.get("/api/cart")
 async def get_cart(db=Depends(get_db), user=Depends(get_current_user)):
