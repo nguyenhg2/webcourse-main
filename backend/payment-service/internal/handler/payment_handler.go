@@ -22,6 +22,7 @@ func RegisterPaymentHandlers(g *gin.RouterGroup, db *mongo.Database, rc *redis.C
 	g.POST("", h.CreatePaymentIntent)
 	g.POST("/create", h.CreatePaymentIntent)
 	g.POST("/confirm-test", h.ConfirmTestPayment)
+	g.GET("", h.ListPayments)
 	g.GET("/history", h.PaymentHistory)
 	g.GET("/:id", h.GetPayment)
 	g.POST("/webhook", webhookHandler)
@@ -75,6 +76,21 @@ func (h *PaymentHandler) GetPayment(c *gin.Context) {
 func (h *PaymentHandler) PaymentHistory(c *gin.Context) {
 	userID := c.GetString("user_id")
 	payments, err := h.service.PaymentHistory(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"payments": payments})
+}
+
+func (h *PaymentHandler) ListPayments(c *gin.Context) {
+	role := c.GetString("role")
+	if role != "admin" && role != "operator" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+		return
+	}
+
+	payments, err := h.service.ListPayments(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

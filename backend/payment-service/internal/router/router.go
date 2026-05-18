@@ -22,8 +22,8 @@ func SetupRouter(db *mongo.Database, rc *redis.Client, cfg *config.Config) *gin.
 
 	handler.RegisterPaymentHandlers(api.Group("/payments"), db, rc)
 	handler.RegisterCouponHandlers(api.Group("/coupons"), db)
-	handler.RegisterVideoHandlers(api.Group("/videos"), cfg)
-	handler.RegisterVideoHandlers(api.Group("/video"), cfg)
+	handler.RegisterVideoHandlers(api.Group("/videos", middleware.RequireRole("admin", "instructor")), cfg)
+	handler.RegisterSignedVideoHandlers(api.Group("/video"), cfg)
 
 	return r
 }

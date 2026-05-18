@@ -34,8 +34,28 @@ func JWTAuth(secret string) gin.HandlerFunc {
 			} else if sub, ok := claims["sub"].(string); ok {
 				c.Set("user_id", sub)
 			}
+			if role, ok := claims["role"].(string); ok {
+				c.Set("role", role)
+			}
 		}
 
+		c.Next()
+	}
+}
+
+func RequireRole(roles ...string) gin.HandlerFunc {
+	allowed := map[string]bool{}
+	for _, role := range roles {
+		allowed[role] = true
+	}
+
+	return func(c *gin.Context) {
+		role := c.GetString("role")
+		if !allowed[role] {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }

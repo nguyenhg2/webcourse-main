@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ScrollToTop from "./components/ui/ScrollToTop";
@@ -24,10 +24,13 @@ import RoadmapListing from "./pages/RoadmapListing";
 import RoadmapDetail from "./pages/RoadmapDetail";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
-import PlaceholderPage from "./pages/dashboard/PlaceholderPage";
 import CourseManager from "./pages/dashboard/CourseManager";
 import PaymentManager from "./pages/dashboard/PaymentManager";
 import CouponManager from "./pages/dashboard/CouponManager";
+import UserManager from "./pages/dashboard/UserManager";
+import CategoryManager from "./pages/dashboard/CategoryManager";
+import StudentCourses from "./pages/dashboard/StudentCourses";
+import WorkflowBoard from "./pages/dashboard/WorkflowBoard";
 
 function MainLayout() {
   return (
@@ -69,17 +72,18 @@ export default function App() {
 
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
+              <Route path="my-courses" element={<StudentCourses />} />
               <Route path="courses" element={<CourseManager />} />
-              <Route path="students" element={<PlaceholderPage title="Quản lý học viên" description="Xem danh sách học viên và tiến độ học tập." />} />
-              <Route path="qa" element={<PlaceholderPage title="Giải đáp Q&A" description="Trả lời câu hỏi của học viên." />} />
-              <Route path="reviews" element={<PlaceholderPage title="Kiểm duyệt khóa học" description="Phê duyệt nội dung trước khi xuất bản." />} />
+              <Route path="students" element={<WorkflowBoard type="students" />} />
+              <Route path="qa" element={<WorkflowBoard type="qa" />} />
+              <Route path="reviews" element={<WorkflowBoard type="reviews" />} />
               <Route path="payments" element={<PaymentManager />} />
-              <Route path="complaints" element={<PlaceholderPage title="Khiếu nại" description="Theo dõi phản hồi từ người học." />} />
-              <Route path="users" element={<PlaceholderPage title="Quản lý người dùng" description="Quản trị tài khoản và vai trò." />} />
-              <Route path="categories" element={<PlaceholderPage title="Quản lý danh mục" description="Thiết lập danh mục khóa học." />} />
+              <Route path="complaints" element={<WorkflowBoard type="complaints" />} />
+              <Route path="users" element={<UserManager />} />
+              <Route path="categories" element={<CategoryManager />} />
               <Route path="coupons" element={<CouponManager />} />
-              <Route path="blogs" element={<PlaceholderPage title="Quản lý Blog" description="Đăng và chỉnh sửa bài viết." />} />
-              <Route path="settings" element={<PlaceholderPage title="Cấu hình hệ thống" description="Thiết lập thông số chung." />} />
+              <Route path="blogs" element={<WorkflowBoard type="blogs" />} />
+              <Route path="settings" element={<WorkflowBoard type="settings" />} />
             </Route>
           </Routes>
         </BrowserRouter>

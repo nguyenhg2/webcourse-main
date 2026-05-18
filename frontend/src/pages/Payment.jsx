@@ -40,12 +40,14 @@ export default function Payment() {
     try {
       const payment = await createPaymentAPI({
         course_ids: course.items?.length ? course.items.map((item) => item._id) : course.courseId ? [course.courseId] : ["demo-course"],
-        amount: course.price || 599000,
+        amount: course.price ?? 599000,
         coupon_code: course.couponCode || "",
         method,
       });
-      await confirmTestPaymentAPI(payment.payment_id);
-      navigate("/thanh-toan-thanh-cong");
+      if (payment.status !== "completed") {
+        await confirmTestPaymentAPI(payment.payment_id);
+      }
+      navigate("/thanh-toan-thanh-cong", { state: { paymentId: payment.payment_id } });
     } catch (err) {
       setMessage(err.response?.data?.error || "Thanh toán thất bại");
     } finally {
@@ -53,7 +55,7 @@ export default function Payment() {
     }
   }
 
-  const price = course.price || 599000;
+  const price = course.price ?? 599000;
   const title = course.title || "React.js Từ Cơ Bản Đến Nâng Cao";
 
   return (

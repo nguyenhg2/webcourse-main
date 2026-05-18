@@ -51,6 +51,21 @@ export async function getCategoriesAPI() {
   return res.data;
 }
 
+export async function createCategoryAPI(payload) {
+  const res = await api.post("/api/categories", payload);
+  return res.data;
+}
+
+export async function updateCategoryAPI(categoryId, payload) {
+  const res = await api.put("/api/categories/" + categoryId, payload);
+  return res.data;
+}
+
+export async function deleteCategoryAPI(categoryId) {
+  const res = await api.delete("/api/categories/" + categoryId);
+  return res.data;
+}
+
 export async function enrollCourseAPI(courseId) {
   const res = await api.post("/api/enroll?course_id=" + courseId);
   return res.data;
@@ -132,6 +147,13 @@ export async function confirmTestPaymentAPI(paymentId) {
   return res.data;
 }
 
+export async function getAllPaymentsAPI() {
+  const res = await axios.get(PAYMENT_API_BASE + "/api/payments", {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
 export async function uploadVideoAPI(file) {
   const formData = new FormData();
   formData.append("video", file);
@@ -164,6 +186,13 @@ export async function validateCouponAPI(code, amount) {
   return res.data;
 }
 
+export async function getCouponsAPI() {
+  const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
 export async function getPaymentHistoryAPI() {
   const res = await axios.get(PAYMENT_API_BASE + "/api/payments/history", {
     headers: authHeaders(),
@@ -173,6 +202,21 @@ export async function getPaymentHistoryAPI() {
 
 export async function uploadLessonVideoAPI(file) {
   return uploadVideoAPI(file);
+}
+
+export async function getAdminDashboardAPI() {
+  const res = await api.get("/api/admin/dashboard");
+  return res.data;
+}
+
+export async function getAdminUsersAPI() {
+  const res = await api.get("/api/admin/users");
+  return res.data;
+}
+
+export async function updateAdminUserRoleAPI(userId, role) {
+  const res = await api.put("/api/admin/users/" + userId + "/role", { role });
+  return res.data;
 }
 
 function authHeaders() {
