@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-
-from .api.routes import auth, courses, categories, sections, lessons, enrollment, blogs, roadmaps, learning, reviews, progress, cart, admin
+from .api.routes import auth, courses, categories, sections, lessons, enrollment, roadmaps, reviews, progress, cart, admin
 
 app = FastAPI(title="CodeCamp Core Service")
 
@@ -20,7 +19,6 @@ app.include_router(categories.router)
 app.include_router(sections.router)
 app.include_router(lessons.router)
 app.include_router(enrollment.router)
-app.include_router(blogs.router)
 app.include_router(roadmaps.router)
 app.include_router(reviews.router)
 app.include_router(progress.router)
