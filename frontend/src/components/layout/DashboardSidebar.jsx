@@ -1,22 +1,32 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
-  FiHome,
-  FiBook,
-  FiUsers,
-  FiMessageCircle,
-  FiCheckSquare,
-  FiDollarSign,
   FiAlertCircle,
   FiBarChart2,
+  FiBook,
+  FiCheckSquare,
+  FiDollarSign,
+  FiHome,
+  FiLogOut,
+  FiMessageCircle,
+  FiPenTool,
   FiSettings,
   FiTag,
+<<<<<<< HEAD
   FiLogOut,
   FiPenTool,
   FiMail,
+=======
+  FiUsers,
+>>>>>>> df6819dc9fe670909e229ab5a69973dbbdfa8d57
 } from "react-icons/fi";
 
 const MENU_ITEMS = {
+  student: [
+    { title: "Tổng quan", path: "/dashboard", icon: <FiHome /> },
+    { title: "Khóa học của tôi", path: "/dashboard/my-courses", icon: <FiBook /> },
+    { title: "Thanh toán", path: "/dashboard/payments", icon: <FiDollarSign /> },
+  ],
   instructor: [
     { title: "Tổng quan", path: "/dashboard", icon: <FiHome /> },
     { title: "Khóa học của tôi", path: "/dashboard/courses", icon: <FiBook /> },
@@ -46,10 +56,8 @@ const MENU_ITEMS = {
 export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
   const { user, logout } = useAuth();
   const location = useLocation();
-
-  // Mặc định role là học viên nếu chưa có, nhưng vào dashboard thì ít nhất phải là admin/operator/instructor
-  const role = user?.role || "instructor"; 
-  const menu = MENU_ITEMS[role] || MENU_ITEMS.instructor; // Fallback for dev
+  const role = user?.role || "student";
+  const menu = MENU_ITEMS[role] || MENU_ITEMS.student;
 
   const handleLogout = () => {
     logout();
@@ -58,15 +66,9 @@ export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
 
   return (
     <>
-      {/* Overlay cho mobile */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
-      <aside 
+      <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } flex flex-col`}
@@ -74,9 +76,7 @@ export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
           <Link to="/" className="text-xl font-bold text-primary">
             WebCourse
-            <span className="text-xs ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">
-              {role}
-            </span>
+            <span className="text-xs ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">{role}</span>
           </Link>
         </div>
 
@@ -89,9 +89,7 @@ export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive 
-                    ? "bg-primary-light text-primary font-medium" 
-                    : "text-gray-600 hover:bg-gray-50 hover:text-primary"
+                  isActive ? "bg-primary-light text-primary font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-primary"
                 }`}
               >
                 <span className="text-lg">{item.icon}</span>
@@ -111,10 +109,7 @@ export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-          >
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
             <FiLogOut className="text-lg" />
             <span>Đăng xuất</span>
           </button>
