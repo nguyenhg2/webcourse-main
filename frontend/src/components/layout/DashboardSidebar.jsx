@@ -12,13 +12,8 @@ import {
   FiPenTool,
   FiSettings,
   FiTag,
-<<<<<<< HEAD
-  FiLogOut,
-  FiPenTool,
   FiMail,
-=======
   FiUsers,
->>>>>>> df6819dc9fe670909e229ab5a69973dbbdfa8d57
 } from "react-icons/fi";
 
 const MENU_ITEMS = {

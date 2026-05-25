@@ -17,6 +17,12 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: "Bearer " + token } : {};
+}
+
+// Auth
 export async function loginAPI(email, password) {
   const res = await api.post("/api/auth/login", { email, password });
   return res.data;
@@ -32,6 +38,7 @@ export async function getMeAPI() {
   return res.data;
 }
 
+// Courses
 export async function getCoursesAPI(params) {
   const res = await api.get("/api/courses", { params });
   return res.data;
@@ -47,6 +54,22 @@ export async function getCourseByIdAPI(id) {
   return res.data;
 }
 
+export async function createCourseAPI(payload) {
+  const res = await api.post("/api/courses", payload);
+  return res.data;
+}
+
+export async function updateCourseAPI(id, payload) {
+  const res = await api.put(`/api/courses/${id}`, payload);
+  return res.data;
+}
+
+export async function deleteCourseAPI(id) {
+  const res = await api.delete(`/api/courses/${id}`);
+  return res.data;
+}
+
+// Categories
 export async function getCategoriesAPI() {
   const res = await api.get("/api/categories");
   return res.data;
@@ -57,16 +80,17 @@ export async function createCategoryAPI(payload) {
   return res.data;
 }
 
-export async function updateCategoryAPI(categoryId, payload) {
-  const res = await api.put("/api/categories/" + categoryId, payload);
+export async function updateCategoryAPI(id, payload) {
+  const res = await api.put(`/api/categories/${id}`, payload);
   return res.data;
 }
 
-export async function deleteCategoryAPI(categoryId) {
-  const res = await api.delete("/api/categories/" + categoryId);
+export async function deleteCategoryAPI(id) {
+  const res = await api.delete(`/api/categories/${id}`);
   return res.data;
 }
 
+// Enroll & Lessons
 export async function enrollCourseAPI(courseId) {
   const res = await api.post("/api/enroll?course_id=" + courseId);
   return res.data;
@@ -77,6 +101,7 @@ export async function getLessonAPI(lessonId) {
   return res.data;
 }
 
+// Blog & Contact (PHP service port 8003)
 export async function getBlogsAPI(params) {
   const res = await axios.get(BLOG_API_BASE + "/api/blogs", { params });
   return res.data;
@@ -94,6 +119,7 @@ export async function sendContactAPI(payload) {
   return res.data;
 }
 
+// Roadmaps
 export async function getRoadmapsAPI() {
   const res = await api.get("/api/roadmaps");
   return res.data;
@@ -104,6 +130,7 @@ export async function getRoadmapAPI(id) {
   return res.data;
 }
 
+// My courses & cart
 export async function getMyCoursesAPI() {
   const res = await api.get("/api/my-courses");
   return res.data;
@@ -129,11 +156,23 @@ export async function saveProgressAPI(payload) {
   return res.data;
 }
 
+// Reviews
 export async function getCourseReviewsAPI(courseId) {
   const res = await api.get("/api/courses/" + courseId + "/reviews");
   return res.data;
 }
 
+export async function getReviewsByCourseAPI(courseId) {
+  const res = await api.get(`/api/courses/${courseId}/reviews`);
+  return res.data;
+}
+
+export async function deleteReviewAPI(reviewId) {
+  const res = await api.delete(`/api/reviews/${reviewId}`);
+  return res.data;
+}
+
+// Payment (Go service port 8002)
 export async function createPaymentAPI(payload) {
   const res = await axios.post(PAYMENT_API_BASE + "/api/payments", payload, {
     headers: authHeaders(),
@@ -152,6 +191,29 @@ export async function confirmTestPaymentAPI(paymentId) {
 
 export async function getAllPaymentsAPI() {
   const res = await axios.get(PAYMENT_API_BASE + "/api/payments", {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
+export async function getPaymentHistoryAPI() {
+  const res = await axios.get(PAYMENT_API_BASE + "/api/payments/history", {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
+export async function validateCouponAPI(code, amount) {
+  const res = await axios.post(
+    PAYMENT_API_BASE + "/api/coupons/validate",
+    { code, amount },
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
+export async function getCouponsAPI() {
+  const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
     headers: authHeaders(),
   });
   return res.data;
@@ -180,33 +242,11 @@ export async function getSignedVideoAPI(lessonId) {
   return res.data;
 }
 
-export async function validateCouponAPI(code, amount) {
-  const res = await axios.post(
-    PAYMENT_API_BASE + "/api/coupons/validate",
-    { code, amount },
-    { headers: authHeaders() }
-  );
-  return res.data;
-}
-
-export async function getCouponsAPI() {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
-    headers: authHeaders(),
-  });
-  return res.data;
-}
-
-export async function getPaymentHistoryAPI() {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/payments/history", {
-    headers: authHeaders(),
-  });
-  return res.data;
-}
-
 export async function uploadLessonVideoAPI(file) {
   return uploadVideoAPI(file);
 }
 
+// Admin APIs (core-service port 8001)
 export async function getAdminDashboardAPI() {
   const res = await api.get("/api/admin/dashboard");
   return res.data;
@@ -218,27 +258,6 @@ export async function getAdminUsersAPI() {
 }
 
 export async function updateAdminUserRoleAPI(userId, role) {
-  const res = await api.put("/api/admin/users/" + userId + "/role", { role });
-  return res.data;
-}
-
-function authHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: "Bearer " + token } : {};
-}
-
-// Admin APIs
-export async function getAdminDashboardAPI() {
-  const res = await api.get("/api/admin/dashboard");
-  return res.data;
-}
-
-export async function getAdminUsersAPI() {
-  const res = await api.get("/api/admin/users");
-  return res.data;
-}
-
-export async function updateUserRoleAPI(userId, role) {
   const res = await api.put(`/api/admin/users/${userId}/role`, { role });
   return res.data;
 }
@@ -253,52 +272,7 @@ export async function getAdminRevenueAPI() {
   return res.data;
 }
 
-export async function getCategoriesAdminAPI() {
-  const res = await api.get("/api/categories");
-  return res.data;
-}
-
-export async function createCategoryAPI(payload) {
-  const res = await api.post("/api/categories", payload);
-  return res.data;
-}
-
-export async function deleteCategoryAPI(id) {
-  const res = await api.delete(`/api/categories/${id}`);
-  return res.data;
-}
-
-export async function updateCategoryAPI(id, payload) {
-  const res = await api.put(`/api/categories/${id}`, payload);
-  return res.data;
-}
-
-export async function deleteReviewAPI(reviewId) {
-  const res = await api.delete(`/api/reviews/${reviewId}`);
-  return res.data;
-}
-
-export async function getReviewsByCourseAPI(courseId) {
-  const res = await api.get(`/api/courses/${courseId}/reviews`);
-  return res.data;
-}
-
-export async function createCourseAPI(payload) {
-  const res = await api.post("/api/courses", payload);
-  return res.data;
-}
-
-export async function updateCourseAPI(id, payload) {
-  const res = await api.put(`/api/courses/${id}`, payload);
-  return res.data;
-}
-
-export async function deleteCourseAPI(id) {
-  const res = await api.delete(`/api/courses/${id}`);
-  return res.data;
-}
-
-// Blog admin APIs (PHP service port 8003)
+// Admin Blog & Contact (PHP service port 8003)
 export async function getAdminBlogsAPI() {
   const res = await axios.get(BLOG_API_BASE + "/api/admin/blogs", { headers: authHeaders() });
   return res.data;
@@ -319,7 +293,6 @@ export async function deleteBlogAPI(id) {
   return res.data;
 }
 
-// Contact admin APIs (PHP service port 8003)
 export async function getAdminContactsAPI() {
   const res = await axios.get(BLOG_API_BASE + "/api/admin/contacts", { headers: authHeaders() });
   return res.data;
