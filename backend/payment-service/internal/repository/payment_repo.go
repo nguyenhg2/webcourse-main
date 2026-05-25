@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type PaymentRepo struct {
@@ -47,7 +48,23 @@ func (r *PaymentRepo) UpdatePayment(ctx context.Context, id string, update bson.
 }
 
 func (r *PaymentRepo) ListPaymentsByUser(ctx context.Context, userID string) ([]*model.Payment, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{"user_id": userID})
+	opts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}})
+	cursor, err := r.collection.Find(ctx, bson.M{"user_id": userID}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var payments []*model.Payment
+	if err := cursor.All(ctx, &payments); err != nil {
+		return nil, err
+	}
+	return payments, nil
+}
+
+func (r *PaymentRepo) ListPayments(ctx context.Context) ([]*model.Payment, error) {
+	opts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}})
+	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, err
 	}

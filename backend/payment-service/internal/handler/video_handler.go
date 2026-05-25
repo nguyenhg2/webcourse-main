@@ -34,6 +34,11 @@ func RegisterVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
 	g.GET("/:lessonId/signed-url", h.SignedURL)
 }
 
+func RegisterSignedVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
+	h := &VideoHandler{cfg: cfg}
+	g.GET("/:lessonId/signed-url", h.SignedURL)
+}
+
 func RegisterPublicVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
 	h := &VideoHandler{cfg: cfg}
 	g.GET("/preview", h.Preview)
@@ -47,6 +52,11 @@ func (h *VideoHandler) Preview(c *gin.Context) {
 }
 
 func (h *VideoHandler) Upload(c *gin.Context) {
+	if h.cfg.CloudinaryCloud == "" || h.cfg.CloudinaryKey == "" || h.cfg.CloudinarySecret == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary config is missing"})
+		return
+	}
+
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "video file is required"})
