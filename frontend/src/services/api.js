@@ -183,4 +183,107 @@ function authHeaders() {
   return token ? { Authorization: "Bearer " + token } : {};
 }
 
+// Admin APIs
+export async function getAdminDashboardAPI() {
+  const res = await api.get("/api/admin/dashboard");
+  return res.data;
+}
+
+export async function getAdminUsersAPI() {
+  const res = await api.get("/api/admin/users");
+  return res.data;
+}
+
+export async function updateUserRoleAPI(userId, role) {
+  const res = await api.put(`/api/admin/users/${userId}/role`, { role });
+  return res.data;
+}
+
+export async function getAdminOrdersAPI() {
+  const res = await api.get("/api/admin/orders");
+  return res.data;
+}
+
+export async function getAdminRevenueAPI() {
+  const res = await api.get("/api/admin/revenue");
+  return res.data;
+}
+
+export async function getCategoriesAdminAPI() {
+  const res = await api.get("/api/categories");
+  return res.data;
+}
+
+export async function createCategoryAPI(payload) {
+  const res = await api.post("/api/categories", payload);
+  return res.data;
+}
+
+export async function deleteCategoryAPI(id) {
+  const res = await api.delete(`/api/categories/${id}`);
+  return res.data;
+}
+
+export async function updateCategoryAPI(id, payload) {
+  const res = await api.put(`/api/categories/${id}`, payload);
+  return res.data;
+}
+
+export async function deleteReviewAPI(reviewId) {
+  const res = await api.delete(`/api/reviews/${reviewId}`);
+  return res.data;
+}
+
+export async function getReviewsByCourseAPI(courseId) {
+  const res = await api.get(`/api/courses/${courseId}/reviews`);
+  return res.data;
+}
+
+export async function createCourseAPI(payload) {
+  const res = await api.post("/api/courses", payload);
+  return res.data;
+}
+
+export async function updateCourseAPI(id, payload) {
+  const res = await api.put(`/api/courses/${id}`, payload);
+  return res.data;
+}
+
+export async function deleteCourseAPI(id) {
+  const res = await api.delete(`/api/courses/${id}`);
+  return res.data;
+}
+
+// Blog admin APIs (PHP service port 8003)
+export async function getAdminBlogsAPI() {
+  const res = await axios.get(BLOG_API_BASE + "/api/admin/blogs", { headers: authHeaders() });
+  return res.data;
+}
+
+export async function createBlogAPI(payload) {
+  const res = await axios.post(BLOG_API_BASE + "/api/admin/blogs", payload, { headers: authHeaders() });
+  return res.data;
+}
+
+export async function updateBlogAPI(id, payload) {
+  const res = await axios.put(BLOG_API_BASE + `/api/admin/blogs/${id}`, payload, { headers: authHeaders() });
+  return res.data;
+}
+
+export async function deleteBlogAPI(id) {
+  const res = await axios.delete(BLOG_API_BASE + `/api/admin/blogs/${id}`, { headers: authHeaders() });
+  return res.data;
+}
+
+// Contact admin APIs (PHP service port 8003)
+export async function getAdminContactsAPI() {
+  const res = await axios.get(BLOG_API_BASE + "/api/admin/contacts", { headers: authHeaders() });
+  return res.data;
+}
+
+export async function markContactReadAPI(id) {
+  const res = await axios.patch(BLOG_API_BASE + `/api/admin/contacts/${id}/read`, {}, { headers: authHeaders() });
+  return res.data;
+}
+
 export default api;
