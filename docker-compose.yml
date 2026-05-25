@@ -46,6 +46,7 @@ services:
       - NODE_ENV=development
       - VITE_API_URL=http://localhost:8001
       - VITE_PAYMENT_API_URL=http://localhost:8002
+      - VITE_BLOG_API_URL=http://localhost:8003
     command: npm run dev -- --host 0.0.0.0
     stdin_open: true
     tty: true
@@ -53,6 +54,7 @@ services:
     depends_on:
       - backend
       - payment
+      - blog
 
   seed:
     build: ./backend/core-service
@@ -66,6 +68,19 @@ services:
       - MONGODB_DB=${MONGODB_DB:-codecamp_core}
     profiles:
       - seed
+    depends_on:
+      - mongo
+
+  blog:
+    build: ./backend/blog-service
+    container_name: webcourse-blog
+    ports:
+      - "8003:8003"
+    environment:
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_DB=${MONGODB_DB:-codecamp_core}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+    restart: unless-stopped
     depends_on:
       - mongo
 

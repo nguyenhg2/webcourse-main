@@ -2,6 +2,7 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001";
 const PAYMENT_API_BASE = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:8002";
+const BLOG_API_BASE = import.meta.env.VITE_BLOG_API_URL || "http://localhost:8003";
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -62,17 +63,19 @@ export async function getLessonAPI(lessonId) {
 }
 
 export async function getBlogsAPI(params) {
-  const res = await api.get("/api/blogs", { params });
+  const res = await axios.get(BLOG_API_BASE + "/api/blogs", { params });
   return res.data;
 }
 
 export async function getBlogBySlugAPI(slug) {
-  const res = await api.get("/api/blogs/" + slug);
+  const res = await axios.get(BLOG_API_BASE + "/api/blogs/" + slug);
   return res.data;
 }
 
 export async function sendContactAPI(payload) {
-  const res = await api.post("/api/contact", payload);
+  const res = await axios.post(BLOG_API_BASE + "/api/contact", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
   return res.data;
 }
 
