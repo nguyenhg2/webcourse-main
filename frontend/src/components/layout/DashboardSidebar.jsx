@@ -12,7 +12,13 @@ import {
   FiPenTool,
   FiSettings,
   FiTag,
+<<<<<<< HEAD
+  FiLogOut,
+  FiPenTool,
+  FiMail,
+=======
   FiUsers,
+>>>>>>> df6819dc9fe670909e229ab5a69973dbbdfa8d57
 } from "react-icons/fi";
 
 const MENU_ITEMS = {
@@ -36,9 +42,13 @@ const MENU_ITEMS = {
   admin: [
     { title: "Báo cáo doanh thu", path: "/dashboard", icon: <FiBarChart2 /> },
     { title: "Quản lý người dùng", path: "/dashboard/users", icon: <FiUsers /> },
+    { title: "Học viên", path: "/dashboard/students", icon: <FiBook /> },
+    { title: "Đơn hàng", path: "/dashboard/payments", icon: <FiDollarSign /> },
+    { title: "Kiểm duyệt đánh giá", path: "/dashboard/reviews", icon: <FiCheckSquare /> },
     { title: "Quản lý danh mục", path: "/dashboard/categories", icon: <FiTag /> },
-    { title: "Mã giảm giá", path: "/dashboard/coupons", icon: <FiDollarSign /> },
+    { title: "Mã giảm giá", path: "/dashboard/coupons", icon: <FiAlertCircle /> },
     { title: "Quản lý Blog", path: "/dashboard/blogs", icon: <FiPenTool /> },
+    { title: "Liên hệ", path: "/dashboard/contacts", icon: <FiMail /> },
     { title: "Cấu hình hệ thống", path: "/dashboard/settings", icon: <FiSettings /> },
   ],
 };

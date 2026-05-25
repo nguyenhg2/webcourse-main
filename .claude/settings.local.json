@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(py|go|js\\)$\")",
+      "Bash(docker exec webcourse-mongo *)",
+      "Bash(curl *)"
+    ]
+  }
+}
