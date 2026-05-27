@@ -7,7 +7,7 @@ const LEVEL_MAP = {
   advanced: "Nâng cao",
 };
 
-export default function CourseGridCard({ course }) {
+export default function CourseGridCard({ course, isOwned = false }) {
   const levelText = LEVEL_MAP[course.level] || course.level;
   const priceText =
     course.price === 0
@@ -42,12 +42,16 @@ export default function CourseGridCard({ course }) {
           </span>
         </div>
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <span className="text-base font-bold text-primary">{priceText}</span>
+          {isOwned ? (
+            <span className="text-base font-bold text-success">Đã mua</span>
+          ) : (
+            <span className="text-base font-bold text-primary">{priceText}</span>
+          )}
           <Link
             to={"/khoa-hoc/" + course.slug}
-            className="text-sm font-medium text-primary hover:underline"
+            className={`text-sm font-medium hover:underline ${isOwned ? "text-success" : "text-primary"}`}
           >
-            Xem thêm
+            {isOwned ? "Vào học" : "Xem thêm"}
           </Link>
         </div>
       </div>

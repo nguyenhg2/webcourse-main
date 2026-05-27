@@ -49,7 +49,7 @@ function formatDuration(seconds) {
 export default function CourseSingle() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshCartCount } = useAuth();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
@@ -106,6 +106,7 @@ export default function CourseSingle() {
 
     try {
       await addCartAPI(course._id);
+      await refreshCartCount();
       navigate("/gio-hang");
     } catch (err) {
       if (err.response?.status === 401) {
@@ -146,6 +147,7 @@ export default function CourseSingle() {
     : 0;
   const firstLesson = (course.sections || []).flatMap((section) => section.lessons || [])[0];
   const hasCourseAccess = ownedCourseIds.has(course._id);
+  const learnPath = firstLesson ? `/khoa-hoc/${slug}/hoc/${firstLesson._id}` : `/khoa-hoc/${slug}`;
 
   const tabs = [
     { id: "overview", label: "Tổng quan" },
@@ -406,12 +408,22 @@ export default function CourseSingle() {
                 alt={course.title}
                 className="w-full rounded-lg"
               />
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold text-primary">
-                  {priceText}
-                </span>
-              </div>
-              {(!user || user.role === "student") && (
+              {!hasCourseAccess && (
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-bold text-primary">
+                    {priceText}
+                  </span>
+                </div>
+              )}
+              {hasCourseAccess && (
+                <Link
+                  to={learnPath}
+                  className="w-full py-3 bg-success text-white font-semibold rounded-lg text-center hover:bg-green-600 transition-colors"
+                >
+                  Vào học
+                </Link>
+              )}
+              {!hasCourseAccess && (!user || user.role === "student") && (
                 <>
               <Link
                 to={user ? "/thanh-toan" : "/dang-nhap"}

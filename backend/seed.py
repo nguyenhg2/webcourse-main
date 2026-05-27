@@ -90,6 +90,7 @@ async def seed():
 
     admin_id = ObjectId()
     instructor_id = ObjectId()
+    operator_id = ObjectId()
     student_id = ObjectId()
 
     await db["users"].insert_many(
@@ -109,6 +110,15 @@ async def seed():
                 "email": "gv@codecamp.vn",
                 "hashed_password": pwd_context.hash("gv123456"),
                 "role": "instructor",
+                "avatar": None,
+                "created_at": datetime.now(timezone.utc),
+            },
+            {
+                "_id": operator_id,
+                "name": "Nhan vien van hanh",
+                "email": "operator@codecamp.vn",
+                "hashed_password": pwd_context.hash("operator123"),
+                "role": "operator",
                 "avatar": None,
                 "created_at": datetime.now(timezone.utc),
             },

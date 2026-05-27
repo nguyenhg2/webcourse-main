@@ -32,8 +32,8 @@ async def login(payload: LoginRequest, db=Depends(get_db)):
     if not verify_password(payload.password, user["hashed_password"]):
         raise HTTPException(status_code=400, detail="Email hoặc mật khẩu không đúng")
     
-    expected_role = payload.expected_role.value
-    if user.get("role") != expected_role:
+    expected_role = payload.expected_role.value if payload.expected_role else None
+    if expected_role and user.get("role") != expected_role:
         raise HTTPException(status_code=403, detail="Tài khoản không đúng vai trò đăng nhập")
 
     user=serialize_doc(user)

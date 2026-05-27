@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiDownload, FiLock, FiMessageCircle, FiMoon, FiPlay, FiSun } from "react-icons/fi";
 import { useTheme } from "../context/ThemeContext";
@@ -26,6 +26,7 @@ export default function LessonPlayer() {
   const [savingProgress, setSavingProgress] = useState(false);
   const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
   const [ownershipLoaded, setOwnershipLoaded] = useState(false);
+  const savedLessonsRef = useRef(new Set());
 
   useEffect(() => {
     getCourseBySlugAPI(slug)
@@ -154,6 +155,20 @@ export default function LessonPlayer() {
     }
   }
 
+  function autoSaveCompleted() {
+    if (!lesson?._id || savedLessonsRef.current.has(lesson._id)) return;
+    savedLessonsRef.current.add(lesson._id);
+    markCompleted();
+  }
+
+  function handleVideoProgress(event) {
+    const video = event.currentTarget;
+    if (!video.duration || Number.isNaN(video.duration)) return;
+    if (video.currentTime / video.duration >= 0.9) {
+      autoSaveCompleted();
+    }
+  }
+
   const bg = isDark ? "bg-[#0f1119]" : "bg-[#f5f7fa]";
   const panel = isDark ? "bg-[#1a1d2e] border-gray-700" : "bg-white border-gray-100";
   const text = isDark ? "text-white" : "text-secondary";
@@ -178,7 +193,13 @@ export default function LessonPlayer() {
           <section className={`${panel} border rounded-lg overflow-hidden`}>
             <div className="aspect-video bg-black flex items-center justify-center">
               {videoUrl ? (
-                <video src={videoUrl} controls className="w-full h-full" />
+                <video
+                  src={videoUrl}
+                  controls
+                  className="w-full h-full"
+                  onTimeUpdate={handleVideoProgress}
+                  onEnded={autoSaveCompleted}
+                />
               ) : (
                 <p className="text-white text-sm">{message || "Đang tải video..."}</p>
               )}

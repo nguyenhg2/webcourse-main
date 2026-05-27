@@ -8,33 +8,39 @@ const ROLE_LOGIN_CONFIG = {
   student: {
     title: "Đăng nhập học viên",
     breadcrumb: "Đăng nhập học viên",
+    path: "/dang-nhap",
     redirect: "/khoa-hoc-cua-toi",
   },
   admin: {
     title: "Đăng nhập quản trị",
     breadcrumb: "Đăng nhập quản trị",
+    path: "/admin/dang-nhap",
     redirect: "/dashboard",
   },
   instructor: {
     title: "Đăng nhập giảng viên",
     breadcrumb: "Đăng nhập giảng viên",
+    path: "/giang-vien/dang-nhap",
     redirect: "/dashboard",
   },
   operator: {
     title: "Đăng nhập vận hành",
     breadcrumb: "Đăng nhập vận hành",
+    path: "/operator/dang-nhap",
     redirect: "/dashboard",
   },
 };
 
-export default function Login({ expectedRole = "student" }) {
+export default function Login({ expectedRole = null }) {
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const loginConfig = ROLE_LOGIN_CONFIG[expectedRole] || ROLE_LOGIN_CONFIG.student;
+  const loginConfig = expectedRole
+    ? ROLE_LOGIN_CONFIG[expectedRole] || ROLE_LOGIN_CONFIG.student
+    : { title: "Đăng nhập", breadcrumb: "Đăng nhập" };
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
@@ -53,7 +59,9 @@ export default function Login({ expectedRole = "student" }) {
       navigate(ROLE_LOGIN_CONFIG[user.role]?.redirect || "/dashboard");
     } catch (err) {
       const msg =
-        err.response?.data?.detail || "Email hoặc mật khẩu không đúng";
+        err.response?.status === 403
+          ? "Tài khoản không có quyền truy cập."
+          : err.response?.data?.detail || "Email hoặc mật khẩu không đúng";
       setError(msg);
     } finally {
       setSubmitting(false);

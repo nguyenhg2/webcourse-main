@@ -1,7 +1,37 @@
-import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
-import { FiUser, FiMail, FiCalendar, FiBookOpen, FiAward, FiEdit2 } from "react-icons/fi";
+import { FiAward, FiBookOpen, FiCalendar, FiEdit2, FiMail, FiUser } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
+import { useAuth } from "../context/AuthContext";
+
+const ROLE_LABELS = {
+  student: "Học viên",
+  instructor: "Giảng viên",
+  operator: "Vận hành",
+  admin: "Quản trị viên",
+};
+
+const ROLE_STATS = {
+  student: [
+    { icon: <FiBookOpen size={20} />, value: "3", label: "Khóa học đã đăng ký" },
+    { icon: <FiAward size={20} />, value: "1", label: "Chứng chỉ đạt được" },
+    { icon: <FiCalendar size={20} />, value: "15", label: "Ngày học liên tiếp" },
+  ],
+  instructor: [
+    { icon: <FiBookOpen size={20} />, value: "6", label: "Khóa học phụ trách" },
+    { icon: <FiUser size={20} />, value: "789", label: "Học viên theo học" },
+    { icon: <FiAward size={20} />, value: "4.7", label: "Đánh giá trung bình" },
+  ],
+  operator: [
+    { icon: <FiBookOpen size={20} />, value: "24", label: "Giao dịch xử lý" },
+    { icon: <FiAward size={20} />, value: "8", label: "Yêu cầu hỗ trợ" },
+    { icon: <FiCalendar size={20} />, value: "5", label: "Ngày trực gần đây" },
+  ],
+  admin: [
+    { icon: <FiUser size={20} />, value: "4", label: "Vai trò quản lý" },
+    { icon: <FiBookOpen size={20} />, value: "6", label: "Khóa học hệ thống" },
+    { icon: <FiAward size={20} />, value: "100%", label: "Quyền quản trị" },
+  ],
+};
 
 export default function Profile() {
   const { user } = useAuth();
@@ -22,11 +52,8 @@ export default function Profile() {
     );
   }
 
-  const stats = [
-    { icon: <FiBookOpen size={20} />, value: "3", label: "Khóa học đã đăng ký" },
-    { icon: <FiAward size={20} />, value: "1", label: "Chứng chỉ đạt được" },
-    { icon: <FiCalendar size={20} />, value: "15", label: "Ngày học liên tiếp" },
-  ];
+  const roleLabel = ROLE_LABELS[user.role] || user.role;
+  const stats = ROLE_STATS[user.role] || ROLE_STATS.student;
 
   return (
     <>
@@ -40,9 +67,17 @@ export default function Profile() {
               </div>
               <h2 className="text-xl font-heading font-bold text-secondary mt-4">{user.name}</h2>
               <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+              <span className="inline-block mt-3 px-3 py-1 rounded-full bg-primary-light text-primary text-sm font-semibold">
+                {roleLabel}
+              </span>
               <button className="mt-5 px-6 py-2.5 border border-primary text-primary text-sm font-medium rounded-lg hover:bg-primary-light transition-colors flex items-center gap-2 mx-auto">
                 <FiEdit2 size={14} /> Chỉnh sửa hồ sơ
               </button>
+              {user.role !== "student" && (
+                <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+                  Vào dashboard
+                </Link>
+              )}
             </div>
           </div>
 
@@ -78,14 +113,16 @@ export default function Profile() {
                   <label className="text-sm text-gray-500 mb-1 block">Ngày tham gia</label>
                   <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 bg-gray-50">
                     <FiCalendar size={16} className="text-gray-400" />
-                    <span className="text-sm text-secondary">20 Tháng 4, 2026</span>
+                    <span className="text-sm text-secondary">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : "20 Tháng 4, 2026"}
+                    </span>
                   </div>
                 </div>
                 <div>
                   <label className="text-sm text-gray-500 mb-1 block">Vai trò</label>
                   <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 bg-gray-50">
                     <FiAward size={16} className="text-gray-400" />
-                    <span className="text-sm text-secondary">Học viên</span>
+                    <span className="text-sm text-secondary">{roleLabel}</span>
                   </div>
                 </div>
               </div>
