@@ -47,7 +47,7 @@ func RegisterPublicVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
 func (h *VideoHandler) Preview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"title":     "Video xem thử",
-		"video_url": "https://res.cloudinary.com/ddskipu10/video/upload/v1778484853/codecamp/videos/bffyy4vzlsnmwfboorwu.mp4",
+		"video_url": "https://res.cloudinary.com/dsaazfpah/video/upload/v1779803738/codecamp/videos/sd5gcnsrcyjvzgeewx5l.mp4",
 	})
 }
 

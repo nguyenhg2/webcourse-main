@@ -25,12 +25,11 @@ const MENU_ITEMS = {
   instructor: [
     { title: "Tổng quan", path: "/dashboard", icon: <FiHome /> },
     { title: "Khóa học của tôi", path: "/dashboard/courses", icon: <FiBook /> },
-    { title: "Học viên", path: "/dashboard/students", icon: <FiUsers /> },
     { title: "Giải đáp Q&A", path: "/dashboard/qa", icon: <FiMessageCircle /> },
   ],
   operator: [
     { title: "Tổng quan", path: "/dashboard", icon: <FiHome /> },
-    { title: "Kiểm duyệt khóa học", path: "/dashboard/reviews", icon: <FiCheckSquare /> },
+    { title: "Kiểm duyệt khóa học", path: "/dashboard/course-reviews", icon: <FiCheckSquare /> },
     { title: "Hỗ trợ thanh toán", path: "/dashboard/payments", icon: <FiDollarSign /> },
     { title: "Giải quyết khiếu nại", path: "/dashboard/complaints", icon: <FiAlertCircle /> },
   ],

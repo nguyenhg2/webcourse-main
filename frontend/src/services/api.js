@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001";
-const PAYMENT_API_BASE = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:8002";
-const BLOG_API_BASE = import.meta.env.VITE_BLOG_API_URL || "http://localhost:8003";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/core";
+const PAYMENT_API_BASE = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:8000/payment";
+const BLOG_API_BASE = import.meta.env.VITE_BLOG_API_URL || "http://localhost:8000/blog";
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -23,8 +23,12 @@ function authHeaders() {
 }
 
 // Auth
-export async function loginAPI(email, password) {
-  const res = await api.post("/api/auth/login", { email, password });
+export async function loginAPI(email, password, expectedRole) {
+  const payload = { email, password };
+  if (expectedRole) {
+    payload.expected_role = expectedRole;
+  }
+  const res = await api.post("/api/auth/login", payload);
   return res.data;
 }
 
@@ -69,6 +73,21 @@ export async function deleteCourseAPI(id) {
   return res.data;
 }
 
+export async function createSectionAPI(courseId, payload) {
+  const res = await api.post(`/api/courses/${courseId}/sections`, payload);
+  return res.data;
+}
+
+export async function updateSectionAPI(sectionId, payload) {
+  const res = await api.put(`/api/sections/${sectionId}`, payload);
+  return res.data;
+}
+
+export async function createLessonAPI(sectionId, payload) {
+  const res = await api.post(`/api/sections/${sectionId}/lessons`, payload);
+  return res.data;
+}
+
 // Categories
 export async function getCategoriesAPI() {
   const res = await api.get("/api/categories");
@@ -91,8 +110,11 @@ export async function deleteCategoryAPI(id) {
 }
 
 // Enroll & Lessons
-export async function enrollCourseAPI(courseId) {
-  const res = await api.post("/api/enroll?course_id=" + courseId);
+export async function enrollCourseAPI(courseId, paymentId) {
+  const payload = Array.isArray(courseId)
+    ? { course_ids: courseId, payment_id: paymentId }
+    : { course_id: courseId, payment_id: paymentId };
+  const res = await api.post("/api/enroll", payload);
   return res.data;
 }
 
@@ -101,7 +123,12 @@ export async function getLessonAPI(lessonId) {
   return res.data;
 }
 
-// Blog & Contact (PHP service port 8003)
+export async function updateLessonAPI(lessonId, payload) {
+  const res = await api.put("/api/lessons/" + lessonId, payload);
+  return res.data;
+}
+
+// Blog & Contact
 export async function getBlogsAPI(params) {
   const res = await axios.get(BLOG_API_BASE + "/api/blogs", { params });
   return res.data;
@@ -172,7 +199,7 @@ export async function deleteReviewAPI(reviewId) {
   return res.data;
 }
 
-// Payment (Go service port 8002)
+// Payment
 export async function createPaymentAPI(payload) {
   const res = await axios.post(PAYMENT_API_BASE + "/api/payments", payload, {
     headers: authHeaders(),
@@ -246,7 +273,7 @@ export async function uploadLessonVideoAPI(file) {
   return uploadVideoAPI(file);
 }
 
-// Admin APIs (core-service port 8001)
+// Admin APIs
 export async function getAdminDashboardAPI() {
   const res = await api.get("/api/admin/dashboard");
   return res.data;
@@ -272,7 +299,7 @@ export async function getAdminRevenueAPI() {
   return res.data;
 }
 
-// Admin Blog & Contact (PHP service port 8003)
+// Admin Blog & Contact
 export async function getAdminBlogsAPI() {
   const res = await axios.get(BLOG_API_BASE + "/api/admin/blogs", { headers: authHeaders() });
   return res.data;

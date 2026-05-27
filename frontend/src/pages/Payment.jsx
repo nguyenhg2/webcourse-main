@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FiCreditCard } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
-import { confirmTestPaymentAPI, createPaymentAPI } from "../services/api";
+import { confirmTestPaymentAPI, createPaymentAPI, enrollCourseAPI } from "../services/api";
 
 const METHODS = [
   { id: "visa", label: "Visa" },
@@ -38,18 +38,38 @@ export default function Payment() {
     setMessage("");
 
     try {
+      const courseIds = course.items?.length
+        ? course.items.map((item) => item._id)
+        : course.courseId
+          ? [course.courseId]
+          : [];
+
+      if (!courseIds.length) {
+        throw new Error("Không tìm thấy khóa học cần thanh toán");
+      }
+
       const payment = await createPaymentAPI({
-        course_ids: course.items?.length ? course.items.map((item) => item._id) : course.courseId ? [course.courseId] : ["demo-course"],
+        course_ids: courseIds,
         amount: course.price ?? 599000,
         coupon_code: course.couponCode || "",
         method,
       });
+      sessionStorage.setItem(
+        "pendingPaymentEnrollment",
+        JSON.stringify({ paymentId: payment.payment_id, courseIds })
+      );
       if (payment.status !== "completed") {
         await confirmTestPaymentAPI(payment.payment_id);
       }
-      navigate("/thanh-toan-thanh-cong", { state: { paymentId: payment.payment_id } });
+      try {
+        await enrollCourseAPI(courseIds, payment.payment_id);
+        sessionStorage.removeItem("pendingPaymentEnrollment");
+      } catch {
+        // Keep pendingPaymentEnrollment so the success page can retry enrollment.
+      }
+      navigate("/thanh-toan-thanh-cong", { state: { paymentId: payment.payment_id, courseIds } });
     } catch (err) {
-      setMessage(err.response?.data?.error || "Thanh toán thất bại");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Thanh toán thất bại");
     } finally {
       setLoading(false);
     }
