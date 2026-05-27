@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiDownload, FiLock, FiMessageCircle, FiMoon, FiPlay, FiSun } from "react-icons/fi";
 import { useTheme } from "../context/ThemeContext";
-import { getCourseBySlugAPI, getCourseReviewsAPI, getLessonAPI, getPreviewVideoAPI, getSignedVideoAPI, saveProgressAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { getCourseBySlugAPI, getCourseReviewsAPI, getLessonAPI, getMyCoursesAPI, getPreviewVideoAPI, getSignedVideoAPI, saveProgressAPI } from "../services/api";
 
 function formatDuration(seconds) {
   if (!seconds) return "";
@@ -14,6 +15,7 @@ function formatDuration(seconds) {
 export default function LessonPlayer() {
   const { slug, lessonId } = useParams();
   const { theme, toggleTheme } = useTheme();
+  const { user, loading: authLoading, logout } = useAuth();
   const isDark = theme === "dark";
 
   const [course, setCourse] = useState(null);
@@ -21,6 +23,9 @@ export default function LessonPlayer() {
   const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState("content");
   const [message, setMessage] = useState("");
+  const [savingProgress, setSavingProgress] = useState(false);
+  const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
+  const [ownershipLoaded, setOwnershipLoaded] = useState(false);
 
   useEffect(() => {
     getCourseBySlugAPI(slug)
@@ -33,17 +38,70 @@ export default function LessonPlayer() {
   }, [slug]);
 
   useEffect(() => {
+    if (!user) {
+      setOwnedCourseIds(new Set());
+      setOwnershipLoaded(true);
+      return;
+    }
+
+    setOwnershipLoaded(false);
+    getMyCoursesAPI()
+      .then((courses) => setOwnedCourseIds(new Set(courses.map((item) => item._id))))
+      .catch(() => setOwnedCourseIds(new Set()))
+      .finally(() => setOwnershipLoaded(true));
+  }, [user]);
+
+  useEffect(() => {
     setMessage("");
     if (!/^[a-f\d]{24}$/i.test(lessonId || "")) {
       getPreviewVideoAPI().then(setLesson).catch(() => setMessage("Không tải được video xem thử"));
       return;
     }
 
-    getLessonAPI(lessonId)
-      .then(setLesson)
-      .catch(() => getSignedVideoAPI(lessonId).then(setLesson))
-      .catch(() => getPreviewVideoAPI().then(setLesson))
-      .catch(() => setMessage("Không tải được video bài học"));
+    let cancelled = false;
+
+    async function loadLesson() {
+      try {
+        const data = await getLessonAPI(lessonId);
+        if (!cancelled) setLesson(data);
+      } catch (error) {
+        const status = error.response?.status;
+        const detail = error.response?.data?.detail;
+
+        if (status === 401) {
+          if (!cancelled) {
+            setLesson(null);
+            setMessage(detail || "Vui lòng đăng nhập để xem bài học này.");
+          }
+          return;
+        }
+
+        if (status === 403) {
+          if (!cancelled) {
+            setLesson(null);
+            setMessage(detail || "Bạn cần mua khóa học này để xem nội dung.");
+          }
+          return;
+        }
+
+        try {
+          const data = await getSignedVideoAPI(lessonId);
+          if (!cancelled) setLesson(data);
+        } catch {
+          try {
+            const data = await getPreviewVideoAPI();
+            if (!cancelled) setLesson(data);
+          } catch {
+            if (!cancelled) setMessage("Không tải được video bài học");
+          }
+        }
+      }
+    }
+
+    loadLesson();
+    return () => {
+      cancelled = true;
+    };
   }, [lessonId]);
 
   const lessons = useMemo(() => (course?.sections || []).flatMap((section) => section.lessons || []), [course]);
@@ -54,8 +112,46 @@ export default function LessonPlayer() {
 
   async function markCompleted() {
     if (!lesson?._id || !lesson?.course_id) return;
-    await saveProgressAPI({ lesson_id: lesson._id, course_id: lesson.course_id, completed: true });
-    setMessage("Đã lưu tiến độ vào database");
+
+    if (authLoading) {
+      setMessage("Đang kiểm tra đăng nhập...");
+      return;
+    }
+
+    if (!user && !localStorage.getItem("token")) {
+      setMessage("Vui lòng đăng nhập để lưu tiến độ.");
+      return;
+    }
+
+    if (!ownershipLoaded) {
+      setMessage("Đang kiểm tra quyền truy cập khóa học...");
+      return;
+    }
+
+    if (!ownedCourseIds.has(lesson.course_id)) {
+      setMessage("Bạn chưa mua khóa học này nên chưa thể lưu tiến độ.");
+      return;
+    }
+
+    setSavingProgress(true);
+    try {
+      await saveProgressAPI({ lesson_id: lesson._id, course_id: lesson.course_id, completed: true });
+      setMessage("Đã lưu tiến độ vào database");
+    } catch (error) {
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+
+      if (status === 401) {
+        logout();
+        setMessage("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      } else if (status === 403) {
+        setMessage(detail || "Bạn chưa mua khóa học này nên chưa thể lưu tiến độ.");
+      } else {
+        setMessage(detail || "Không lưu được tiến độ. Vui lòng thử lại.");
+      }
+    } finally {
+      setSavingProgress(false);
+    }
   }
 
   const bg = isDark ? "bg-[#0f1119]" : "bg-[#f5f7fa]";
@@ -95,8 +191,12 @@ export default function LessonPlayer() {
                 <h1 className="text-xl font-heading font-bold">{lesson?.title || "Bài học"}</h1>
                 <p className={`text-sm ${muted} mt-2`}>Bài {activeIndex + 1} / {totalLessons || 1}</p>
               </div>
-              <button onClick={markCompleted} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold flex items-center gap-2">
-                <FiCheckCircle size={16} /> Hoàn thành
+              <button
+                onClick={markCompleted}
+                disabled={savingProgress || !lesson?._id || !lesson?.course_id}
+                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <FiCheckCircle size={16} /> {savingProgress ? "Đang lưu..." : "Hoàn thành"}
               </button>
             </div>
             {message && <p className="text-sm text-success mt-4">{message}</p>}
@@ -116,7 +216,7 @@ export default function LessonPlayer() {
             <div className="mt-6">
               {activeTab === "content" && (
                 <p className={`${muted} leading-7 text-sm`}>
-                  Nội dung bài học được lấy từ database. Video được phát từ đường dẫn Cloudinary của lesson hiện tại.
+                  Nội dung bài học được lấy từ database. Video được phát từ đường dẫn Cloudinary của bài học hiện tại.
                 </p>
               )}
 

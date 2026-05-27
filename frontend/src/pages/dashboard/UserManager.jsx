@@ -28,8 +28,8 @@ export default function UserManager() {
     try {
       const updated = await updateAdminUserRoleAPI(userId, role);
       setUsers((prev) => prev.map((u) => (u._id === userId ? { ...u, role: updated.role } : u)));
-    } catch {
-      alert("Cập nhật thất bại");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Cap nhat that bai");
     } finally {
       setUpdating(null);
     }
@@ -93,7 +93,8 @@ export default function UserManager() {
                   <td className="p-4">
                     <select
                       value={u.role}
-                      disabled={updating === u._id}
+                      disabled={u.role === "admin" || updating === u._id}
+                      title={u.role === "admin" ? "Khong duoc doi vai tro cua admin" : undefined}
                       onChange={(e) => changeRole(u._id, e.target.value)}
                       className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary disabled:opacity-50"
                     >

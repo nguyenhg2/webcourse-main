@@ -4,11 +4,10 @@ import os
 
 
 class Settings(BaseSettings):
-    # mongo_url: str = Field(
-    #     default=os.getenv("MONGODB_URI"),
-    #     alias="MONGODB_URI",
-    # )
-    mongo_url: str = Field(default="localhost:27017", alias="MONGODB_URI")
+    mongo_url: str = Field(
+        default=os.getenv("MONGODB_URI"),
+        alias="MONGODB_URI",
+    )
     mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
     payment_db: str = Field(default="codecamp_payment", alias="PAYMENT_MONGODB_DB")
     redis_url: str | None = Field(default=os.getenv("REDIS_URL"), alias="REDIS_URL")

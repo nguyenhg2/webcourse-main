@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
 import { getCategoriesAPI, createCategoryAPI, updateCategoryAPI, deleteCategoryAPI } from "../../services/api";
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiCheck } from "react-icons/fi";
 
@@ -12,7 +11,9 @@ export default function CategoryManager() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetchCats(); }, []);
+  useEffect(() => {
+    fetchCats();
+  }, []);
 
   function fetchCats() {
     setLoading(true);
@@ -22,65 +23,51 @@ export default function CategoryManager() {
       .finally(() => setLoading(false));
   }
 
-  function openCreate() { setForm(EMPTY); setModal({ mode: "create" }); }
-  function openEdit(cat) { setForm({ name: cat.name, icon: cat.icon || "" }); setModal({ mode: "edit", id: cat._id }); }
+  function openCreate() {
+    setForm(EMPTY);
+    setModal({ mode: "create" });
+  }
+
+  function openEdit(cat) {
+    setForm({ name: cat.name, icon: cat.icon || "" });
+    setModal({ mode: "edit", id: cat._id });
+  }
 
   async function handleSave() {
-    if (!form.name.trim()) { alert("Vui lòng nhập tên danh mục"); return; }
+    if (!form.name.trim()) {
+      alert("Vui lòng nhập tên danh mục");
+      return;
+    }
+
     setSaving(true);
     try {
-      if (modal.mode === "create") await createCategoryAPI(form);
-      else await updateCategoryAPI(modal.id, form);
+      if (modal.mode === "create") {
+        await createCategoryAPI(form);
+      } else {
+        await updateCategoryAPI(modal.id, form);
+      }
       setModal(null);
       fetchCats();
     } catch (e) {
       alert(e.response?.data?.detail || "Lưu thất bại");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete(id) {
     if (!confirm("Xóa danh mục này?")) return;
+
     try {
       await deleteCategoryAPI(id);
       fetchCats();
     } catch (e) {
       alert(e.response?.data?.detail || "Xóa thất bại");
     }
-=======
-import { createCategoryAPI, deleteCategoryAPI, getCategoriesAPI, updateCategoryAPI } from "../../services/api";
-
-export default function CategoryManager() {
-  const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({ name: "", icon: "" });
-  const [editing, setEditing] = useState(null);
-
-  function load() {
-    getCategoriesAPI().then(setCategories).catch(() => setCategories([]));
-  }
-
-  useEffect(load, []);
-
-  async function submit(e) {
-    e.preventDefault();
-    if (editing) {
-      await updateCategoryAPI(editing, form);
-    } else {
-      await createCategoryAPI(form);
-    }
-    setForm({ name: "", icon: "" });
-    setEditing(null);
-    load();
-  }
-
-  async function remove(id) {
-    await deleteCategoryAPI(id);
-    load();
->>>>>>> df6819dc9fe670909e229ab5a69973dbbdfa8d57
   }
 
   return (
     <div className="space-y-6">
-<<<<<<< HEAD
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý danh mục</h1>
@@ -120,7 +107,9 @@ export default function CategoryManager() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-gray-900">{modal.mode === "create" ? "Thêm danh mục" : "Sửa danh mục"}</h2>
-              <button onClick={() => setModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100"><FiX size={16} /></button>
+              <button onClick={() => setModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <FiX size={16} />
+              </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -133,12 +122,12 @@ export default function CategoryManager() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon (emoji)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                 <input
                   value={form.icon}
                   onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary"
-                  placeholder="VD: 💻"
+                  placeholder="VD: laptop"
                 />
               </div>
             </div>
@@ -151,31 +140,6 @@ export default function CategoryManager() {
           </div>
         </div>
       )}
-=======
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Quản lý danh mục</h1>
-        <p className="text-gray-500 mt-1">Tạo, chỉnh sửa và xóa danh mục khóa học.</p>
-      </div>
-      <form onSubmit={submit} className="bg-white border border-gray-100 rounded-lg p-6 grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4">
-        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên danh mục" required className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
-        <input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="Icon" className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
-        <button className="px-6 py-3 bg-primary text-white rounded-lg font-semibold">{editing ? "Cập nhật" : "Thêm"}</button>
-      </form>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {categories.map((category) => (
-          <div key={category._id} className="bg-white border border-gray-100 rounded-lg p-5 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-semibold text-gray-900">{category.name}</h2>
-              <p className="text-sm text-gray-500 mt-1">{category.icon || "Không có icon"}</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => { setEditing(category._id); setForm({ name: category.name, icon: category.icon || "" }); }} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">Sửa</button>
-              <button onClick={() => remove(category._id)} className="px-3 py-2 border border-red-100 text-red-600 rounded-lg text-sm">Xóa</button>
-            </div>
-          </div>
-        ))}
-      </div>
->>>>>>> df6819dc9fe670909e229ab5a69973dbbdfa8d57
     </div>
   );
 }
