@@ -10,6 +10,12 @@ const contactInfo = [
   { icon: <FiClock size={24} />, title: "Giờ làm việc", detail: "Thứ 2 - Thứ 6: 8:00 - 17:30" },
 ];
 
+const address = "236 Hoàng Quốc Việt, Nghĩa Đô, Hà Nội";
+const mapQuery = encodeURIComponent(address);
+const mapLat = 21.0466213;
+const mapLon = 105.7864498;
+const mapBbox = "105.7814498%2C21.0416213%2C105.7914498%2C21.0516213";
+
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
 
@@ -44,10 +50,26 @@ export default function Contact() {
           ))}
         </div>
 
-        <div className="bg-gray-50 rounded-xl p-8 mb-12 flex items-center justify-center h-64">
-          <div className="text-center text-gray-400">
-            <FiMapPin size={40} className="mx-auto mb-3" />
-            <p className="text-sm">236 Hoàng Quốc Việt, Phường Nghĩa Đô, Hà Nội</p>
+        <div className="mb-12 overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
+          <iframe
+            title="Bản đồ CodeCamp"
+            src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapBbox}&layer=mapnik&marker=${mapLat}%2C${mapLon}`}
+            className="h-80 w-full border-0"
+            loading="lazy"
+          />
+          <div className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <FiMapPin className="text-primary" size={16} />
+              {address}
+            </p>
+            <a
+              href={`https://www.openstreetmap.org/search?query=${mapQuery}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-semibold text-primary hover:underline"
+            >
+              Mở trên OpenStreetMap
+            </a>
           </div>
         </div>
 

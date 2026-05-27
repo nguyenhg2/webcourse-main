@@ -2,12 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
   FiCopy,
+  FiDownload,
+  FiEdit2,
   FiFilm,
   FiLoader,
+  FiPaperclip,
   FiPlus,
   FiPlayCircle,
   FiRefreshCw,
   FiUploadCloud,
+  FiX,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -17,8 +21,10 @@ import {
   getCategoriesAPI,
   getCourseBySlugAPI,
   getCoursesAPI,
+  updateCourseAPI,
   updateLessonAPI,
   updateSectionAPI,
+  uploadAttachmentAPI,
   uploadLessonVideoAPI,
 } from "../../services/api";
 
@@ -65,8 +71,46 @@ function emptyLessonForm(nextOrder = 1) {
     video_url: "",
     duration: 0,
     is_free_preview: false,
+    attachmentsText: "",
     order: nextOrder,
   };
+}
+
+function parseAttachments(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, ...urlParts] = line.split("|").map((part) => part.trim());
+      const url = urlParts.join("|").trim();
+      return url ? { name: name || "Tài liệu", url } : { name: "Tài liệu", url: name };
+    })
+    .filter((item) => item.url);
+}
+
+function formatAttachments(attachments) {
+  return (attachments || [])
+    .map((item) => `${item.name || "Tài liệu"} | ${item.url || ""}`)
+    .join("\n");
+}
+
+function appendAttachmentLine(current, attachment) {
+  const line = `${attachment.name || "Tài liệu"} | ${attachment.url}`;
+  return [current, line].filter(Boolean).join("\n");
+}
+
+function displayLessonTitle(section, lesson) {
+  const sectionOrder = Number(section?.order || 1);
+  const lessonOrder = Number(lesson?.order || 1);
+  const cleanTitle = String(lesson?.title || "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*[-–—:]\s*/i, "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*/i, "")
+    .trim();
+
+  return cleanTitle
+    ? `Bài ${sectionOrder}.${lessonOrder} - ${cleanTitle}`
+    : `Bài ${sectionOrder}.${lessonOrder}`;
 }
 
 export default function CourseManager() {
@@ -76,6 +120,8 @@ export default function CourseManager() {
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [courseDetail, setCourseDetail] = useState(null);
   const [courseForm, setCourseForm] = useState(emptyCourseForm);
+  const [editingCourse, setEditingCourse] = useState(false);
+  const [editingCourseForm, setEditingCourseForm] = useState(emptyCourseForm);
   const [sectionForm, setSectionForm] = useState({ title: "", order: 1 });
   const [editingSectionId, setEditingSectionId] = useState("");
   const [editingSectionForm, setEditingSectionForm] = useState({ title: "", order: 1 });
@@ -85,11 +131,13 @@ export default function CourseManager() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingCourse, setSavingCourse] = useState(false);
+  const [savingEditCourse, setSavingEditCourse] = useState(false);
   const [savingSection, setSavingSection] = useState(false);
   const [savingEditSection, setSavingEditSection] = useState(false);
   const [savingEditLesson, setSavingEditLesson] = useState(false);
   const [savingLessonSectionId, setSavingLessonSectionId] = useState("");
   const [uploadingLessonId, setUploadingLessonId] = useState("");
+  const [uploadingAttachmentKey, setUploadingAttachmentKey] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
 
@@ -211,6 +259,65 @@ export default function CourseManager() {
     }
   }
 
+  function startEditCourse() {
+    if (!selectedCourse) return;
+    setEditingCourse(true);
+    setEditingCourseForm({
+      title: selectedCourse.title || "",
+      slug: selectedCourse.slug || "",
+      description: selectedCourse.description || "",
+      thumbnail: selectedCourse.thumbnail || "",
+      price: selectedCourse.price || 0,
+      category_id: selectedCourse.category_id || categories[0]?._id || "",
+      level: selectedCourse.level || "beginner",
+      status: selectedCourse.status || "draft",
+    });
+  }
+
+  async function handleUpdateCourse(event) {
+    event.preventDefault();
+    if (!canManage || !selectedCourseId) return;
+
+    const title = editingCourseForm.title.trim();
+    if (!title || !editingCourseForm.category_id) {
+      setMessageType("error");
+      setMessage("Vui lòng nhập tên khóa học và chọn danh mục.");
+      return;
+    }
+
+    setSavingEditCourse(true);
+    setMessage("");
+    try {
+      const payload = {
+        ...selectedCourse,
+        ...editingCourseForm,
+        title,
+        slug: editingCourseForm.slug.trim() || slugify(title),
+        description: editingCourseForm.description.trim() || title,
+        thumbnail: editingCourseForm.thumbnail.trim() || null,
+        price: Number(editingCourseForm.price || 0),
+        category_id: editingCourseForm.category_id,
+        instructor_id: selectedCourse.instructor_id || user._id,
+        rating: Number(selectedCourse.rating || 0),
+        total_students: Number(selectedCourse.total_students || 0),
+      };
+      delete payload._id;
+
+      const updated = await updateCourseAPI(selectedCourseId, payload);
+      await loadCourses();
+      setSelectedCourseId(updated._id || selectedCourseId);
+      setEditingCourse(false);
+      setMessageType("success");
+      setMessage("Đã cập nhật khóa học.");
+      await loadCourseDetail({ ...selectedCourse, ...updated, slug: updated.slug || payload.slug });
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.detail || err.message || "Cập nhật khóa học thất bại.");
+    } finally {
+      setSavingEditCourse(false);
+    }
+  }
+
   async function handleCreateSection(event) {
     event.preventDefault();
     if (!selectedCourseId) return;
@@ -252,7 +359,7 @@ export default function CourseManager() {
         video_url: form.video_url.trim(),
         duration: Number(form.duration || 0),
         is_free_preview: Boolean(form.is_free_preview),
-        attachments: [],
+        attachments: parseAttachments(form.attachmentsText),
         order: Number(form.order || 1),
       });
       await loadCourseDetail();
@@ -302,6 +409,7 @@ export default function CourseManager() {
       video_url: lesson.video_url || "",
       duration: lesson.duration || 0,
       is_free_preview: Boolean(lesson.is_free_preview),
+      attachmentsText: formatAttachments(lesson.attachments),
       order: lesson.order || 1,
     });
   }
@@ -327,6 +435,7 @@ export default function CourseManager() {
         video_url: editingLessonForm.video_url.trim(),
         duration: Number(editingLessonForm.duration || 0),
         is_free_preview: Boolean(editingLessonForm.is_free_preview),
+        attachments: parseAttachments(editingLessonForm.attachmentsText),
         order: Number(editingLessonForm.order || 1),
       });
       await loadCourseDetail();
@@ -376,6 +485,54 @@ export default function CourseManager() {
       setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Upload video thất bại.");
     } finally {
       setUploadingLessonId("");
+    }
+  }
+
+  async function uploadAttachmentForNewLesson(sectionId, file) {
+    if (!file || !sectionId) return;
+
+    setUploadingAttachmentKey(`new-${sectionId}`);
+    setMessage("");
+    try {
+      const upload = await uploadAttachmentAPI(file);
+      setLessonForms((current) => {
+        const form = current[sectionId] || emptyLessonForm();
+        return {
+          ...current,
+          [sectionId]: {
+            ...form,
+            attachmentsText: appendAttachmentLine(form.attachmentsText, upload),
+          },
+        };
+      });
+      setMessageType("success");
+      setMessage(`Đã upload tệp "${upload.name || file.name}".`);
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Upload tệp đính kèm thất bại.");
+    } finally {
+      setUploadingAttachmentKey("");
+    }
+  }
+
+  async function uploadAttachmentForEditingLesson(lessonId, file) {
+    if (!file || !lessonId) return;
+
+    setUploadingAttachmentKey(`edit-${lessonId}`);
+    setMessage("");
+    try {
+      const upload = await uploadAttachmentAPI(file);
+      setEditingLessonForm((current) => ({
+        ...current,
+        attachmentsText: appendAttachmentLine(current.attachmentsText, upload),
+      }));
+      setMessageType("success");
+      setMessage(`Đã upload tệp "${upload.name || file.name}".`);
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Upload tệp đính kèm thất bại.");
+    } finally {
+      setUploadingAttachmentKey("");
     }
   }
 
@@ -481,6 +638,14 @@ export default function CourseManager() {
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-500">{selectedCourse.description}</p>
+                  <button
+                    type="button"
+                    onClick={startEditCourse}
+                    disabled={!canManage}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary disabled:opacity-50"
+                  >
+                    <FiEdit2 size={16} /> Sửa khóa học
+                  </button>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center xl:w-72">
                   <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Section</p><p className="mt-1 text-lg font-bold text-gray-900">{sections.length}</p></div>
@@ -492,6 +657,51 @@ export default function CourseManager() {
               <p className="text-sm text-gray-500">Chọn hoặc tạo một khóa học để quản lý nội dung.</p>
             )}
           </div>
+
+          {selectedCourse && editingCourse && (
+            <form onSubmit={handleUpdateCourse} className="rounded-lg border border-gray-100 bg-white p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Sửa khóa học</h3>
+                  <p className="mt-1 text-xs text-gray-500">Cập nhật thông tin khóa học đang chọn.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingCourse(false)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600"
+                  >
+                    <FiX size={16} /> Hủy
+                  </button>
+                  <button disabled={savingEditCourse || !canManage} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60">
+                    {savingEditCourse ? <FiLoader className="animate-spin" /> : <FiCheckCircle size={16} />}
+                    Lưu khóa học
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-4">
+                <input value={editingCourseForm.title} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, title: e.target.value, slug: editingCourseForm.slug || slugify(e.target.value) })} placeholder="Tên khóa học" required className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                <input value={editingCourseForm.slug} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, slug: slugify(e.target.value) })} placeholder="slug" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                <select value={editingCourseForm.category_id} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, category_id: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
+                  <option value="">Chọn danh mục</option>
+                  {categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}
+                </select>
+                <select value={editingCourseForm.level} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, level: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+                <input type="number" min="0" value={editingCourseForm.price} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, price: e.target.value })} placeholder="Giá" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                <input value={editingCourseForm.thumbnail} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, thumbnail: e.target.value })} placeholder="Thumbnail URL" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-2" />
+                <select value={editingCourseForm.status} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, status: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+                <textarea value={editingCourseForm.description} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, description: e.target.value })} placeholder="Mô tả khóa học" className="min-h-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-4" />
+              </div>
+            </form>
+          )}
 
           {selectedCourse && (
             <form onSubmit={handleCreateSection} className="rounded-lg border border-gray-100 bg-white p-5">
@@ -560,6 +770,26 @@ export default function CourseManager() {
                         Xem thử
                       </label>
                       <input value={lessonForm.video_url} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, video_url: e.target.value } })} placeholder="Video URL nếu có" className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary lg:col-span-3" />
+                      <textarea
+                        value={lessonForm.attachmentsText}
+                        onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, attachmentsText: e.target.value } })}
+                        placeholder="Tài liệu đính kèm, mỗi dòng: Tên tài liệu | URL"
+                        className="min-h-20 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary lg:col-span-3"
+                      />
+                      <label className={`inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold ${uploadingAttachmentKey === `new-${section._id}` ? "cursor-wait text-gray-400" : "cursor-pointer text-gray-700 hover:border-primary hover:text-primary"}`}>
+                        {uploadingAttachmentKey === `new-${section._id}` ? <FiLoader className="animate-spin" /> : <FiPaperclip size={16} />}
+                        {uploadingAttachmentKey === `new-${section._id}` ? "Đang upload..." : "Chọn tệp"}
+                        <input
+                          type="file"
+                          disabled={uploadingAttachmentKey === `new-${section._id}` || !canManage}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            uploadAttachmentForNewLesson(section._id, file);
+                            event.target.value = "";
+                          }}
+                          className="hidden"
+                        />
+                      </label>
                       <button type="button" onClick={() => handleCreateLesson(section)} disabled={savingLesson} className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-light disabled:opacity-60">
                         {savingLesson ? <FiLoader className="animate-spin" /> : <FiPlus size={16} />}
                         Thêm lesson
@@ -583,6 +813,26 @@ export default function CourseManager() {
                                   </label>
                                 </div>
                                 <input value={editingLessonForm.video_url} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, video_url: e.target.value })} placeholder="Video URL" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                                <textarea
+                                  value={editingLessonForm.attachmentsText}
+                                  onChange={(e) => setEditingLessonForm({ ...editingLessonForm, attachmentsText: e.target.value })}
+                                  placeholder="Tài liệu đính kèm, mỗi dòng: Tên tài liệu | URL"
+                                  className="min-h-24 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+                                />
+                                <label className={`inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold ${uploadingAttachmentKey === `edit-${lesson._id}` ? "cursor-wait text-gray-400" : "cursor-pointer text-gray-700 hover:border-primary hover:text-primary"}`}>
+                                  {uploadingAttachmentKey === `edit-${lesson._id}` ? <FiLoader className="animate-spin" /> : <FiPaperclip size={16} />}
+                                  {uploadingAttachmentKey === `edit-${lesson._id}` ? "Đang upload..." : "Chọn tệp từ máy"}
+                                  <input
+                                    type="file"
+                                    disabled={uploadingAttachmentKey === `edit-${lesson._id}` || !canManage}
+                                    onChange={(event) => {
+                                      const file = event.target.files?.[0];
+                                      uploadAttachmentForEditingLesson(lesson._id, file);
+                                      event.target.value = "";
+                                    }}
+                                    className="hidden"
+                                  />
+                                </label>
                                 <div className="flex gap-2">
                                   <button type="button" onClick={() => handleUpdateLesson(lesson._id)} disabled={savingEditLesson} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Lưu bài học</button>
                                   <button type="button" onClick={() => setEditingLessonId("")} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600">Hủy</button>
@@ -592,7 +842,7 @@ export default function CourseManager() {
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <FiPlayCircle className="text-primary" size={18} />
-                                <p className="font-semibold text-gray-900">{lesson.title}</p>
+                                <p className="font-semibold text-gray-900">{displayLessonTitle(section, lesson)}</p>
                                 {lesson.is_free_preview && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Xem thử</span>}
                               </div>
                               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
@@ -604,6 +854,27 @@ export default function CourseManager() {
                                 <p className="truncate text-xs text-gray-600">{shortUrl(lesson.video_url)}</p>
                                 {lesson.video_url && <button type="button" onClick={() => copy(lesson.video_url)} className="ml-auto rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-primary" title="Sao chép URL"><FiCopy size={14} /></button>}
                               </div>
+                              {(lesson.attachments || []).length > 0 && (
+                                <div className="mt-3 rounded-lg border border-gray-100 bg-white">
+                                  <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-xs font-semibold text-gray-600">
+                                    <FiPaperclip size={14} /> Tệp thực hành / mã nguồn
+                                  </div>
+                                  <div className="divide-y divide-gray-100">
+                                    {(lesson.attachments || []).map((attachment, index) => (
+                                      <a
+                                        key={`${attachment.url || attachment.name}-${index}`}
+                                        href={attachment.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center justify-between gap-3 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-primary"
+                                      >
+                                        <span className="min-w-0 truncate">{attachment.name || "Tài liệu"}</span>
+                                        <FiDownload className="shrink-0" size={14} />
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                             )}
 

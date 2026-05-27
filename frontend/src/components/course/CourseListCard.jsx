@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FiClock, FiUsers, FiBarChart, FiBookOpen } from "react-icons/fi";
+import { FiClock, FiUsers, FiBarChart, FiBookOpen, FiShoppingCart } from "react-icons/fi";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -7,7 +7,7 @@ const LEVEL_MAP = {
   advanced: "Nâng cao",
 };
 
-export default function CourseListCard({ course, isOwned = false }) {
+export default function CourseListCard({ course, isOwned = false, isInCart = false, isAdding = false, onAddCart }) {
   const levelText = LEVEL_MAP[course.level] || course.level;
   const priceText =
     course.price === 0
@@ -58,12 +58,25 @@ export default function CourseListCard({ course, isOwned = false }) {
           ) : (
             <span className="text-lg font-bold text-primary">{priceText}</span>
           )}
-          <Link
-            to={"/khoa-hoc/" + course.slug}
-            className={`px-6 py-2.5 text-white text-sm font-semibold rounded-lg transition-colors ${isOwned ? "bg-success hover:bg-green-600" : "bg-primary hover:bg-orange-600"}`}
-          >
-            {isOwned ? "Vào học" : "Xem thêm"}
-          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {!isOwned && (
+              <button
+                type="button"
+                onClick={() => onAddCart?.(course)}
+                disabled={isInCart || isAdding}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                <FiShoppingCart size={16} />
+                {isAdding ? "Đang thêm..." : isInCart ? "Đã có trong giỏ" : "Thêm vào giỏ"}
+              </button>
+            )}
+            <Link
+              to={"/khoa-hoc/" + course.slug}
+              className={`px-6 py-2.5 text-white text-sm font-semibold rounded-lg transition-colors ${isOwned ? "bg-success hover:bg-green-600" : "bg-gray-700 hover:bg-gray-900"}`}
+            >
+              {isOwned ? "Vào học" : "Xem thêm"}
+            </Link>
+          </div>
         </div>
       </div>
     </div>
