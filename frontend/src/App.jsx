@@ -122,18 +122,18 @@ export default function App() {
               <Route path="/blog/:slug" element={<BlogSingle />} />
               <Route path="/lien-he" element={<Contact />} />
               <Route path="/faq" element={<FAQ />} />
-              <Route path="/dang-nhap" element={<Login expectedRole="student" />} />
-              <Route path="/admin/dang-nhap" element={<Login expectedRole="admin" />} />
-              <Route path="/giang-vien/dang-nhap" element={<Login expectedRole="instructor" />} />
-              <Route path="/operator/dang-nhap" element={<Login expectedRole="operator" />} />
+              <Route path="/dang-nhap" element={<Login />} />
+              <Route path="/admin/dang-nhap" element={<Navigate to="/dang-nhap" replace />} />
+              <Route path="/giang-vien/dang-nhap" element={<Navigate to="/dang-nhap" replace />} />
+              <Route path="/operator/dang-nhap" element={<Navigate to="/dang-nhap" replace />} />
               <Route path="/dang-ky" element={<Register />} />
-              <Route path="/gio-hang" element={<RequireRole roles={["student"]}><Cart /></RequireRole>} />
+              <Route path="/gio-hang" element={<RequireRole roles={["student"]} fallback="/dashboard"><Cart /></RequireRole>} />
               <Route path="/lo-trinh" element={<RoadmapListing />} />
               <Route path="/lo-trinh/:id" element={<RoadmapDetail />} />
-              <Route path="/thanh-toan" element={<RequireRole roles={["student"]}><Payment /></RequireRole>} />
-              <Route path="/thanh-toan-thanh-cong" element={<RequireRole roles={["student"]}><PaymentSuccess /></RequireRole>} />
+              <Route path="/thanh-toan" element={<RequireRole roles={["student"]} fallback="/dashboard"><Payment /></RequireRole>} />
+              <Route path="/thanh-toan-thanh-cong" element={<RequireRole roles={["student"]} fallback="/dashboard"><PaymentSuccess /></RequireRole>} />
               <Route path="/trang-ca-nhan" element={<Profile />} />
-              <Route path="/khoa-hoc-cua-toi" element={<RequireRole roles={["student"]}><MyCourses /></RequireRole>} />
+              <Route path="/khoa-hoc-cua-toi" element={<RequireRole roles={["student"]} fallback="/dashboard"><MyCourses /></RequireRole>} />
               <Route path="*" element={<NotFound />} />
             </Route>
 

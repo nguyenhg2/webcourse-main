@@ -18,6 +18,7 @@ import {
   getCourseBySlugAPI,
   getCoursesAPI,
   updateLessonAPI,
+  updateSectionAPI,
   uploadLessonVideoAPI,
 } from "../../services/api";
 
@@ -76,11 +77,17 @@ export default function CourseManager() {
   const [courseDetail, setCourseDetail] = useState(null);
   const [courseForm, setCourseForm] = useState(emptyCourseForm);
   const [sectionForm, setSectionForm] = useState({ title: "", order: 1 });
+  const [editingSectionId, setEditingSectionId] = useState("");
+  const [editingSectionForm, setEditingSectionForm] = useState({ title: "", order: 1 });
+  const [editingLessonId, setEditingLessonId] = useState("");
+  const [editingLessonForm, setEditingLessonForm] = useState(emptyLessonForm());
   const [lessonForms, setLessonForms] = useState({});
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingCourse, setSavingCourse] = useState(false);
   const [savingSection, setSavingSection] = useState(false);
+  const [savingEditSection, setSavingEditSection] = useState(false);
+  const [savingEditLesson, setSavingEditLesson] = useState(false);
   const [savingLessonSectionId, setSavingLessonSectionId] = useState("");
   const [uploadingLessonId, setUploadingLessonId] = useState("");
   const [message, setMessage] = useState("");
@@ -149,6 +156,8 @@ export default function CourseManager() {
           ])
         )
       );
+      setEditingSectionId("");
+      setEditingLessonId("");
     } catch (err) {
       setCourseDetail(null);
       setMessageType("error");
@@ -254,6 +263,80 @@ export default function CourseManager() {
       setMessage(err.response?.data?.detail || err.message || "Thêm bài học thất bại.");
     } finally {
       setSavingLessonSectionId("");
+    }
+  }
+
+  function startEditSection(section) {
+    setEditingSectionId(section._id);
+    setEditingSectionForm({
+      title: section.title || "",
+      order: section.order || 1,
+    });
+  }
+
+  async function handleUpdateSection(sectionId) {
+    if (!canManage || !editingSectionForm.title.trim()) return;
+
+    setSavingEditSection(true);
+    setMessage("");
+    try {
+      await updateSectionAPI(sectionId, {
+        title: editingSectionForm.title.trim(),
+        order: Number(editingSectionForm.order || 1),
+      });
+      await loadCourseDetail();
+      setMessageType("success");
+      setMessage("Đã cập nhật section.");
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.detail || err.message || "Cập nhật section thất bại.");
+    } finally {
+      setSavingEditSection(false);
+    }
+  }
+
+  function startEditLesson(lesson) {
+    setEditingLessonId(lesson._id);
+    setEditingLessonForm({
+      title: lesson.title || "",
+      video_url: lesson.video_url || "",
+      duration: lesson.duration || 0,
+      is_free_preview: Boolean(lesson.is_free_preview),
+      order: lesson.order || 1,
+    });
+  }
+
+  async function handleUpdateLesson(lessonId) {
+    if (!canManage) {
+      setMessageType("error");
+      setMessage("Bạn không có quyền chỉnh sửa bài học.");
+      return;
+    }
+
+    if (!editingLessonForm.title || !editingLessonForm.title.trim()) {
+      setMessageType("error");
+      setMessage("Vui lòng nhập tên bài học.");
+      return;
+    }
+
+    setSavingEditLesson(true);
+    setMessage("");
+    try {
+      await updateLessonAPI(lessonId, {
+        title: editingLessonForm.title.trim(),
+        video_url: editingLessonForm.video_url.trim(),
+        duration: Number(editingLessonForm.duration || 0),
+        is_free_preview: Boolean(editingLessonForm.is_free_preview),
+        order: Number(editingLessonForm.order || 1),
+      });
+      await loadCourseDetail();
+      setMessageType("success");
+      setMessage("Đã cập nhật bài học.");
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.detail || err.message || "Cập nhật bài học thất bại.");
+    } finally {
+      setSavingEditLesson(false);
     }
   }
 
@@ -445,11 +528,27 @@ export default function CourseManager() {
                 return (
                   <div key={section._id} className="p-5">
                     <div className="mb-4 flex items-center justify-between gap-3">
+                      {editingSectionId === section._id ? (
+                        <div className="grid flex-1 gap-3 sm:grid-cols-[1fr_120px_auto]">
+                          <input value={editingSectionForm.title} onChange={(e) => setEditingSectionForm({ ...editingSectionForm, title: e.target.value })} className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                          <input type="number" min="1" value={editingSectionForm.order} onChange={(e) => setEditingSectionForm({ ...editingSectionForm, order: e.target.value })} className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => handleUpdateSection(section._id)} disabled={savingEditSection} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Lưu</button>
+                            <button type="button" onClick={() => setEditingSectionId("")} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600">Hủy</button>
+                          </div>
+                        </div>
+                      ) : (
+                      <>
                       <div>
                         <h3 className="font-semibold text-gray-900">{section.title}</h3>
                         <p className="mt-1 text-xs text-gray-500">{(section.lessons || []).length} bài học</p>
                       </div>
-                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">Section {section.order || "-"}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">Section {section.order || "-"}</span>
+                        <button type="button" onClick={() => startEditSection(section)} disabled={!canManage} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-primary hover:text-primary disabled:opacity-50">Sửa</button>
+                      </div>
+                      </>
+                      )}
                     </div>
 
                     <div className="mb-4 grid gap-3 rounded-lg bg-gray-50 p-4 lg:grid-cols-[1fr_110px_120px_160px]">
@@ -472,6 +571,24 @@ export default function CourseManager() {
                         const isUploading = uploadingLessonId === lesson._id;
                         return (
                           <div key={lesson._id} className="grid gap-4 rounded-lg border border-gray-100 p-4 lg:grid-cols-[1fr_300px]">
+                            {editingLessonId === lesson._id ? (
+                              <div className="min-w-0 space-y-3">
+                                <div className="grid gap-3 md:grid-cols-[1fr_110px_110px_140px]">
+                                  <input value={editingLessonForm.title} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, title: e.target.value })} className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                                  <input type="number" min="0" value={editingLessonForm.duration} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, duration: e.target.value })} className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                                  <input type="number" min="1" value={editingLessonForm.order} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, order: e.target.value })} className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                                    <input type="checkbox" checked={editingLessonForm.is_free_preview} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, is_free_preview: e.target.checked })} />
+                                    Xem thử
+                                  </label>
+                                </div>
+                                <input value={editingLessonForm.video_url} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, video_url: e.target.value })} placeholder="Video URL" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                                <div className="flex gap-2">
+                                  <button type="button" onClick={() => handleUpdateLesson(lesson._id)} disabled={savingEditLesson} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Lưu bài học</button>
+                                  <button type="button" onClick={() => setEditingLessonId("")} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600">Hủy</button>
+                                </div>
+                              </div>
+                            ) : (
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <FiPlayCircle className="text-primary" size={18} />
@@ -488,8 +605,14 @@ export default function CourseManager() {
                                 {lesson.video_url && <button type="button" onClick={() => copy(lesson.video_url)} className="ml-auto rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-primary" title="Sao chép URL"><FiCopy size={14} /></button>}
                               </div>
                             </div>
+                            )}
 
                             <div className="flex flex-col justify-center gap-2">
+                              {editingLessonId !== lesson._id && (
+                                <button type="button" onClick={() => startEditLesson(lesson)} disabled={!canManage} className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary disabled:opacity-50">
+                                  Sửa bài học
+                                </button>
+                              )}
                               <label className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white ${isUploading ? "cursor-wait bg-gray-400" : "cursor-pointer bg-primary hover:bg-orange-600"}`}>
                                 {isUploading ? <FiLoader className="animate-spin" /> : <FiUploadCloud size={16} />}
                                 {isUploading ? "Đang upload..." : lesson.video_url ? "Thay video" : "Upload video"}

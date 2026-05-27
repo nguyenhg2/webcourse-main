@@ -7,7 +7,7 @@ const LEVEL_MAP = {
   advanced: "Nâng cao",
 };
 
-export default function CourseListCard({ course }) {
+export default function CourseListCard({ course, isOwned = false }) {
   const levelText = LEVEL_MAP[course.level] || course.level;
   const priceText =
     course.price === 0
@@ -53,12 +53,16 @@ export default function CourseListCard({ course }) {
           )}
         </div>
         <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
-          <span className="text-lg font-bold text-primary">{priceText}</span>
+          {isOwned ? (
+            <span className="text-lg font-bold text-success">Đã mua</span>
+          ) : (
+            <span className="text-lg font-bold text-primary">{priceText}</span>
+          )}
           <Link
             to={"/khoa-hoc/" + course.slug}
-            className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors"
+            className={`px-6 py-2.5 text-white text-sm font-semibold rounded-lg transition-colors ${isOwned ? "bg-success hover:bg-green-600" : "bg-primary hover:bg-orange-600"}`}
           >
-            Xem thêm
+            {isOwned ? "Vào học" : "Xem thêm"}
           </Link>
         </div>
       </div>
