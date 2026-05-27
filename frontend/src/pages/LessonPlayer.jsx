@@ -12,6 +12,19 @@ function formatDuration(seconds) {
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
+function displayLessonTitle(section, lesson) {
+  const sectionOrder = Number(section?.order || 1);
+  const lessonOrder = Number(lesson?.order || 1);
+  const cleanTitle = String(lesson?.title || "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*[-–—:]\s*/i, "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*/i, "")
+    .trim();
+
+  return cleanTitle
+    ? `Bài ${sectionOrder}.${lessonOrder} - ${cleanTitle}`
+    : `Bài ${sectionOrder}.${lessonOrder}`;
+}
+
 export default function LessonPlayer() {
   const { slug, lessonId } = useParams();
   const { theme, toggleTheme } = useTheme();
@@ -106,6 +119,10 @@ export default function LessonPlayer() {
   }, [lessonId]);
 
   const lessons = useMemo(() => (course?.sections || []).flatMap((section) => section.lessons || []), [course]);
+  const currentLessonSection = useMemo(
+    () => (course?.sections || []).find((section) => (section.lessons || []).some((item) => item._id === lessonId)),
+    [course, lessonId]
+  );
   const totalLessons = lessons.length;
   const activeIndex = Math.max(lessons.findIndex((item) => item._id === lessonId), 0);
   const progressPercent = totalLessons ? Math.round(((activeIndex + 1) / totalLessons) * 100) : 0;
@@ -209,7 +226,9 @@ export default function LessonPlayer() {
           <section className={`${panel} border rounded-lg p-6`}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-xl font-heading font-bold">{lesson?.title || "Bài học"}</h1>
+                <h1 className="text-xl font-heading font-bold">
+                  {lesson ? displayLessonTitle(currentLessonSection, lesson) : "Bài học"}
+                </h1>
                 <p className={`text-sm ${muted} mt-2`}>Bài {activeIndex + 1} / {totalLessons || 1}</p>
               </div>
               <button
@@ -292,7 +311,7 @@ export default function LessonPlayer() {
                       className={`flex items-center gap-3 px-5 py-3 text-sm hover:bg-primary-light ${item._id === lessonId ? "text-primary bg-primary-light" : muted}`}
                     >
                       {locked ? <FiLock size={14} /> : <FiPlay size={14} />}
-                      <span className="flex-1 truncate">{item.title}</span>
+                      <span className="flex-1 truncate">{displayLessonTitle(section, item)}</span>
                       <span className="text-xs">{formatDuration(item.duration)}</span>
                     </Link>
                   );

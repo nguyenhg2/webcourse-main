@@ -46,6 +46,19 @@ function formatDuration(seconds) {
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
+function displayLessonTitle(section, lesson) {
+  const sectionOrder = Number(section?.order || 1);
+  const lessonOrder = Number(lesson?.order || 1);
+  const cleanTitle = String(lesson?.title || "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*[-–—:]\s*/i, "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*/i, "")
+    .trim();
+
+  return cleanTitle
+    ? `Bài ${sectionOrder}.${lessonOrder} - ${cleanTitle}`
+    : `Bài ${sectionOrder}.${lessonOrder}`;
+}
+
 export default function CourseSingle() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -271,11 +284,11 @@ export default function CourseSingle() {
                                   )}
                                   {canOpenLesson ? (
                                     <Link to={`/khoa-hoc/${slug}/hoc/${lesson._id}`} className="text-sm text-gray-600 hover:text-primary">
-                                      {lesson.title}
+                                      {displayLessonTitle(section, lesson)}
                                     </Link>
                                   ) : (
                                     <span className="text-sm text-gray-600">
-                                      {lesson.title}
+                                      {displayLessonTitle(section, lesson)}
                                     </span>
                                   )}
                                   {lesson.is_free_preview && (

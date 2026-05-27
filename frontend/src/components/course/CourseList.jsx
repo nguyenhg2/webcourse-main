@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import CourseCard from "./CourseCard";
-import { getCoursesAPI, getMyCoursesAPI } from "../../services/api";
+import { addCartAPI, getCartAPI, getCoursesAPI, getMyCoursesAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 export default function CourseList() {
-  const { user } = useAuth();
+  const { user, refreshCartCount } = useAuth();
   const [courses, setCourses] = useState([]);
   const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
+  const [cartCourseIds, setCartCourseIds] = useState(new Set());
+  const [addingCartId, setAddingCartId] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,13 +22,36 @@ export default function CourseList() {
   useEffect(() => {
     if (user?.role !== "student") {
       setOwnedCourseIds(new Set());
+      setCartCourseIds(new Set());
       return;
     }
 
     getMyCoursesAPI()
       .then((items) => setOwnedCourseIds(new Set(items.map((item) => item._id))))
       .catch(() => setOwnedCourseIds(new Set()));
+    getCartAPI()
+      .then((data) => setCartCourseIds(new Set((data.items || []).map((item) => item._id))))
+      .catch(() => setCartCourseIds(new Set()));
   }, [user]);
+
+  async function handleAddCart(course) {
+    if (!user) {
+      window.location.href = "/dang-nhap";
+      return;
+    }
+    if (user.role !== "student" || ownedCourseIds.has(course._id) || cartCourseIds.has(course._id)) {
+      return;
+    }
+
+    setAddingCartId(course._id);
+    try {
+      await addCartAPI(course._id);
+      setCartCourseIds((current) => new Set([...current, course._id]));
+      await refreshCartCount?.();
+    } finally {
+      setAddingCartId("");
+    }
+  }
 
   if (loading) {
     return (
@@ -51,7 +76,14 @@ export default function CourseList() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {courses.map((course) => (
-            <CourseCard key={course._id} course={course} isOwned={ownedCourseIds.has(course._id)} />
+            <CourseCard
+              key={course._id}
+              course={course}
+              isOwned={ownedCourseIds.has(course._id)}
+              isInCart={cartCourseIds.has(course._id)}
+              isAdding={addingCartId === course._id}
+              onAddCart={handleAddCart}
+            />
           ))}
         </div>
         <div className="text-center mt-10">

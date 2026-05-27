@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.config import settings
-from app.core.deps import require_role
+from app.core.deps import get_current_user, require_role
 from app.db.mongo import get_db, oid, serialize_doc
 from app.models.admin import UserRoleUpdate
 
@@ -31,6 +31,134 @@ def _payment_revenue(payment: dict) -> int:
     amount = int(payment.get("amount", 0))
     discount = int(payment.get("coupon_discount", 0))
     return max(amount - discount, 0)
+
+
+async def _course_rating(db, course_ids: list[str]) -> float:
+    if not course_ids:
+        return 0
+
+    reviews = await db["reviews"].find({"course_id": {"$in": course_ids}}).to_list(length=1000)
+    ratings = [float(review.get("rating", 0) or 0) for review in reviews]
+    return round(sum(ratings) / len(ratings), 1) if ratings else 0
+
+
+def _instructor_course_query(user: dict) -> dict:
+    user_id = user["_id"]
+    values = [user_id]
+    if ObjectId.is_valid(user_id):
+        values.append(oid(user_id))
+    return {"instructor_id": {"$in": values}}
+
+
+async def _instructor_dashboard(db, user: dict):
+    courses = await db["courses"].find(_instructor_course_query(user)).to_list(length=500)
+    if not courses and await db["users"].count_documents({"role": "instructor"}) == 1:
+        courses = await db["courses"].find({}).to_list(length=500)
+
+    course_ids = [str(course["_id"]) for course in courses]
+    students = await db["enrollments"].distinct(
+        "user_id",
+        {"course_id": {"$in": course_ids}, "payment_id": {"$exists": True}},
+    ) if course_ids else []
+
+    items = []
+    for course in courses[:5]:
+        course = serialize_doc(course)
+        course_enrollments = await db["enrollments"].distinct(
+            "user_id",
+            {"course_id": course["_id"], "payment_id": {"$exists": True}},
+        )
+        course["total_students"] = len(course_enrollments)
+        course["rating"] = await _course_rating(db, [course["_id"]])
+        items.append(course)
+
+    return {
+        "stats": {
+            "courses": len(courses),
+            "students": len(students),
+            "rating": await _course_rating(db, course_ids),
+            "published": len([course for course in courses if course.get("status") == "published"]),
+        },
+        "items": items,
+    }
+
+
+async def _student_dashboard(db, user: dict):
+    enrollments = await db["enrollments"].find(
+        {"user_id": user["_id"], "payment_id": {"$exists": True}}
+    ).to_list(length=500)
+
+    items = []
+    progress_values = []
+    completed_courses = 0
+    completed_lessons_total = 0
+
+    for enrollment in enrollments:
+        course_id = enrollment.get("course_id")
+        if not ObjectId.is_valid(course_id):
+            continue
+
+        course = await db["courses"].find_one({"_id": oid(course_id)})
+        if not course:
+            continue
+
+        lessons = await db["lessons"].find({"course_id": course_id}).to_list(length=500)
+        lesson_ids = [str(lesson["_id"]) for lesson in lessons]
+        completed_lessons = await db["progress"].count_documents(
+            {
+                "user_id": user["_id"],
+                "course_id": course_id,
+                "lesson_id": {"$in": lesson_ids},
+                "completed": True,
+            }
+        ) if lesson_ids else 0
+        progress = round(completed_lessons * 100 / len(lesson_ids)) if lesson_ids else 0
+        progress_values.append(progress)
+        completed_lessons_total += completed_lessons
+        if progress >= 100:
+            completed_courses += 1
+
+        item = serialize_doc(course)
+        item["progress"] = progress
+        items.append(item)
+
+    return {
+        "stats": {
+            "courses": len(items),
+            "completed": completed_courses,
+            "progress": round(sum(progress_values) / len(progress_values)) if progress_values else 0,
+            "lessons": completed_lessons_total,
+        },
+        "items": items[:5],
+    }
+
+
+@router.get("/api/dashboard")
+async def dashboard(db=Depends(get_db), user=Depends(get_current_user)):
+    role = user.get("role")
+
+    if role == "admin":
+        stats = await admin_dashboard(db, user)
+        return {"stats": stats, "items": []}
+
+    if role == "operator":
+        payment_db = _payment_db(db)
+        payments = await payment_db["payments"].find({}).sort("created_at", -1).to_list(length=500)
+        completed_payments = [payment for payment in payments if payment.get("status") == "completed"]
+        return {
+            "stats": {
+                "revenue": sum(_payment_revenue(payment) for payment in completed_payments),
+                "orders": len(payments),
+                "completedOrders": len(completed_payments),
+                "pendingOrders": len([payment for payment in payments if payment.get("status") == "pending"]),
+            },
+            "items": [serialize_doc(payment) for payment in payments[:5]],
+        }
+
+    if role == "instructor":
+        return await _instructor_dashboard(db, user)
+
+    return await _student_dashboard(db, user)
 
 
 @router.get("/api/admin/dashboard")

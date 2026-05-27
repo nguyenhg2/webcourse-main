@@ -6,13 +6,13 @@ import CourseListCard from "../components/course/CourseListCard";
 import CourseGridCard from "../components/course/CourseGridCard";
 import CourseSidebar from "../components/course/CourseSidebar";
 import Pagination from "../components/ui/Pagination";
-import { getCoursesAPI, getMyCoursesAPI } from "../services/api";
+import { addCartAPI, getCartAPI, getCoursesAPI, getMyCoursesAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 const PER_PAGE = 6;
 
 export default function CourseListingPage() {
-  const { user } = useAuth();
+  const { user, refreshCartCount } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +23,8 @@ export default function CourseListingPage() {
   const [selectedLevels, setSelectedLevels] = useState([]);
   const [selectedRatings, setSelectedRatings] = useState([]);
   const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
+  const [cartCourseIds, setCartCourseIds] = useState(new Set());
+  const [addingCartId, setAddingCartId] = useState("");
 
   useEffect(() => {
     getCoursesAPI()
@@ -34,13 +36,36 @@ export default function CourseListingPage() {
   useEffect(() => {
     if (user?.role !== "student") {
       setOwnedCourseIds(new Set());
+      setCartCourseIds(new Set());
       return;
     }
 
     getMyCoursesAPI()
       .then((items) => setOwnedCourseIds(new Set(items.map((item) => item._id))))
       .catch(() => setOwnedCourseIds(new Set()));
+    getCartAPI()
+      .then((data) => setCartCourseIds(new Set((data.items || []).map((item) => item._id))))
+      .catch(() => setCartCourseIds(new Set()));
   }, [user]);
+
+  async function handleAddCart(course) {
+    if (!user) {
+      window.location.href = "/dang-nhap";
+      return;
+    }
+    if (user.role !== "student" || ownedCourseIds.has(course._id) || cartCourseIds.has(course._id)) {
+      return;
+    }
+
+    setAddingCartId(course._id);
+    try {
+      await addCartAPI(course._id);
+      setCartCourseIds((current) => new Set([...current, course._id]));
+      await refreshCartCount?.();
+    } finally {
+      setAddingCartId("");
+    }
+  }
 
   useEffect(() => {
     const categories = searchParams.get("category");
@@ -170,13 +195,27 @@ export default function CourseListingPage() {
             ) : viewMode === "list" ? (
               <div className="flex flex-col gap-6">
                 {visible.map((course) => (
-                  <CourseListCard key={course._id} course={course} isOwned={ownedCourseIds.has(course._id)} />
+                  <CourseListCard
+                    key={course._id}
+                    course={course}
+                    isOwned={ownedCourseIds.has(course._id)}
+                    isInCart={cartCourseIds.has(course._id)}
+                    isAdding={addingCartId === course._id}
+                    onAddCart={handleAddCart}
+                  />
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {visible.map((course) => (
-                  <CourseGridCard key={course._id} course={course} isOwned={ownedCourseIds.has(course._id)} />
+                  <CourseGridCard
+                    key={course._id}
+                    course={course}
+                    isOwned={ownedCourseIds.has(course._id)}
+                    isInCart={cartCourseIds.has(course._id)}
+                    isAdding={addingCartId === course._id}
+                    onAddCart={handleAddCart}
+                  />
                 ))}
               </div>
             )}

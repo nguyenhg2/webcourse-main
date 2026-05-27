@@ -42,6 +42,11 @@ export async function getMeAPI() {
   return res.data;
 }
 
+export async function getProfileAPI() {
+  const res = await api.get("/api/auth/profile");
+  return res.data;
+}
+
 // Courses
 export async function getCoursesAPI(params) {
   const res = await api.get("/api/courses", { params });
@@ -273,9 +278,23 @@ export async function uploadLessonVideoAPI(file) {
   return uploadVideoAPI(file);
 }
 
+export async function uploadAttachmentAPI(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await axios.post(PAYMENT_API_BASE + "/api/files/upload", formData, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
 // Admin APIs
 export async function getAdminDashboardAPI() {
   const res = await api.get("/api/admin/dashboard");
+  return res.data;
+}
+
+export async function getDashboardOverviewAPI() {
+  const res = await api.get("/api/dashboard");
   return res.data;
 }
 

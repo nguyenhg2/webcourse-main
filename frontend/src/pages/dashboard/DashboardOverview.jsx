@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiBookOpen, FiCheckCircle, FiDollarSign, FiTrendingUp, FiUsers } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
-import { getAdminDashboardAPI, getAllPaymentsAPI, getCoursesAPI, getMyCoursesAPI } from "../../services/api";
+import { getAdminDashboardAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
 
@@ -23,54 +23,62 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     if (role === "admin") {
-      getAdminDashboardAPI().then(setStats).catch(() => setStats({}));
-      return;
-    }
-
-    if (role === "operator") {
-      getAllPaymentsAPI()
+      getAdminDashboardAPI()
         .then((data) => {
-          const payments = data.payments || [];
-          setItems(payments.slice(0, 5));
-          setStats({
-            revenue: payments.filter((p) => p.status === "completed").reduce((sum, p) => sum + Number(p.amount || 0) - Number(p.coupon_discount || 0), 0),
-            orders: payments.length,
-            completedOrders: payments.filter((p) => p.status === "completed").length,
-            pendingOrders: payments.filter((p) => p.status === "pending").length,
-          });
+          setStats(data || {});
+          setItems([]);
         })
-        .catch(() => setStats({}));
-      return;
-    }
-
-    if (role === "instructor") {
-      getCoursesAPI()
-        .then((courses) => {
-          const mine = courses.filter((course) => !user?._id || course.instructor_id === user._id);
-          const visible = mine.length ? mine : courses;
-          setItems(visible.slice(0, 5));
-          setStats({
-            courses: visible.length,
-            students: visible.reduce((sum, course) => sum + Number(course.total_students || 0), 0),
-            rating: visible.length ? (visible.reduce((sum, course) => sum + Number(course.rating || 0), 0) / visible.length).toFixed(1) : "0.0",
-            published: visible.filter((course) => course.status === "published").length,
-          });
-        })
-        .catch(() => setStats({}));
-      return;
-    }
-
-    getMyCoursesAPI()
-      .then((courses) => {
-        setItems(courses.slice(0, 5));
-        setStats({
-          courses: courses.length,
-          completed: courses.filter((course) => Number(course.progress || 0) >= 100).length,
-          progress: courses.length ? Math.round(courses.reduce((sum, course) => sum + Number(course.progress || 0), 0) / courses.length) : 0,
-          lessons: courses.reduce((sum, course) => sum + Number(course.completedLessons || 0), 0),
+        .catch(() => {
+          setStats({});
+          setItems([]);
         });
+      return;
+    }
+
+    getDashboardOverviewAPI()
+      .then((data) => {
+        const nextStats = data.stats || {};
+        setStats(nextStats);
+        setItems(data.items || []);
+
+        if (role === "instructor" && !nextStats.courses) {
+          return getCoursesAPI().then((courses) => {
+            const visible = courses.filter((course) => !user?._id || course.instructor_id === user._id);
+            const fallback = visible.length ? visible : courses;
+            setItems(fallback.slice(0, 5));
+            setStats({
+              courses: fallback.length,
+              students: fallback.reduce((sum, course) => sum + Number(course.total_students || 0), 0),
+              rating: fallback.length ? (fallback.reduce((sum, course) => sum + Number(course.rating || 0), 0) / fallback.length).toFixed(1) : "0.0",
+              published: fallback.filter((course) => course.status === "published").length,
+            });
+          });
+        }
       })
-      .catch(() => setStats({}));
+      .catch(() => {
+        if (role !== "instructor") {
+          setStats({});
+          setItems([]);
+          return;
+        }
+
+        getCoursesAPI()
+          .then((courses) => {
+            const visible = courses.filter((course) => !user?._id || course.instructor_id === user._id);
+            const fallback = visible.length ? visible : courses;
+            setItems(fallback.slice(0, 5));
+            setStats({
+              courses: fallback.length,
+              students: fallback.reduce((sum, course) => sum + Number(course.total_students || 0), 0),
+              rating: fallback.length ? (fallback.reduce((sum, course) => sum + Number(course.rating || 0), 0) / fallback.length).toFixed(1) : "0.0",
+              published: fallback.filter((course) => course.status === "published").length,
+            });
+          })
+          .catch(() => {
+            setStats({});
+            setItems([]);
+          });
+      });
   }, [role, user?._id]);
 
   const cards = useMemo(() => {
