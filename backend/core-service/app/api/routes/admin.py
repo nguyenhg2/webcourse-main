@@ -72,12 +72,16 @@ async def update_user_role(
     if not ObjectId.is_valid(user_id):
         raise HTTPException(status_code=400, detail="user_id khong hop le")
 
+    target_user = await db["users"].find_one({"_id": oid(user_id)})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Khong tim thay nguoi dung")
+    if target_user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Khong duoc doi vai tro cua admin")
+
     result = await db["users"].update_one(
         {"_id": oid(user_id)},
         {"$set": {"role": payload.role.value}},
     )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Khong tim thay nguoi dung")
 
     updated_user = await db["users"].find_one({"_id": oid(user_id)})
     return _sanitize_user(updated_user)

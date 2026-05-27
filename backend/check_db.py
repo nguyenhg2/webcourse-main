@@ -7,7 +7,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 async def main():
     client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
     core = client[os.getenv("MONGODB_DB", "codecamp_core")]
-    payment = client["codecamp_payment"]
+    blog = client[os.getenv("BLOG_MONGODB_DB", "codecamp_php")]
+    payment = client[os.getenv("PAYMENT_MONGODB_DB", "codecamp_payment")]
 
     core_collections = [
         "users",
@@ -20,13 +21,14 @@ async def main():
         "reviews",
         "carts",
         "roadmaps",
-        "blogs",
-        "contacts",
     ]
+    blog_collections = ["blogs", "contacts"]
     payment_collections = ["coupons", "payments"]
 
     for name in core_collections:
         print(f"{name}: {await core[name].count_documents({})}")
+    for name in blog_collections:
+        print(f"blog.{name}: {await blog[name].count_documents({})}")
     for name in payment_collections:
         print(f"payment.{name}: {await payment[name].count_documents({})}")
 

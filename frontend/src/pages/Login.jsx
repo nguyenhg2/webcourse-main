@@ -4,13 +4,37 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { useAuth } from "../context/AuthContext";
 
-export default function Login() {
+const ROLE_LOGIN_CONFIG = {
+  student: {
+    title: "Đăng nhập học viên",
+    breadcrumb: "Đăng nhập học viên",
+    redirect: "/khoa-hoc-cua-toi",
+  },
+  admin: {
+    title: "Đăng nhập quản trị",
+    breadcrumb: "Đăng nhập quản trị",
+    redirect: "/dashboard",
+  },
+  instructor: {
+    title: "Đăng nhập giảng viên",
+    breadcrumb: "Đăng nhập giảng viên",
+    redirect: "/dashboard",
+  },
+  operator: {
+    title: "Đăng nhập vận hành",
+    breadcrumb: "Đăng nhập vận hành",
+    redirect: "/dashboard",
+  },
+};
+
+export default function Login({ expectedRole = "student" }) {
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const loginConfig = ROLE_LOGIN_CONFIG[expectedRole] || ROLE_LOGIN_CONFIG.student;
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
@@ -25,12 +49,8 @@ export default function Login() {
     setError("");
     setSubmitting(true);
     try {
-      const user = await login(form.email, form.password);
-      if (user.role === 'student') {
-        navigate('/khoa-hoc-cua-toi');
-      } else {
-        navigate('/dashboard');
-      }
+      const user = await login(form.email, form.password, expectedRole);
+      navigate(ROLE_LOGIN_CONFIG[user.role]?.redirect || "/dashboard");
     } catch (err) {
       const msg =
         err.response?.data?.detail || "Email hoặc mật khẩu không đúng";
@@ -43,11 +63,11 @@ export default function Login() {
   return (
     <>
       <Breadcrumb
-        items={[{ label: "Trang chủ", to: "/" }, { label: "Đăng nhập" }]}
+        items={[{ label: "Trang chủ", to: "/" }, { label: loginConfig.breadcrumb }]}
       />
       <div className="max-w-md mx-auto px-5 py-16">
         <h1 className="text-2xl font-heading font-bold text-secondary mb-8 text-center">
-          Đăng nhập
+          {loginConfig.title}
         </h1>
         {error && (
           <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg mb-5">
@@ -60,7 +80,7 @@ export default function Login() {
             type="email"
             value={form.email}
             onChange={handleChange}
-            placeholder="Email hoặc tên đăng nhập *"
+            placeholder="Email *"
             required
             className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors"
           />
@@ -70,7 +90,7 @@ export default function Login() {
               type={showPw ? "text" : "password"}
               value={form.password}
               onChange={handleChange}
-              placeholder="Mật khẩu *"
+            placeholder="Mật khẩu *"
               required
               className="w-full px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors pr-12"
             />

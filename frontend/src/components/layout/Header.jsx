@@ -16,6 +16,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user, logout } = useAuth();
+  const isStudent = !user || user.role === "student";
 
   const linkClass = ({ isActive }) =>
     `text-base font-medium transition-colors ${isActive ? "text-primary" : "text-secondary hover:text-primary"}`;
@@ -39,9 +40,11 @@ export default function Header() {
           <button className="p-2 text-gray-600 hover:text-primary transition-colors">
             <FiSearch size={20} />
           </button>
-          <Link to="/gio-hang" className="p-2 text-gray-600 hover:text-primary transition-colors">
-            <FiShoppingCart size={20} />
-          </Link>
+          {isStudent && (
+            <Link to="/gio-hang" className="p-2 text-gray-600 hover:text-primary transition-colors">
+              <FiShoppingCart size={20} />
+            </Link>
+          )}
 
           {user ? (
             <div className="relative">
@@ -57,7 +60,7 @@ export default function Header() {
                   <Link to="/trang-ca-nhan" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50">
                     <FiUser size={16} /> Trang cá nhân
                   </Link>
-                  <Link to="/khoa-hoc-cua-toi" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50">
+                  <Link to="/khoa-hoc-cua-toi" onClick={() => setDropdownOpen(false)} className={`${user.role === "student" ? "flex" : "hidden"} items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50`}>
                     <FiBookOpen size={16} /> Khóa học của tôi
                   </Link>
                   <Link to="/dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50">
@@ -94,14 +97,14 @@ export default function Header() {
               {link.label}
             </NavLink>
           ))}
-          <Link to="/gio-hang" onClick={() => setMobileOpen(false)} className="text-base font-medium text-secondary">
+          {isStudent && <Link to="/gio-hang" onClick={() => setMobileOpen(false)} className="text-base font-medium text-secondary">
             Giỏ hàng
-          </Link>
+          </Link>}
           <hr className="border-gray-100" />
           {user ? (
             <>
               <Link to="/trang-ca-nhan" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Trang cá nhân</Link>
-              <Link to="/khoa-hoc-cua-toi" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Khóa học của tôi</Link>
+              {user.role === "student" && <Link to="/khoa-hoc-cua-toi" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Khóa học của tôi</Link>}
               <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Dashboard</Link>
               <button onClick={() => { logout(); setMobileOpen(false); }} className="text-sm text-error py-2 text-left">Đăng xuất</button>
             </>

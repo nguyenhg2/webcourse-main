@@ -9,6 +9,16 @@ from bson import ObjectId
 router = APIRouter()
 
 
+def _ensure_course_owner(course: dict | None, user: dict):
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khong tim thay khoa hoc",
+        )
+    if user.get("role") != "admin" and course.get("instructor_id") != user["_id"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+
+
 @router.get("/api/courses", response_model=List[CourseResponse])
 async def get_courses(
     category_id: Optional[str] = None,
@@ -70,9 +80,11 @@ async def get_course(course_id: str, db=Depends(get_db)):
 async def create_course(
     payload: CourseCreate,
     db=Depends(get_db),
-    user=Depends(require_role("admin")),
+    user=Depends(require_role("admin", "instructor")),
 ):
     new_course = payload.model_dump()
+    if user.get("role") == "instructor":
+        new_course["instructor_id"] = user["_id"]
     result = await db["courses"].insert_one(new_course)
     new_course = await db["courses"].find_one({"_id": result.inserted_id})
     return serialize_doc(new_course)
@@ -83,9 +95,13 @@ async def update_course(
     course_id: str,
     payload: CourseCreate,
     db=Depends(get_db),
-    user=Depends(require_role("admin")),
+    user=Depends(require_role("admin", "instructor")),
 ):
+    existing = await db["courses"].find_one({"_id": ObjectId(course_id)})
+    _ensure_course_owner(existing, user)
     update_data = payload.model_dump(exclude_unset=True)
+    if user.get("role") == "instructor":
+        update_data["instructor_id"] = user["_id"]
     if not update_data:
         raise HTTPException(
             status_code=400,
@@ -107,8 +123,10 @@ async def update_course(
 async def delete_course(
     course_id: str,
     db=Depends(get_db),
-    user=Depends(require_role("admin")),
+    user=Depends(require_role("admin", "instructor")),
 ):
+    existing = await db["courses"].find_one({"_id": ObjectId(course_id)})
+    _ensure_course_owner(existing, user)
     result = await db["courses"].delete_one({"_id": ObjectId(course_id)})
     if result.deleted_count == 0:
         raise HTTPException(

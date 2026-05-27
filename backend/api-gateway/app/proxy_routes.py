@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Request, HTTPException, Response
 import httpx
 import logging
@@ -5,10 +6,10 @@ import logging
 router = APIRouter()
 
 SERVICES = {
-    "core": "http://localhost:8001",
-    "payment": "http://localhost:8002",
-    "video": "http://localhost:8003",
-    "blog": "http://localhost:8004",
+    "core": os.getenv("CORE_SERVICE_URL", "http://backend:8001"),
+    "payment": os.getenv("PAYMENT_SERVICE_URL", "http://payment:8002"),
+    "video": os.getenv("VIDEO_SERVICE_URL", os.getenv("PAYMENT_SERVICE_URL", "http://payment:8002")),
+    "blog": os.getenv("BLOG_SERVICE_URL", "http://blog:8003"),
 }
 
 client = httpx.AsyncClient(timeout=10.0)
@@ -64,6 +65,10 @@ async def put_core_proxy(path: str, request: Request):
 async def delete_core_proxy(path: str, request: Request):
     return await proxy_request("core", path, request)
 
+@router.patch("/core/{path:path}")
+async def patch_core_proxy(path: str, request: Request):
+    return await proxy_request("core", path, request)
+
 
 
 #PAYMENT SERVICE PROXIES
@@ -81,6 +86,10 @@ async def put_payment_proxy(path: str, request: Request):
 
 @router.delete("/payment/{path:path}")
 async def delete_payment_proxy(path: str, request: Request):
+    return await proxy_request("payment", path, request)
+
+@router.patch("/payment/{path:path}")
+async def patch_payment_proxy(path: str, request: Request):
     return await proxy_request("payment", path, request)
 
 
@@ -101,6 +110,10 @@ async def put_video_proxy(path: str, request: Request):
 async def delete_video_proxy(path: str, request: Request):
     return await proxy_request("video", path, request)
 
+@router.patch("/video/{path:path}")
+async def patch_video_proxy(path: str, request: Request):
+    return await proxy_request("video", path, request)
+
 #BLOG SERVICE PROXIES
 @router.get("/blog/{path:path}")
 async def get_blog_proxy(path: str, request: Request):
@@ -116,4 +129,8 @@ async def put_blog_proxy(path: str, request: Request):
 
 @router.delete("/blog/{path:path}")
 async def delete_blog_proxy(path: str, request: Request):
+    return await proxy_request("blog", path, request)
+
+@router.patch("/blog/{path:path}")
+async def patch_blog_proxy(path: str, request: Request):
     return await proxy_request("blog", path, request)

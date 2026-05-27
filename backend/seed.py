@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.context import CryptContext
 from bson import ObjectId
@@ -7,15 +8,84 @@ from datetime import datetime, timezone
 
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("MONGODB_DB", "codecamp_core")
+BLOG_DB_NAME = os.getenv("BLOG_MONGODB_DB", "codecamp_php")
+PAYMENT_DB_NAME = os.getenv("PAYMENT_MONGODB_DB", "codecamp_payment")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+async def seed_blog_only():
+    client = AsyncIOMotorClient(MONGO_URI)
+    blog_db = client[BLOG_DB_NAME]
+    now = datetime.now(timezone.utc).isoformat()
+
+    blog_docs = [
+        {
+            "title": "Lộ trình học lập trình web cho người mới",
+            "slug": "lo-trinh-hoc-lap-trinh-web-cho-nguoi-moi",
+            "excerpt": "Bắt đầu với HTML, CSS, JavaScript và từng bước tiến đến React, API và database.",
+            "content": "Người mới nên học theo từng lớp nền tảng: giao diện, ngôn ngữ lập trình, backend API, database và cách triển khai ứng dụng.",
+            "image": "https://placehold.co/410x267/564FFD/fff?text=Web+Dev",
+            "author": "CodeCamp Team",
+            "is_published": True,
+            "created_at": now,
+        },
+        {
+            "title": "Cách chọn khóa học phù hợp với mục tiêu nghề nghiệp",
+            "slug": "cach-chon-khoa-hoc-phu-hop-voi-muc-tieu-nghe-nghiep",
+            "excerpt": "Đừng chỉ chọn khóa học theo công nghệ hot, hãy bắt đầu từ vai trò bạn muốn theo đuổi.",
+            "content": "Nếu muốn làm frontend, hãy ưu tiên HTML, CSS, JavaScript, React và kỹ năng làm việc với API. Nếu muốn làm backend, tập trung vào HTTP, database, xác thực và thiết kế service.",
+            "image": "https://placehold.co/410x267/22C55E/fff?text=Career",
+            "author": "CodeCamp Team",
+            "is_published": True,
+            "created_at": now,
+        },
+        {
+            "title": "Docker giúp lập trình viên làm việc ổn định hơn như thế nào",
+            "slug": "docker-giup-lap-trinh-vien-lam-viec-on-dinh-hon-nhu-the-nao",
+            "excerpt": "Docker giúp đóng gói môi trường chạy, giảm lỗi khác nhau giữa máy dev và server.",
+            "content": "Với Docker, mỗi service có thể chạy trong container riêng với dependency riêng. Điều này rất hữu ích cho kiến trúc nhiều service như frontend, core API, payment và blog.",
+            "image": "https://placehold.co/410x267/0EA5E9/fff?text=Docker",
+            "author": "CodeCamp Team",
+            "is_published": True,
+            "created_at": now,
+        },
+    ]
+
+    for blog_doc in blog_docs:
+        await blog_db["blogs"].update_one(
+            {"slug": blog_doc["slug"]},
+            {"$set": blog_doc},
+            upsert=True,
+        )
+
+    contact_doc = {
+        "name": "Người dùng test",
+        "email": "test@codecamp.vn",
+        "phone": "0123456789",
+        "subject": "Tư vấn khóa học",
+        "message": "Tôi muốn được tư vấn lộ trình học lập trình web.",
+        "is_read": False,
+        "created_at": now,
+    }
+
+    await blog_db["contacts"].update_one(
+        {"email": contact_doc["email"], "subject": contact_doc["subject"]},
+        {"$set": contact_doc},
+        upsert=True,
+    )
+
+    print(f"Seed blog Mongo thành công: {len(blog_docs)} blogs, 1 contact -> {BLOG_DB_NAME}")
+    client.close()
 
 
 async def seed():
     client = AsyncIOMotorClient(MONGO_URI)
     db = client[DB_NAME]
+    blog_db = client[BLOG_DB_NAME]
+    payment_db = client[PAYMENT_DB_NAME]
 
-    for col in ["users", "categories", "courses", "sections", "lessons", "enrollments", "progress", "reviews", "carts", "roadmaps", "blogs", "contacts"]:
+    for col in ["users", "categories", "courses", "sections", "lessons", "enrollments", "progress", "reviews", "carts", "roadmaps"]:
         await db[col].delete_many({})
 
     admin_id = ObjectId()
@@ -276,7 +346,7 @@ async def seed():
         ]
     )
 
-    await db["blogs"].insert_many(
+    blog_docs = (
         [
             {
                 "title": "5 Ngôn ngữ lập trình nên học năm 2026",
@@ -311,6 +381,13 @@ async def seed():
         ]
     )
 
+    for blog_doc in blog_docs:
+        await blog_db["blogs"].update_one(
+            {"slug": blog_doc["slug"]},
+            {"$set": blog_doc},
+            upsert=True,
+        )
+
     await db["reviews"].insert_many(
         [
             {
@@ -332,7 +409,7 @@ async def seed():
         ]
     )
 
-    await db["contacts"].insert_one(
+    contact_doc = (
         {
             "name": "Người dùng test",
             "email": "test@codecamp.vn",
@@ -344,8 +421,12 @@ async def seed():
         }
     )
 
-    print("Seed dữ liệu thành công!")
-    payment_db = client["codecamp_payment"]
+    await blog_db["contacts"].update_one(
+        {"email": contact_doc["email"], "subject": contact_doc["subject"]},
+        {"$set": contact_doc},
+        upsert=True,
+    )
+
     await payment_db["coupons"].delete_many({})
     await payment_db["payments"].delete_many({})
     await payment_db["coupons"].insert_many(
@@ -401,8 +482,12 @@ async def seed():
         ]
     )
 
+    print("Seed dữ liệu thành công!")
     client.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    if "--blog-only" in sys.argv:
+        asyncio.run(seed_blog_only())
+    else:
+        asyncio.run(seed())

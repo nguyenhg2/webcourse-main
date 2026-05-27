@@ -11,7 +11,9 @@ export default function CategoryManager() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetchCats(); }, []);
+  useEffect(() => {
+    fetchCats();
+  }, []);
 
   function fetchCats() {
     setLoading(true);
@@ -21,24 +23,41 @@ export default function CategoryManager() {
       .finally(() => setLoading(false));
   }
 
-  function openCreate() { setForm(EMPTY); setModal({ mode: "create" }); }
-  function openEdit(cat) { setForm({ name: cat.name, icon: cat.icon || "" }); setModal({ mode: "edit", id: cat._id }); }
+  function openCreate() {
+    setForm(EMPTY);
+    setModal({ mode: "create" });
+  }
+
+  function openEdit(cat) {
+    setForm({ name: cat.name, icon: cat.icon || "" });
+    setModal({ mode: "edit", id: cat._id });
+  }
 
   async function handleSave() {
-    if (!form.name.trim()) { alert("Vui lòng nhập tên danh mục"); return; }
+    if (!form.name.trim()) {
+      alert("Vui lòng nhập tên danh mục");
+      return;
+    }
+
     setSaving(true);
     try {
-      if (modal.mode === "create") await createCategoryAPI(form);
-      else await updateCategoryAPI(modal.id, form);
+      if (modal.mode === "create") {
+        await createCategoryAPI(form);
+      } else {
+        await updateCategoryAPI(modal.id, form);
+      }
       setModal(null);
       fetchCats();
     } catch (e) {
       alert(e.response?.data?.detail || "Lưu thất bại");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete(id) {
     if (!confirm("Xóa danh mục này?")) return;
+
     try {
       await deleteCategoryAPI(id);
       fetchCats();
@@ -88,7 +107,9 @@ export default function CategoryManager() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-gray-900">{modal.mode === "create" ? "Thêm danh mục" : "Sửa danh mục"}</h2>
-              <button onClick={() => setModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100"><FiX size={16} /></button>
+              <button onClick={() => setModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <FiX size={16} />
+              </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -101,12 +122,12 @@ export default function CategoryManager() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon (emoji)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                 <input
                   value={form.icon}
                   onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary"
-                  placeholder="VD: 💻"
+                  placeholder="VD: laptop"
                 />
               </div>
             </div>

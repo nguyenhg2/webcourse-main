@@ -6,6 +6,7 @@ use Closure;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class JwtAuthMiddleware
 {
@@ -20,14 +21,16 @@ class JwtAuthMiddleware
         $token = substr($header, 7);
 
         try {
-            $decoded = JWT::decode($token, new Key(env('JWT_SECRET', 'dev-secret'), 'HS256'));
+            $secret = getenv('JWT_SECRET') ?: env('JWT_SECRET', 'dev-secret');
+            $decoded = JWT::decode($token, new Key($secret, 'HS256'));
         } catch (\Throwable $e) {
+            Log::warning('Blog JWT decode failed: ' . $e->getMessage());
             return response()->json(['error' => 'Invalid token'], 401);
         }
 
         $role = $decoded->role ?? '';
 
-        if ($requiredRole === 'admin' && !in_array($role, ['admin', 'operator'], true)) {
+        if ($requiredRole === 'admin' && !in_array($role, ['admin', 'operator', 'instructor'], true)) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 

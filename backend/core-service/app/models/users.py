@@ -5,6 +5,7 @@ from app.models.common import Role
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    expected_role: Role
 
 class RegisterRequest(BaseModel):
     name: str

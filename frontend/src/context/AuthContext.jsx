@@ -22,8 +22,8 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email, password) => {
-    const data = await loginAPI(email, password);
+  const login = async (email, password, expectedRole) => {
+    const data = await loginAPI(email, password, expectedRole);
     localStorage.setItem("token", data.access_token);
     const me = await getMeAPI();
     setUser(me);
@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
 
   const register = async (name, email, password) => {
     await registerAPI(name, email, password);
-    return login(email, password);
+    return login(email, password, "student");
   };
 
   const logout = () => {

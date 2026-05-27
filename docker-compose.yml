@@ -6,6 +6,8 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    profiles:
+      - docker-mongo
     restart: unless-stopped
 
   redis:
@@ -15,13 +17,13 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
-  backend:
+  core:
     build: ./backend/core-service
-    container_name: webcourse-backend
+    container_name: webcourse-core
     ports:
       - "8001:8001"
     environment:
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017}
       - MONGODB_DB=${MONGODB_DB:-codecamp_core}
       - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
@@ -29,8 +31,22 @@ services:
       - CORS_ORIGINS=*
     restart: unless-stopped
     depends_on:
-      - mongo
       - redis
+
+  api-gateway:
+    build: ./backend/api-gateway
+    container_name: webcourse-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - CORE_SERVICE_URL=http://core:8001
+      - PAYMENT_SERVICE_URL=http://payment:8002
+      - BLOG_SERVICE_URL=http://blog:8003
+    restart: unless-stopped
+    depends_on:
+      - core
+      - payment
+      - blog
 
   frontend:
     build:
@@ -44,17 +60,15 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8001
-      - VITE_PAYMENT_API_URL=http://localhost:8002
-      - VITE_BLOG_API_URL=http://localhost:8003
+      - VITE_API_URL=http://localhost:8000/core
+      - VITE_PAYMENT_API_URL=http://localhost:8000/payment
+      - VITE_BLOG_API_URL=http://localhost:8000/blog
     command: npm run dev -- --host 0.0.0.0
     stdin_open: true
     tty: true
     restart: unless-stopped
     depends_on:
-      - backend
-      - payment
-      - blog
+      - api-gateway
 
   seed:
     build: ./backend/core-service
@@ -64,12 +78,12 @@ services:
     volumes:
       - ./backend:/seed
     environment:
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017}
       - MONGODB_DB=${MONGODB_DB:-codecamp_core}
+      - BLOG_MONGODB_DB=${BLOG_MONGODB_DB:-codecamp_php}
+      - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
     profiles:
       - seed
-    depends_on:
-      - mongo
 
   blog:
     build: ./backend/blog-service
@@ -77,12 +91,14 @@ services:
     ports:
       - "8003:8003"
     environment:
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
-      - MONGODB_DB=${MONGODB_DB:-codecamp_core}
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017}
+      - BLOG_MONGODB_DB=${BLOG_MONGODB_DB:-codecamp_php}
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
+    command: >
+      sh -c "printf '\nMONGODB_URI=%s\nBLOG_MONGODB_DB=%s\nJWT_SECRET=%s\n' \"$$MONGODB_URI\" \"$$BLOG_MONGODB_DB\" \"$$JWT_SECRET\" >> .env
+      && php artisan config:clear
+      && php artisan serve --host=0.0.0.0 --port=8003"
     restart: unless-stopped
-    depends_on:
-      - mongo
 
   payment:
     build: ./backend/payment-service
@@ -90,7 +106,7 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://host.docker.internal:27017}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - PORT=8002
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
@@ -100,8 +116,7 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
     restart: unless-stopped
     depends_on:
-      - backend
-      - mongo
+      - core
       - redis
 
 volumes:
