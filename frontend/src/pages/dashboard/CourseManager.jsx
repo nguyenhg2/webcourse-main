@@ -132,6 +132,7 @@ export default function CourseManager() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingCourse, setSavingCourse] = useState(false);
   const [savingEditCourse, setSavingEditCourse] = useState(false);
+  const [cancelingSubmission, setCancelingSubmission] = useState(false);
   const [savingSection, setSavingSection] = useState(false);
   const [savingEditSection, setSavingEditSection] = useState(false);
   const [savingEditLesson, setSavingEditLesson] = useState(false);
@@ -146,7 +147,7 @@ export default function CourseManager() {
   async function loadCourses() {
     setLoadingCourses(true);
     try {
-      const data = await getCoursesAPI();
+      const data = await getCoursesAPI({ manage: true });
       setCourses(Array.isArray(data) ? data : []);
     } catch {
       setCourses([]);
@@ -243,6 +244,7 @@ export default function CourseManager() {
         thumbnail: courseForm.thumbnail.trim() || null,
         price: Number(courseForm.price || 0),
         instructor_id: user._id,
+        status: user?.role === "instructor" ? "pending_review" : courseForm.status,
         rating: 0,
         total_students: 0,
       });
@@ -315,6 +317,38 @@ export default function CourseManager() {
       setMessage(err.response?.data?.detail || err.message || "Cập nhật khóa học thất bại.");
     } finally {
       setSavingEditCourse(false);
+    }
+  }
+
+  async function handleCancelCourseSubmission() {
+    if (!selectedCourseId || !selectedCourse || user?.role !== "instructor" || selectedCourse.status !== "pending_review") {
+      return;
+    }
+
+    setCancelingSubmission(true);
+    setMessage("");
+    try {
+      const payload = {
+        ...selectedCourse,
+        status: "draft",
+        instructor_id: selectedCourse.instructor_id || user._id,
+        rating: Number(selectedCourse.rating || 0),
+        total_students: Number(selectedCourse.total_students || 0),
+      };
+      delete payload._id;
+
+      const updated = await updateCourseAPI(selectedCourseId, payload);
+      await loadCourses();
+      setSelectedCourseId(updated._id || selectedCourseId);
+      setEditingCourse(false);
+      setMessageType("success");
+      setMessage("Đã hủy đăng khóa học. Khóa học đã quay về trạng thái nháp.");
+      await loadCourseDetail({ ...selectedCourse, ...updated, slug: updated.slug || selectedCourse.slug });
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.detail || err.message || "Hủy đăng khóa học thất bại.");
+    } finally {
+      setCancelingSubmission(false);
     }
   }
 
@@ -638,14 +672,27 @@ export default function CourseManager() {
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-500">{selectedCourse.description}</p>
-                  <button
-                    type="button"
-                    onClick={startEditCourse}
-                    disabled={!canManage}
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary disabled:opacity-50"
-                  >
-                    <FiEdit2 size={16} /> Sửa khóa học
-                  </button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={startEditCourse}
+                      disabled={!canManage}
+                      className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary disabled:opacity-50"
+                    >
+                      <FiEdit2 size={16} /> Sửa khóa học
+                    </button>
+                    {user?.role === "instructor" && selectedCourse.status === "pending_review" && (
+                      <button
+                        type="button"
+                        onClick={handleCancelCourseSubmission}
+                        disabled={cancelingSubmission}
+                        className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                      >
+                        {cancelingSubmission ? <FiLoader className="animate-spin" size={16} /> : <FiX size={16} />}
+                        Hủy đăng
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center xl:w-72">
                   <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Section</p><p className="mt-1 text-lg font-bold text-gray-900">{sections.length}</p></div>
