@@ -26,7 +26,6 @@ export default function Payment() {
   const location = useLocation();
   const course = location.state || {};
   const [method, setMethod] = useState("visa");
-  const [contact, setContact] = useState({ email: "", phone: "" });
   const [billing, setBilling] = useState({ country: "Việt Nam", address: "", city: "", zip: "" });
   const [card, setCard] = useState({ name: "", number: "", month: "", year: "", cvv: "" });
   const [loading, setLoading] = useState(false);
@@ -99,14 +98,6 @@ export default function Payment() {
                     {item.label}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-xl font-heading font-semibold text-secondary mb-5">Thông tin liên hệ</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <input value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} type="email" placeholder="Email *" required className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
-                <input value={contact.phone} onChange={(e) => setContact({ ...contact, phone: onlyNumbers(e.target.value).slice(0, 11) })} placeholder="Điện thoại" className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 

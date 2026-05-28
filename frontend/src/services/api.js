@@ -73,6 +73,11 @@ export async function updateCourseAPI(id, payload) {
   return res.data;
 }
 
+export async function reviewCourseAPI(id, payload) {
+  const res = await api.patch(`/api/courses/${id}/review`, payload);
+  return res.data;
+}
+
 export async function deleteCourseAPI(id) {
   const res = await api.delete(`/api/courses/${id}`);
   return res.data;

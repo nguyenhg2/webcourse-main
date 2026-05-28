@@ -18,7 +18,7 @@ async def get_cart(db=Depends(get_db), user=Depends(require_role("student"))):
         if not ObjectId.is_valid(course_id):
             continue
 
-        course = await db["courses"].find_one({"_id": oid(course_id)})
+        course = await db["courses"].find_one({"_id": oid(course_id), "status": "published"})
         if course:
             courses.append(serialize_doc(course))
     return {"items": courses}
@@ -33,7 +33,7 @@ async def add_cart(
     if not ObjectId.is_valid(payload.course_id):
         raise HTTPException(status_code=400, detail="course_id khong hop le")
 
-    course = await db["courses"].find_one({"_id": oid(payload.course_id)})
+    course = await db["courses"].find_one({"_id": oid(payload.course_id), "status": "published"})
     if not course:
         raise HTTPException(status_code=404, detail="Khong tim thay khoa hoc")
 

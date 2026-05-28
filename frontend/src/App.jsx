@@ -36,6 +36,7 @@ import ContactManager from "./pages/dashboard/ContactManager";
 import StudentManager from "./pages/dashboard/StudentManager";
 import ReviewManager from "./pages/dashboard/ReviewManager";
 import OrderManager from "./pages/dashboard/OrderManager";
+import CourseReviewManager from "./pages/dashboard/CourseReviewManager";
 import { useAuth } from "./context/AuthContext";
 
 function MainLayout() {
@@ -143,7 +144,7 @@ export default function App() {
               <Route path="courses" element={<RequireDashboardRole roles={["admin", "instructor"]}><CourseManager /></RequireDashboardRole>} />
               <Route path="students" element={<RequireDashboardRole roles={["admin"]}><StudentManager /></RequireDashboardRole>} />
               <Route path="qa" element={<RequireDashboardRole roles={["instructor"]}><WorkflowBoard type="qa" /></RequireDashboardRole>} />
-              <Route path="course-reviews" element={<RequireDashboardRole roles={["operator"]}><WorkflowBoard type="reviews" /></RequireDashboardRole>} />
+              <Route path="course-reviews" element={<RequireDashboardRole roles={["operator"]}><CourseReviewManager /></RequireDashboardRole>} />
               <Route path="reviews" element={<RequireDashboardRole roles={["admin"]}><ReviewManager /></RequireDashboardRole>} />
               <Route path="payments" element={<PaymentsRoute />} />
               <Route path="complaints" element={<RequireDashboardRole roles={["operator"]}><WorkflowBoard type="complaints" /></RequireDashboardRole>} />
