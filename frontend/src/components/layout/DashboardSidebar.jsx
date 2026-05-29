@@ -36,7 +36,6 @@ const MENU_ITEMS = {
   admin: [
     { title: "Báo cáo doanh thu", path: "/dashboard", icon: <FiBarChart2 /> },
     { title: "Quản lý người dùng", path: "/dashboard/users", icon: <FiUsers /> },
-    { title: "Học viên", path: "/dashboard/students", icon: <FiBook /> },
     { title: "Đơn hàng", path: "/dashboard/payments", icon: <FiDollarSign /> },
     { title: "Kiểm duyệt đánh giá", path: "/dashboard/reviews", icon: <FiCheckSquare /> },
     { title: "Quản lý danh mục", path: "/dashboard/categories", icon: <FiTag /> },

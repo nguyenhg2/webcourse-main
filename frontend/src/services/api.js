@@ -73,6 +73,11 @@ export async function updateCourseAPI(id, payload) {
   return res.data;
 }
 
+export async function submitCourseAPI(id) {
+  const res = await api.patch(`/api/courses/${id}/submit`);
+  return res.data;
+}
+
 export async function reviewCourseAPI(id, payload) {
   const res = await api.patch(`/api/courses/${id}/review`, payload);
   return res.data;
@@ -250,9 +255,35 @@ export async function validateCouponAPI(code, amount) {
 }
 
 export async function getCouponsAPI() {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
+  try {
+    const res = await axios.get(PAYMENT_API_BASE + "/api/coupons", {
+      headers: authHeaders(),
+    });
+    return res.data;
+  } catch (err) {
+    if (err.response?.status !== 404) {
+      throw err;
+    }
+    const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
+      headers: authHeaders(),
+    });
+    return res.data;
+  }
+}
+
+export async function createCouponAPI(payload) {
+  const res = await axios.post(PAYMENT_API_BASE + "/api/coupons", payload, {
     headers: authHeaders(),
   });
+  return res.data;
+}
+
+export async function updateCouponStatusAPI(couponId, active) {
+  const res = await axios.put(
+    PAYMENT_API_BASE + `/api/coupons/${couponId}/active`,
+    { active },
+    { headers: authHeaders() }
+  );
   return res.data;
 }
 

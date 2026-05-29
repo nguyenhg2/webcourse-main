@@ -1,7 +1,34 @@
 import { useEffect, useState } from "react";
 import { getAdminUsersAPI, updateAdminUserRoleAPI } from "../../services/api";
 
-const ROLES = ["student", "instructor", "operator", "admin"];
+const ROLES = ["admin", "operator", "instructor", "student"];
+const ROLE_TABS = [
+  { value: "all", label: "Tất cả" },
+  { value: "admin", label: "Admin" },
+  { value: "operator", label: "Operator" },
+  { value: "instructor", label: "Instructor" },
+  { value: "student", label: "Student" },
+];
+const ROLE_ORDER = {
+  admin: 0,
+  operator: 1,
+  instructor: 2,
+  student: 3,
+};
+
+function createdAtValue(user) {
+  if (!user.created_at) return 0;
+  const value = new Date(user.created_at).getTime();
+  return Number.isNaN(value) ? 0 : value;
+}
+
+function sortUsers(users) {
+  return [...users].sort((a, b) => {
+    const roleDiff = (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99);
+    if (roleDiff !== 0) return roleDiff;
+    return createdAtValue(b) - createdAtValue(a);
+  });
+}
 
 const ROLE_COLORS = {
   admin: "bg-red-100 text-red-700",
@@ -15,10 +42,11 @@ export default function UserManager() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState(null);
+  const [activeRole, setActiveRole] = useState("all");
 
   useEffect(() => {
     getAdminUsersAPI()
-      .then(setUsers)
+      .then((data) => setUsers(sortUsers(data)))
       .catch(() => setUsers([]))
       .finally(() => setLoading(false));
   }, []);
@@ -27,7 +55,7 @@ export default function UserManager() {
     setUpdating(userId);
     try {
       const updated = await updateAdminUserRoleAPI(userId, role);
-      setUsers((prev) => prev.map((u) => (u._id === userId ? { ...u, role: updated.role } : u)));
+      setUsers((prev) => sortUsers(prev.map((u) => (u._id === userId ? { ...u, role: updated.role } : u))));
     } catch (err) {
       alert(err.response?.data?.detail || "Cap nhat that bai");
     } finally {
@@ -35,11 +63,25 @@ export default function UserManager() {
     }
   }
 
-  const filtered = users.filter(
-    (u) =>
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase())
+  const roleCounts = users.reduce(
+    (acc, user) => {
+      acc.all += 1;
+      acc[user.role] = (acc[user.role] || 0) + 1;
+      return acc;
+    },
+    { all: 0, admin: 0, operator: 0, instructor: 0, student: 0 }
   );
+
+  const keyword = search.trim().toLowerCase();
+  const filtered = users.filter((u) => {
+    const matchesRole = activeRole === "all" || u.role === activeRole;
+    const matchesSearch =
+      !keyword ||
+      u.name?.toLowerCase().includes(keyword) ||
+      u.email?.toLowerCase().includes(keyword);
+
+    return matchesRole && matchesSearch;
+  });
 
   return (
     <div className="space-y-6">
@@ -54,6 +96,28 @@ export default function UserManager() {
           placeholder="Tìm theo tên hoặc email..."
           className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary w-72"
         />
+      </div>
+
+      <div className="bg-white border border-gray-100 rounded-xl p-2 flex flex-wrap gap-2 shadow-sm">
+        {ROLE_TABS.map((tab) => {
+          const active = activeRole === tab.value;
+
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setActiveRole(tab.value)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                active ? "bg-primary text-white" : "text-gray-600 hover:bg-gray-50 hover:text-primary"
+              }`}
+            >
+              {tab.label}
+              <span className={`ml-2 text-xs ${active ? "text-white/80" : "text-gray-400"}`}>
+                {roleCounts[tab.value] || 0}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">

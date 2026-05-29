@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiCheckCircle } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
-import { enrollCourseAPI } from "../services/api";
+import { enrollCourseAPI, removeCartAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function PaymentSuccess() {
   const [countdown, setCountdown] = useState(5);
   const [enrollStatus, setEnrollStatus] = useState("idle");
   const location = useLocation();
   const navigate = useNavigate();
+  const { refreshCartCount } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +33,8 @@ export default function PaymentSuccess() {
       setEnrollStatus("loading");
       try {
         await enrollCourseAPI(courseIds, paymentId);
+        await Promise.allSettled(courseIds.map((courseId) => removeCartAPI(courseId)));
+        await refreshCartCount?.();
         sessionStorage.removeItem("pendingPaymentEnrollment");
         if (!cancelled) setEnrollStatus("success");
       } catch {

@@ -62,8 +62,10 @@ export default function Cart() {
         courseId: items[0]?._id,
         title: items.length === 1 ? items[0].title : items.length + " khóa học",
         thumbnail: items[0]?.thumbnail,
-        price: finalTotal,
-        couponCode: coupon,
+        price: total,
+        discount,
+        finalTotal,
+        couponCode: discount > 0 ? coupon : "",
       },
     });
   }

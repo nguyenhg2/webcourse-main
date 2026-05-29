@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiRefreshCw } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
-import { getAllPaymentsAPI, getPaymentHistoryAPI } from "../../services/api";
+import { getAdminOrdersAPI, getPaymentHistoryAPI } from "../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
 
@@ -12,8 +12,8 @@ export default function PaymentManager() {
   const canSeeAll = user?.role === "admin" || user?.role === "operator";
 
   function load() {
-    const request = canSeeAll ? getAllPaymentsAPI() : getPaymentHistoryAPI();
-    request.then((data) => setPayments(data.payments || [])).catch(() => setPayments([]));
+    const request = canSeeAll ? getAdminOrdersAPI() : getPaymentHistoryAPI();
+    request.then((data) => setPayments(Array.isArray(data) ? data : data.payments || [])).catch(() => setPayments([]));
   }
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function PaymentManager() {
     return payments.filter((payment) => payment.status === status);
   }, [payments, status]);
 
-  const total = payments.filter((payment) => payment.status === "completed").reduce((sum, payment) => sum + Number(payment.amount || 0) - Number(payment.coupon_discount || 0), 0);
+  const total = payments.filter((payment) => payment.status === "completed").reduce((sum, payment) => sum + Number(payment.final_amount ?? (Number(payment.amount || 0) - Number(payment.coupon_discount || 0))), 0);
 
   return (
     <div className="space-y-6">
@@ -79,9 +79,18 @@ export default function PaymentManager() {
             {visible.map((payment) => (
               <tr key={payment.id}>
                 <td className="p-4 font-medium text-gray-900">{payment.id}</td>
-                <td className="p-4">{canSeeAll ? payment.user_id : user?.email}</td>
-                <td className="p-4">{payment.course_ids?.length || 0} khóa</td>
-                <td className="p-4">{currency(Number(payment.amount || 0) - Number(payment.coupon_discount || 0))}</td>
+                <td className="p-4">
+                  <div>
+                    <p className="font-medium text-gray-900">{canSeeAll ? payment.user?.name || payment.user?.email || payment.user_id : user?.name || user?.email}</p>
+                    {canSeeAll && payment.user?.email && <p className="text-xs text-gray-500 mt-1">{payment.user.email}</p>}
+                  </div>
+                </td>
+                <td className="p-4">
+                  {payment.courses?.length
+                    ? payment.courses.map((course) => course.title).join(", ")
+                    : `${payment.course_ids?.length || 0} khóa`}
+                </td>
+                <td className="p-4">{currency(payment.final_amount ?? (Number(payment.amount || 0) - Number(payment.coupon_discount || 0)))}</td>
                 <td className="p-4">{payment.coupon_code || "-"}</td>
                 <td className="p-4">{payment.card_brand ? `${payment.card_brand} ${payment.card_last4 ? "****" + payment.card_last4 : ""}` : "Chưa xác nhận"}</td>
                 <td className="p-4">

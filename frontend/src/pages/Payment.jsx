@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FiCreditCard } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
-import { confirmTestPaymentAPI, createPaymentAPI, enrollCourseAPI } from "../services/api";
+import { confirmTestPaymentAPI, createPaymentAPI, enrollCourseAPI, removeCartAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const METHODS = [
   { id: "visa", label: "Visa" },
@@ -24,6 +25,7 @@ function formatPrice(value) {
 export default function Payment() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshCartCount } = useAuth();
   const course = location.state || {};
   const [method, setMethod] = useState("visa");
   const [billing, setBilling] = useState({ country: "Việt Nam", address: "", city: "", zip: "" });
@@ -62,6 +64,8 @@ export default function Payment() {
       }
       try {
         await enrollCourseAPI(courseIds, payment.payment_id);
+        await Promise.allSettled(courseIds.map((courseId) => removeCartAPI(courseId)));
+        await refreshCartCount?.();
         sessionStorage.removeItem("pendingPaymentEnrollment");
       } catch {
         // Keep pendingPaymentEnrollment so the success page can retry enrollment.
@@ -75,6 +79,8 @@ export default function Payment() {
   }
 
   const price = course.price ?? 599000;
+  const discount = Number(course.discount || 0);
+  const finalPrice = course.finalTotal ?? Math.max(price - discount, 0);
   const title = course.title || "React.js Từ Cơ Bản Đến Nâng Cao";
 
   return (
@@ -148,8 +154,8 @@ export default function Payment() {
               </div>
               <div className="flex flex-col gap-3 text-sm border-t border-gray-100 pt-5">
                 <div className="flex justify-between"><span className="text-gray-500">Giá gốc</span><span>{formatPrice(price)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Giảm giá</span><span className="text-success">0đ</span></div>
-                <div className="flex justify-between border-t border-gray-100 pt-3"><span className="font-semibold text-secondary">Tổng cộng</span><span className="font-bold text-primary text-lg">{formatPrice(price)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Giảm giá</span><span className="text-success">-{formatPrice(discount)}</span></div>
+                <div className="flex justify-between border-t border-gray-100 pt-3"><span className="font-semibold text-secondary">Tổng cộng</span><span className="font-bold text-primary text-lg">{formatPrice(finalPrice)}</span></div>
               </div>
             </div>
           </div>
