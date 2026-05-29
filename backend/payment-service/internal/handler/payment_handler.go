@@ -56,7 +56,7 @@ func (h *PaymentHandler) ConfirmTestPayment(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.ConfirmTestPayment(c.Request.Context(), req.PaymentID); err != nil {
+	if err := h.service.ConfirmTestPayment(c.Request.Context(), req.PaymentID, req.CardLast4, req.CardBrand); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -222,10 +222,10 @@ export async function createPaymentAPI(payload) {
   return res.data;
 }
 
-export async function confirmTestPaymentAPI(paymentId) {
+export async function confirmTestPaymentAPI(paymentId, cardInfo = {}) {
   const res = await axios.post(
     PAYMENT_API_BASE + "/api/payments/confirm-test",
-    { payment_id: paymentId },
+    { payment_id: paymentId, ...cardInfo },
     { headers: authHeaders() }
   );
   return res.data;

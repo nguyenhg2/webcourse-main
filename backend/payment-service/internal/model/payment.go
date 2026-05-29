@@ -20,6 +20,8 @@ type PaymentRequest struct {
 	CourseIDs  []string `json:"course_ids"`
 	CouponCode string   `json:"coupon_code,omitempty"`
 	Amount     int64    `json:"amount,omitempty"`
+	CardLast4  string   `json:"card_last4,omitempty"`
+	CardBrand  string   `json:"card_brand,omitempty"`
 }
 
 type PaymentResponse struct {
@@ -31,4 +33,6 @@ type PaymentResponse struct {
 
 type ConfirmPaymentRequest struct {
 	PaymentID string `json:"payment_id"`
+	CardLast4 string `json:"card_last4,omitempty"`
+	CardBrand string `json:"card_brand,omitempty"`
 }
