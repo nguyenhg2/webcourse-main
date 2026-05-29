@@ -22,6 +22,17 @@ function formatPrice(value) {
   return Number(value || 0).toLocaleString("vi-VN") + "đ";
 }
 
+function cardLast4(cardNumber) {
+  return onlyNumbers(cardNumber).slice(-4);
+}
+
+function detectCardBrand(cardNumber) {
+  const number = onlyNumbers(cardNumber);
+  if (/^4/.test(number)) return "visa";
+  if (/^(5[1-5]|2[2-7])/.test(number)) return "mastercard";
+  return "";
+}
+
 export default function Payment() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,18 +60,24 @@ export default function Payment() {
         throw new Error("Không tìm thấy khóa học cần thanh toán");
       }
 
+      const enteredCard = {
+        card_last4: cardLast4(card.number),
+        card_brand: detectCardBrand(card.number) || method,
+      };
+
       const payment = await createPaymentAPI({
         course_ids: courseIds,
         amount: course.price ?? 599000,
         coupon_code: course.couponCode || "",
         method,
+        ...enteredCard,
       });
       sessionStorage.setItem(
         "pendingPaymentEnrollment",
         JSON.stringify({ paymentId: payment.payment_id, courseIds })
       );
       if (payment.status !== "completed") {
-        await confirmTestPaymentAPI(payment.payment_id);
+        await confirmTestPaymentAPI(payment.payment_id, enteredCard);
       }
       try {
         await enrollCourseAPI(courseIds, payment.payment_id);

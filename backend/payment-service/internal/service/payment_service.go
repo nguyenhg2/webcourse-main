@@ -67,6 +67,8 @@ func (s *PaymentService) CreatePaymentIntent(ctx context.Context, userID string,
 	}
 
 	finalAmount := amount - couponDiscount
+	cardLast4 := normalizeCardLast4(req.CardLast4)
+	cardBrand := normalizeCardBrand(req.CardBrand)
 	payment := &model.Payment{
 		ID:             primitive.NewObjectID(),
 		UserID:         userID,
@@ -74,8 +76,8 @@ func (s *PaymentService) CreatePaymentIntent(ctx context.Context, userID string,
 		Amount:         amount,
 		CouponCode:     couponCode,
 		CouponDiscount: couponDiscount,
-		CardLast4:      "",
-		CardBrand:      "",
+		CardLast4:      cardLast4,
+		CardBrand:      cardBrand,
 		Status:         "pending",
 		CreatedAt:      time.Now().Unix(),
 	}
@@ -126,7 +128,7 @@ func (s *PaymentService) CreatePaymentIntent(ctx context.Context, userID string,
 	}, nil
 }
 
-func (s *PaymentService) ConfirmTestPayment(ctx context.Context, paymentID string) error {
+func (s *PaymentService) ConfirmTestPayment(ctx context.Context, paymentID, cardLast4, cardBrand string) error {
 	payment, err := s.paymentRepo.GetPaymentByID(ctx, paymentID)
 	if err != nil {
 		return err
@@ -149,7 +151,16 @@ func (s *PaymentService) ConfirmTestPayment(ctx context.Context, paymentID strin
 		return errors.New("payment was not completed")
 	}
 
-	return s.PaymentSuccess(ctx, paymentID, "4242", "visa")
+	cardLast4 = normalizeCardLast4(cardLast4)
+	cardBrand = normalizeCardBrand(cardBrand)
+	if cardLast4 == "" {
+		cardLast4 = payment.CardLast4
+	}
+	if cardBrand == "" {
+		cardBrand = payment.CardBrand
+	}
+
+	return s.PaymentSuccess(ctx, paymentID, cardLast4, cardBrand)
 }
 
 func (s *PaymentService) PaymentSuccess(ctx context.Context, paymentID string, cardLast4, cardBrand string) error {
@@ -216,4 +227,30 @@ func discountAmount(amount int64, couponType string, discount int64) int64 {
 		return amount
 	}
 	return discount
+}
+
+func normalizeCardLast4(value string) string {
+	value = strings.TrimSpace(value)
+	if len(value) > 4 {
+		value = value[len(value)-4:]
+	}
+	if len(value) != 4 {
+		return ""
+	}
+	for _, ch := range value {
+		if ch < '0' || ch > '9' {
+			return ""
+		}
+	}
+	return value
+}
+
+func normalizeCardBrand(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "visa", "mastercard", "amex", "jcb", "discover", "unionpay":
+		return value
+	default:
+		return ""
+	}
 }
