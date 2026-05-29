@@ -36,8 +36,15 @@ def _course_list_query(user: dict | None, review_status: Optional[str] = None, m
 def _normalize_course_status(payload: dict, user: dict, existing: dict | None = None) -> dict:
     if user.get("role") != "instructor":
         return payload
-    requested = payload.get("status") or (existing or {}).get("status")
-    payload["status"] = "draft" if requested == "draft" else "pending_review"
+    current_status = (existing or {}).get("status")
+    requested_status = payload.get("status")
+
+    if not existing:
+        payload["status"] = "draft"
+    elif requested_status == "draft" or current_status == "rejected":
+        payload["status"] = "draft"
+    else:
+        payload["status"] = current_status or "draft"
     return payload
 
 
@@ -187,6 +194,43 @@ async def review_course(
         "reviewed_by": user["_id"],
     }
     await db["courses"].update_one({"_id": ObjectId(course_id)}, {"$set": update_data})
+    updated_course = await db["courses"].find_one({"_id": ObjectId(course_id)})
+    return serialize_doc(updated_course)
+
+
+@router.patch("/api/courses/{course_id}/submit", response_model=CourseResponse)
+async def submit_course_for_review(
+    course_id: str,
+    db=Depends(get_db),
+    user=Depends(require_role("instructor")),
+):
+    if not ObjectId.is_valid(course_id):
+        raise HTTPException(status_code=400, detail="course_id khong hop le")
+
+    course = await db["courses"].find_one({"_id": ObjectId(course_id)})
+    _ensure_course_owner(course, user)
+
+    if course.get("status") not in {"draft", "rejected"}:
+        raise HTTPException(status_code=400, detail="Chỉ có thể gửi duyệt khóa học nháp hoặc cần sửa")
+
+    sections = await db["sections"].find({"course_id": course_id}).to_list(length=100)
+    if not sections:
+        raise HTTPException(status_code=400, detail="Cần thêm ít nhất một section trước khi gửi duyệt")
+
+    section_ids = [str(section["_id"]) for section in sections]
+    lesson_counts = await db["lessons"].aggregate([
+        {"$match": {"section_id": {"$in": section_ids}}},
+        {"$group": {"_id": "$section_id", "count": {"$sum": 1}}},
+    ]).to_list(length=100)
+    counts_by_section = {item["_id"]: item["count"] for item in lesson_counts}
+    empty_sections = [section for section in sections if counts_by_section.get(str(section["_id"]), 0) == 0]
+    if empty_sections:
+        raise HTTPException(status_code=400, detail="Mỗi section cần có ít nhất một lesson trước khi gửi duyệt")
+
+    await db["courses"].update_one(
+        {"_id": ObjectId(course_id)},
+        {"$set": {"status": "pending_review", "submitted_by": user["_id"]}},
+    )
     updated_course = await db["courses"].find_one({"_id": ObjectId(course_id)})
     return serialize_doc(updated_course)
 

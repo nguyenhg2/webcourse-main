@@ -1,9 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiBookOpen, FiCheckCircle, FiDollarSign, FiTrendingUp, FiUsers } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
-import { getAdminDashboardAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../services/api";
+import { getAdminDashboardAPI, getAdminOrdersAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
+
+function buildTopPurchasedCourses(orders = []) {
+  const byCourse = new Map();
+
+  orders
+    .filter((order) => order.status === "completed")
+    .forEach((order) => {
+      const courses = order.courses || [];
+      const revenueShare = courses.length ? Number(order.final_amount || 0) / courses.length : 0;
+
+      courses.forEach((course) => {
+        const id = course._id || course.id;
+        if (!id) return;
+
+        const current = byCourse.get(id) || {
+          _id: id,
+          title: course.title || id,
+          purchases: 0,
+          revenue: 0,
+        };
+        current.purchases += 1;
+        current.revenue += revenueShare;
+        byCourse.set(id, current);
+      });
+    });
+
+  return Array.from(byCourse.values())
+    .sort((a, b) => b.purchases - a.purchases)
+    .slice(0, 5);
+}
 
 const StatCard = ({ title, value, icon, color }) => (
   <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
@@ -20,17 +50,32 @@ export default function DashboardOverview() {
   const role = user?.role || "student";
   const [stats, setStats] = useState({});
   const [items, setItems] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
 
   useEffect(() => {
     if (role === "admin") {
       getAdminDashboardAPI()
         .then((data) => {
           setStats(data || {});
-          setItems([]);
+          const topCourses = data?.topCourses || [];
+          setItems(topCourses);
+
+          return getAdminOrdersAPI()
+            .then((orders) => {
+              setRecentOrders((orders || []).slice(0, 5));
+              if (topCourses.length === 0) {
+                setItems(buildTopPurchasedCourses(orders));
+              }
+            })
+            .catch(() => {
+              setRecentOrders([]);
+              if (topCourses.length === 0) setItems([]);
+            });
         })
         .catch(() => {
           setStats({});
           setItems([]);
+          setRecentOrders([]);
         });
       return;
     }
@@ -127,25 +172,71 @@ export default function DashboardOverview() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">
-          {role === "operator" ? "Giao dịch gần đây" : role === "student" ? "Khóa học đang học" : "Mục cần theo dõi"}
-        </h2>
-        <div className="divide-y divide-gray-100">
-          {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
-          {items.map((item) => (
-            <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="font-medium text-gray-900">{item.title || item.id || item._id}</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {item.status || (item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`)}
-                </p>
-              </div>
-              <span className="text-sm font-semibold text-primary">{item.amount ? currency(item.amount) : item.level || item.card_brand || ""}</span>
+      {role === "admin" ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">Khóa học có lượt mua nhiều</h2>
+            <div className="divide-y divide-gray-100">
+              {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
+              {items.map((item) => (
+                <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-gray-900">{item.title || item.id || item._id}</p>
+                    <p className="text-sm text-gray-500 mt-1">Doanh thu: {currency(item.revenue)}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">{item.purchases || 0} lượt mua</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">Đơn hàng gần đây</h2>
+            <div className="divide-y divide-gray-100">
+              {recentOrders.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
+              {recentOrders.map((order) => (
+                <div key={order.id || order._id} className="py-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-gray-900">{order.user?.name || order.user?.email || order.id || order._id}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {order.created_at ? new Date(order.created_at * 1000).toLocaleDateString("vi-VN") : "Chưa có ngày"} · {order.status}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">{currency(order.final_amount ?? order.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-4">
+            {role === "operator" ? "Giao dịch gần đây" : role === "student" ? "Khóa học đang học" : "Mục cần theo dõi"}
+          </h2>
+          <div className="divide-y divide-gray-100">
+            {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
+            {items.map((item) => (
+              <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {role === "operator"
+                      ? item.user?.name || item.user?.email || "Khách hàng"
+                      : item.title || item.id || item._id}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {role === "operator"
+                      ? `${(item.courses || []).map((course) => course.title).join(", ") || "Chưa có tên khóa học"} · ${item.status || ""}`
+                      : item.status || (item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`)}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-primary">
+                  {role === "operator" ? currency(item.final_amount ?? item.amount) : item.amount ? currency(item.amount) : item.level || item.card_brand || ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

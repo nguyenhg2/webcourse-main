@@ -37,6 +37,7 @@ import StudentManager from "./pages/dashboard/StudentManager";
 import ReviewManager from "./pages/dashboard/ReviewManager";
 import OrderManager from "./pages/dashboard/OrderManager";
 import CourseReviewManager from "./pages/dashboard/CourseReviewManager";
+import SystemSettings from "./pages/dashboard/SystemSettings";
 import { useAuth } from "./context/AuthContext";
 
 function MainLayout() {
@@ -153,7 +154,7 @@ export default function App() {
               <Route path="coupons" element={<RequireDashboardRole roles={["admin"]}><CouponManager /></RequireDashboardRole>} />
               <Route path="blogs" element={<RequireDashboardRole roles={["admin"]}><BlogManager /></RequireDashboardRole>} />
               <Route path="contacts" element={<RequireDashboardRole roles={["admin"]}><ContactManager /></RequireDashboardRole>} />
-              <Route path="settings" element={<RequireDashboardRole roles={["admin"]}><WorkflowBoard type="settings" /></RequireDashboardRole>} />
+              <Route path="settings" element={<RequireDashboardRole roles={["admin"]}><SystemSettings /></RequireDashboardRole>} />
             </Route>
           </Routes>
         </BrowserRouter>

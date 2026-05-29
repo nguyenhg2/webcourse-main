@@ -10,6 +10,7 @@ import {
   FiPlus,
   FiPlayCircle,
   FiRefreshCw,
+  FiSend,
   FiUploadCloud,
   FiX,
 } from "react-icons/fi";
@@ -21,6 +22,7 @@ import {
   getCategoriesAPI,
   getCourseBySlugAPI,
   getCoursesAPI,
+  submitCourseAPI,
   updateCourseAPI,
   updateLessonAPI,
   updateSectionAPI,
@@ -133,6 +135,7 @@ export default function CourseManager() {
   const [savingCourse, setSavingCourse] = useState(false);
   const [savingEditCourse, setSavingEditCourse] = useState(false);
   const [cancelingSubmission, setCancelingSubmission] = useState(false);
+  const [submittingCourse, setSubmittingCourse] = useState(false);
   const [savingSection, setSavingSection] = useState(false);
   const [savingEditSection, setSavingEditSection] = useState(false);
   const [savingEditLesson, setSavingEditLesson] = useState(false);
@@ -244,7 +247,7 @@ export default function CourseManager() {
         thumbnail: courseForm.thumbnail.trim() || null,
         price: Number(courseForm.price || 0),
         instructor_id: user._id,
-        status: user?.role === "instructor" ? "pending_review" : courseForm.status,
+        status: user?.role === "instructor" ? "draft" : courseForm.status,
         rating: 0,
         total_students: 0,
       });
@@ -252,7 +255,7 @@ export default function CourseManager() {
       await loadCourses();
       setSelectedCourseId(created._id);
       setMessageType("success");
-      setMessage("Đã tạo khóa học mới.");
+      setMessage("Đã tạo khóa học nháp. Thêm section và lesson rồi gửi duyệt khi hoàn tất.");
     } catch (err) {
       setMessageType("error");
       setMessage(err.response?.data?.detail || err.message || "Tạo khóa học thất bại.");
@@ -349,6 +352,59 @@ export default function CourseManager() {
       setMessage(err.response?.data?.detail || err.message || "Hủy đăng khóa học thất bại.");
     } finally {
       setCancelingSubmission(false);
+    }
+  }
+
+  async function handleSubmitCourseForReview() {
+    if (!selectedCourseId || !selectedCourse || user?.role !== "instructor") {
+      return;
+    }
+
+    if (!sections.length || !lessonCount) {
+      setMessageType("error");
+      setMessage("Cần thêm section và lesson trước khi gửi operator duyệt.");
+      return;
+    }
+
+    const hasEmptySection = sections.some((section) => !(section.lessons || []).length);
+    if (hasEmptySection) {
+      setMessageType("error");
+      setMessage("Mỗi section cần có ít nhất một lesson trước khi gửi duyệt.");
+      return;
+    }
+
+    setSubmittingCourse(true);
+    setMessage("");
+    try {
+      let updated;
+      try {
+        updated = await submitCourseAPI(selectedCourseId);
+      } catch (err) {
+        if (err.response?.status !== 404) {
+          throw err;
+        }
+
+        const fallbackPayload = {
+          ...selectedCourse,
+          status: "pending_review",
+          instructor_id: selectedCourse.instructor_id || user._id,
+          rating: Number(selectedCourse.rating || 0),
+          total_students: Number(selectedCourse.total_students || 0),
+        };
+        delete fallbackPayload._id;
+        updated = await updateCourseAPI(selectedCourseId, fallbackPayload);
+      }
+      await loadCourses();
+      setSelectedCourseId(updated._id || selectedCourseId);
+      setEditingCourse(false);
+      setMessageType("success");
+      setMessage("Đã gửi khóa học cho operator duyệt xuất bản.");
+      await loadCourseDetail({ ...selectedCourse, ...updated, slug: updated.slug || selectedCourse.slug });
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.detail || err.message || "Gửi duyệt khóa học thất bại.");
+    } finally {
+      setSubmittingCourse(false);
     }
   }
 
@@ -581,6 +637,10 @@ export default function CourseManager() {
   const lessons = sections.flatMap((section) => section.lessons || []);
   const lessonCount = lessons.length;
   const videoCount = lessons.filter((lesson) => lesson.video_url).length;
+  const canSubmitForReview =
+    user?.role === "instructor" &&
+    selectedCourse &&
+    ["draft", "rejected"].includes(selectedCourse.status || "draft");
 
   return (
     <div className="space-y-6">
@@ -611,7 +671,7 @@ export default function CourseManager() {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-gray-900">Thêm khóa học</h2>
-            <p className="mt-1 text-xs text-gray-500">Khóa học mới của giảng viên sẽ ở trạng thái nháp hoặc chờ xuất bản.</p>
+            <p className="mt-1 text-xs text-gray-500">Khóa học mới của giảng viên sẽ ở trạng thái nháp. Sau khi thêm đủ section và lesson mới gửi duyệt.</p>
           </div>
           <button disabled={savingCourse || !canManage} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60">
             {savingCourse ? <FiLoader className="animate-spin" /> : <FiPlus size={16} />}
@@ -633,10 +693,12 @@ export default function CourseManager() {
           </select>
           <input type="number" min="0" value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} placeholder="Giá" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
           <input value={courseForm.thumbnail} onChange={(e) => setCourseForm({ ...courseForm, thumbnail: e.target.value })} placeholder="Thumbnail URL" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-2" />
-          <select value={courseForm.status} onChange={(e) => setCourseForm({ ...courseForm, status: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </select>
+          {user?.role === "admin" && (
+            <select value={courseForm.status} onChange={(e) => setCourseForm({ ...courseForm, status: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+          )}
           <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} placeholder="Mô tả khóa học" className="min-h-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-4" />
         </div>
       </form>
@@ -681,6 +743,18 @@ export default function CourseManager() {
                     >
                       <FiEdit2 size={16} /> Sửa khóa học
                     </button>
+                    {user?.role === "instructor" && ["draft", "rejected"].includes(selectedCourse.status || "draft") && (
+                      <button
+                        type="button"
+                        onClick={handleSubmitCourseForReview}
+                        disabled={!canSubmitForReview || submittingCourse}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
+                        title="Gửi operator duyệt xuất bản"
+                      >
+                        {submittingCourse ? <FiLoader className="animate-spin" size={16} /> : <FiSend size={16} />}
+                        Gửi duyệt
+                      </button>
+                    )}
                     {user?.role === "instructor" && selectedCourse.status === "pending_review" && (
                       <button
                         type="button"
@@ -741,10 +815,12 @@ export default function CourseManager() {
                 </select>
                 <input type="number" min="0" value={editingCourseForm.price} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, price: e.target.value })} placeholder="Giá" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
                 <input value={editingCourseForm.thumbnail} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, thumbnail: e.target.value })} placeholder="Thumbnail URL" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-2" />
-                <select value={editingCourseForm.status} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, status: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
+                {user?.role === "admin" && (
+                  <select value={editingCourseForm.status} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, status: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                )}
                 <textarea value={editingCourseForm.description} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, description: e.target.value })} placeholder="Mô tả khóa học" className="min-h-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-4" />
               </div>
             </form>

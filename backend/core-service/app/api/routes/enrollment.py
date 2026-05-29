@@ -41,11 +41,16 @@ async def _sync_completed_payment_enrollments(db, user_id: str):
     )
 
     for payment in payments:
+        course_ids = payment.get("course_ids", [])
         await create_enrollments(
             db,
             user_id,
-            payment.get("course_ids", []),
+            course_ids,
             str(payment["_id"]),
+        )
+        await db["carts"].update_one(
+            {"user_id": user_id},
+            {"$pull": {"items": {"$in": course_ids}}},
         )
 
 
@@ -74,11 +79,10 @@ async def enroll(
         raise HTTPException(status_code=403, detail="Thanh toan chua hoan tat")
 
     result = await create_enrollments(db, user["_id"], target_course_ids, payment_id)
-    if result["enrolled"]:
-        await db["carts"].update_one(
-            {"user_id": user["_id"]},
-            {"$pull": {"items": {"$in": result["enrolled"]}}},
-        )
+    await db["carts"].update_one(
+        {"user_id": user["_id"]},
+        {"$pull": {"items": {"$in": target_course_ids}}},
+    )
     if not result["enrolled"] and result["skipped"]:
         return {"message": "Khong co khoa hoc moi duoc dang ky", **result}
     return {"message": "Dang ky khoa hoc thanh cong", **result}

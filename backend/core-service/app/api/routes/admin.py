@@ -42,6 +42,53 @@ async def _course_rating(db, course_ids: list[str]) -> float:
     return round(sum(ratings) / len(ratings), 1) if ratings else 0
 
 
+async def _top_purchased_courses(db, payments: list[dict], limit: int = 5) -> list[dict]:
+    purchases_by_course: dict[str, dict] = {}
+
+    for payment in payments:
+        course_ids = [
+            str(course_id)
+            for course_id in payment.get("course_ids", [])
+            if ObjectId.is_valid(str(course_id))
+        ]
+        if not course_ids:
+            continue
+
+        for course_id in course_ids:
+            item = purchases_by_course.setdefault(
+                course_id,
+                {"_id": course_id, "purchases": 0, "revenue": 0},
+            )
+            item["purchases"] += 1
+            item["revenue"] += _payment_revenue(payment) / len(course_ids)
+
+    if not purchases_by_course:
+        return []
+
+    courses = await db["courses"].find(
+        {"_id": {"$in": [oid(course_id) for course_id in purchases_by_course]}}
+    ).to_list(length=len(purchases_by_course))
+    course_lookup = {str(course["_id"]): serialize_doc(course) for course in courses}
+
+    items = []
+    for course_id, stats in purchases_by_course.items():
+        course = course_lookup.get(course_id)
+        if not course:
+            continue
+        items.append(
+            {
+                "_id": course_id,
+                "title": course.get("title", course_id),
+                "purchases": stats["purchases"],
+                "amount": stats["purchases"],
+                "revenue": round(stats["revenue"]),
+                "level": course.get("level", ""),
+            }
+        )
+
+    return sorted(items, key=lambda item: item["purchases"], reverse=True)[:limit]
+
+
 def _instructor_course_query(user: dict) -> dict:
     user_id = user["_id"]
     values = [user_id]
@@ -145,6 +192,30 @@ async def dashboard(db=Depends(get_db), user=Depends(get_current_user)):
         payment_db = _payment_db(db)
         payments = await payment_db["payments"].find({}).sort("created_at", -1).to_list(length=500)
         completed_payments = [payment for payment in payments if payment.get("status") == "completed"]
+        items = []
+        for payment in payments[:5]:
+            item = serialize_doc(payment)
+            buyer = await db["users"].find_one({"_id": oid(item["user_id"])}) if ObjectId.is_valid(item.get("user_id", "")) else None
+            courses = []
+            for course_id in item.get("course_ids", []):
+                if not ObjectId.is_valid(course_id):
+                    continue
+                course = await db["courses"].find_one({"_id": oid(course_id)})
+                if course:
+                    courses.append(serialize_doc(course))
+
+            item["user"] = _sanitize_user(buyer)
+            item["courses"] = courses
+            course_total = sum(int(float(course.get("price", 0) or 0)) for course in courses)
+            stored_amount = int(payment.get("amount", 0) or 0)
+            coupon_discount = int(payment.get("coupon_discount", 0) or 0)
+            if course_total > stored_amount and coupon_discount > 0:
+                item["amount"] = course_total
+                item["final_amount"] = stored_amount
+            else:
+                item["final_amount"] = _payment_revenue(payment)
+            items.append(item)
+
         return {
             "stats": {
                 "revenue": sum(_payment_revenue(payment) for payment in completed_payments),
@@ -152,7 +223,7 @@ async def dashboard(db=Depends(get_db), user=Depends(get_current_user)):
                 "completedOrders": len(completed_payments),
                 "pendingOrders": len([payment for payment in payments if payment.get("status") == "pending"]),
             },
-            "items": [serialize_doc(payment) for payment in payments[:5]],
+            "items": items,
         }
 
     if role == "instructor":
@@ -181,6 +252,7 @@ async def admin_dashboard(db=Depends(get_db), user=Depends(require_role("admin")
         "users": users,
         "orders": orders,
         "completedOrders": len(completed_payments),
+        "topCourses": await _top_purchased_courses(db, completed_payments),
     }
 
 
@@ -216,7 +288,7 @@ async def update_user_role(
 
 
 @router.get("/api/admin/orders")
-async def admin_orders(db=Depends(get_db), user=Depends(require_role("admin"))):
+async def admin_orders(db=Depends(get_db), user=Depends(require_role("admin", "operator"))):
     payment_db = _payment_db(db)
     payments = await payment_db["payments"].find({}).sort("created_at", -1).to_list(length=500)
 
@@ -234,7 +306,14 @@ async def admin_orders(db=Depends(get_db), user=Depends(require_role("admin"))):
 
         order["user"] = _sanitize_user(buyer)
         order["courses"] = courses
-        order["final_amount"] = _payment_revenue(payment)
+        course_total = sum(int(float(course.get("price", 0) or 0)) for course in courses)
+        stored_amount = int(payment.get("amount", 0) or 0)
+        coupon_discount = int(payment.get("coupon_discount", 0) or 0)
+        if course_total > stored_amount and coupon_discount > 0:
+            order["amount"] = course_total
+            order["final_amount"] = stored_amount
+        else:
+            order["final_amount"] = _payment_revenue(payment)
         orders.append(order)
 
     return orders
