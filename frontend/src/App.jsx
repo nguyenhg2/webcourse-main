@@ -36,6 +36,8 @@ import ContactManager from "./pages/dashboard/ContactManager";
 import StudentManager from "./pages/dashboard/StudentManager";
 import ReviewManager from "./pages/dashboard/ReviewManager";
 import OrderManager from "./pages/dashboard/OrderManager";
+import CourseReviewManager from "./pages/dashboard/CourseReviewManager";
+import SystemSettings from "./pages/dashboard/SystemSettings";
 import { useAuth } from "./context/AuthContext";
 
 function MainLayout() {
@@ -122,18 +124,18 @@ export default function App() {
               <Route path="/blog/:slug" element={<BlogSingle />} />
               <Route path="/lien-he" element={<Contact />} />
               <Route path="/faq" element={<FAQ />} />
-              <Route path="/dang-nhap" element={<Login expectedRole="student" />} />
-              <Route path="/admin/dang-nhap" element={<Login expectedRole="admin" />} />
-              <Route path="/giang-vien/dang-nhap" element={<Login expectedRole="instructor" />} />
-              <Route path="/operator/dang-nhap" element={<Login expectedRole="operator" />} />
+              <Route path="/dang-nhap" element={<Login />} />
+              <Route path="/admin/dang-nhap" element={<Navigate to="/dang-nhap" replace />} />
+              <Route path="/giang-vien/dang-nhap" element={<Navigate to="/dang-nhap" replace />} />
+              <Route path="/operator/dang-nhap" element={<Navigate to="/dang-nhap" replace />} />
               <Route path="/dang-ky" element={<Register />} />
-              <Route path="/gio-hang" element={<RequireRole roles={["student"]}><Cart /></RequireRole>} />
+              <Route path="/gio-hang" element={<RequireRole roles={["student"]} fallback="/dashboard"><Cart /></RequireRole>} />
               <Route path="/lo-trinh" element={<RoadmapListing />} />
               <Route path="/lo-trinh/:id" element={<RoadmapDetail />} />
-              <Route path="/thanh-toan" element={<RequireRole roles={["student"]}><Payment /></RequireRole>} />
-              <Route path="/thanh-toan-thanh-cong" element={<RequireRole roles={["student"]}><PaymentSuccess /></RequireRole>} />
+              <Route path="/thanh-toan" element={<RequireRole roles={["student"]} fallback="/dashboard"><Payment /></RequireRole>} />
+              <Route path="/thanh-toan-thanh-cong" element={<RequireRole roles={["student"]} fallback="/dashboard"><PaymentSuccess /></RequireRole>} />
               <Route path="/trang-ca-nhan" element={<Profile />} />
-              <Route path="/khoa-hoc-cua-toi" element={<RequireRole roles={["student"]}><MyCourses /></RequireRole>} />
+              <Route path="/khoa-hoc-cua-toi" element={<RequireRole roles={["student"]} fallback="/dashboard"><MyCourses /></RequireRole>} />
               <Route path="*" element={<NotFound />} />
             </Route>
 
@@ -143,7 +145,7 @@ export default function App() {
               <Route path="courses" element={<RequireDashboardRole roles={["admin", "instructor"]}><CourseManager /></RequireDashboardRole>} />
               <Route path="students" element={<RequireDashboardRole roles={["admin"]}><StudentManager /></RequireDashboardRole>} />
               <Route path="qa" element={<RequireDashboardRole roles={["instructor"]}><WorkflowBoard type="qa" /></RequireDashboardRole>} />
-              <Route path="course-reviews" element={<RequireDashboardRole roles={["operator"]}><WorkflowBoard type="reviews" /></RequireDashboardRole>} />
+              <Route path="course-reviews" element={<RequireDashboardRole roles={["operator"]}><CourseReviewManager /></RequireDashboardRole>} />
               <Route path="reviews" element={<RequireDashboardRole roles={["admin"]}><ReviewManager /></RequireDashboardRole>} />
               <Route path="payments" element={<PaymentsRoute />} />
               <Route path="complaints" element={<RequireDashboardRole roles={["operator"]}><WorkflowBoard type="complaints" /></RequireDashboardRole>} />
@@ -152,7 +154,7 @@ export default function App() {
               <Route path="coupons" element={<RequireDashboardRole roles={["admin"]}><CouponManager /></RequireDashboardRole>} />
               <Route path="blogs" element={<RequireDashboardRole roles={["admin"]}><BlogManager /></RequireDashboardRole>} />
               <Route path="contacts" element={<RequireDashboardRole roles={["admin"]}><ContactManager /></RequireDashboardRole>} />
-              <Route path="settings" element={<RequireDashboardRole roles={["admin"]}><WorkflowBoard type="settings" /></RequireDashboardRole>} />
+              <Route path="settings" element={<RequireDashboardRole roles={["admin"]}><SystemSettings /></RequireDashboardRole>} />
             </Route>
           </Routes>
         </BrowserRouter>

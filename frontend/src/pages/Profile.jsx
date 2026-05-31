@@ -1,10 +1,99 @@
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiUser, FiMail, FiCalendar, FiBookOpen, FiAward, FiEdit2 } from "react-icons/fi";
+import { FiAward, FiBookOpen, FiCalendar, FiEdit2, FiMail, FiUser } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
+import { useAuth } from "../context/AuthContext";
+import { getProfileAPI } from "../services/api";
+
+const ROLE_LABELS = {
+  student: "Học viên",
+  instructor: "Giảng viên",
+  operator: "Vận hành",
+  admin: "Quản trị viên",
+};
+
+function buildStats(role, stats = {}) {
+  if (role === "instructor") {
+    return [
+      { icon: <FiBookOpen size={20} />, value: stats.courses || 0, label: "Khóa học phụ trách" },
+      { icon: <FiUser size={20} />, value: stats.students || 0, label: "Học viên theo học" },
+      { icon: <FiAward size={20} />, value: stats.average_rating || 0, label: "Đánh giá trung bình" },
+    ];
+  }
+
+  if (role === "operator") {
+    return [
+      { icon: <FiBookOpen size={20} />, value: stats.orders || 0, label: "Giao dịch xử lý" },
+      { icon: <FiAward size={20} />, value: stats.completed_orders || 0, label: "Đơn hoàn tất" },
+      { icon: <FiCalendar size={20} />, value: stats.pending_orders || 0, label: "Đơn đang chờ" },
+    ];
+  }
+
+  if (role === "admin") {
+    return [
+      { icon: <FiUser size={20} />, value: stats.roles || 0, label: "Vai trò quản lý" },
+      { icon: <FiBookOpen size={20} />, value: stats.courses || 0, label: "Khóa học hệ thống" },
+      { icon: <FiAward size={20} />, value: stats.users || 0, label: "Người dùng" },
+    ];
+  }
+
+  return [
+    { icon: <FiBookOpen size={20} />, value: stats.enrolled_courses || 0, label: "Khóa học đã đăng ký" },
+    { icon: <FiAward size={20} />, value: stats.completed_courses || 0, label: "Khóa học hoàn thành" },
+    { icon: <FiCalendar size={20} />, value: stats.learning_days || 0, label: "Ngày có tiến độ học" },
+  ];
+}
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(Boolean(localStorage.getItem("token")));
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      setLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    setLoading(true);
+    getProfileAPI()
+      .then((data) => {
+        if (mounted) {
+          setProfile(data);
+          setError("");
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setError("Không tải được dữ liệu hồ sơ từ database.");
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const user = profile?.user || authUser;
+  const roleLabel = ROLE_LABELS[user?.role] || user?.role;
+  const stats = useMemo(() => buildStats(user?.role, profile?.stats), [user?.role, profile?.stats]);
+  const joinedAt = user?.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : "Chưa có dữ liệu";
+
+  if (loading) {
+    return (
+      <>
+        <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Trang cá nhân" }]} />
+        <div className="max-w-lg mx-auto px-5 py-20 text-center text-gray-600">Đang tải dữ liệu hồ sơ...</div>
+      </>
+    );
+  }
 
   if (!user) {
     return (
@@ -22,27 +111,30 @@ export default function Profile() {
     );
   }
 
-  const stats = [
-    { icon: <FiBookOpen size={20} />, value: "3", label: "Khóa học đã đăng ký" },
-    { icon: <FiAward size={20} />, value: "1", label: "Chứng chỉ đạt được" },
-    { icon: <FiCalendar size={20} />, value: "15", label: "Ngày học liên tiếp" },
-  ];
-
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Trang cá nhân" }]} />
       <div className="max-w-[1290px] mx-auto px-5 py-10">
+        {error && <div className="mb-6 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="lg:w-80 shrink-0">
             <div className="border border-gray-100 rounded-xl p-8 text-center">
-              <div className="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center text-3xl font-bold mx-auto">
-                {user.name?.charAt(0)?.toUpperCase()}
+              <div className="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center text-3xl font-bold mx-auto overflow-hidden">
+                {user.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" /> : user.name?.charAt(0)?.toUpperCase()}
               </div>
               <h2 className="text-xl font-heading font-bold text-secondary mt-4">{user.name}</h2>
               <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+              <span className="inline-block mt-3 px-3 py-1 rounded-full bg-primary-light text-primary text-sm font-semibold">
+                {roleLabel}
+              </span>
               <button className="mt-5 px-6 py-2.5 border border-primary text-primary text-sm font-medium rounded-lg hover:bg-primary-light transition-colors flex items-center gap-2 mx-auto">
                 <FiEdit2 size={14} /> Chỉnh sửa hồ sơ
               </button>
+              {user.role !== "student" && (
+                <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+                  Vào dashboard
+                </Link>
+              )}
             </div>
           </div>
 
@@ -78,14 +170,14 @@ export default function Profile() {
                   <label className="text-sm text-gray-500 mb-1 block">Ngày tham gia</label>
                   <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 bg-gray-50">
                     <FiCalendar size={16} className="text-gray-400" />
-                    <span className="text-sm text-secondary">20 Tháng 4, 2026</span>
+                    <span className="text-sm text-secondary">{joinedAt}</span>
                   </div>
                 </div>
                 <div>
                   <label className="text-sm text-gray-500 mb-1 block">Vai trò</label>
                   <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 bg-gray-50">
                     <FiAward size={16} className="text-gray-400" />
-                    <span className="text-sm text-secondary">Học viên</span>
+                    <span className="text-sm text-secondary">{roleLabel}</span>
                   </div>
                 </div>
               </div>

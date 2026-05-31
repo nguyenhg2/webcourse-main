@@ -3,21 +3,30 @@ import { createContext, useContext, useState, useEffect } from "react";
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState("light");
+  const [theme, setThemeState] = useState(() => {
+    const saved = localStorage.getItem("codecamp_theme");
+    return saved === "dark" || saved === "light" ? saved : "light";
+  });
 
   useEffect(() => {
-    const saved = localStorage.getItem("codecamp_theme");
-    if (saved === "dark" || saved === "light") setTheme(saved);
-  }, []);
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem("codecamp_theme", theme);
+  }, [theme]);
+
+  function setTheme(nextTheme) {
+    if (nextTheme === "dark" || nextTheme === "light") {
+      setThemeState(nextTheme);
+    }
+  }
 
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
-    localStorage.setItem("codecamp_theme", next);
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -47,7 +47,7 @@ async def update_lesson(lesson_id: str, lesson: UpdateLesson, db=Depends(get_db)
 
     lesson_data = lesson.model_dump(exclude_unset=True)
     result = await db["lessons"].update_one({"_id": oid(lesson_id)}, {"$set": lesson_data})
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Khong tim thay bai hoc")
     updated_lesson = await db["lessons"].find_one({"_id": oid(lesson_id)})
     return serialize_doc(updated_lesson)

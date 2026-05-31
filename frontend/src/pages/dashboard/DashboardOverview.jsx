@@ -1,9 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiBookOpen, FiCheckCircle, FiDollarSign, FiTrendingUp, FiUsers } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
-import { getAdminDashboardAPI, getAllPaymentsAPI, getCoursesAPI, getMyCoursesAPI } from "../../services/api";
+import { getAdminDashboardAPI, getAdminOrdersAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
+
+function buildTopPurchasedCourses(orders = []) {
+  const byCourse = new Map();
+
+  orders
+    .filter((order) => order.status === "completed")
+    .forEach((order) => {
+      const courses = order.courses || [];
+      const revenueShare = courses.length ? Number(order.final_amount || 0) / courses.length : 0;
+
+      courses.forEach((course) => {
+        const id = course._id || course.id;
+        if (!id) return;
+
+        const current = byCourse.get(id) || {
+          _id: id,
+          title: course.title || id,
+          purchases: 0,
+          revenue: 0,
+        };
+        current.purchases += 1;
+        current.revenue += revenueShare;
+        byCourse.set(id, current);
+      });
+    });
+
+  return Array.from(byCourse.values())
+    .sort((a, b) => b.purchases - a.purchases)
+    .slice(0, 5);
+}
 
 const StatCard = ({ title, value, icon, color }) => (
   <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
@@ -20,57 +50,80 @@ export default function DashboardOverview() {
   const role = user?.role || "student";
   const [stats, setStats] = useState({});
   const [items, setItems] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
 
   useEffect(() => {
     if (role === "admin") {
-      getAdminDashboardAPI().then(setStats).catch(() => setStats({}));
-      return;
-    }
-
-    if (role === "operator") {
-      getAllPaymentsAPI()
+      getAdminDashboardAPI()
         .then((data) => {
-          const payments = data.payments || [];
-          setItems(payments.slice(0, 5));
-          setStats({
-            revenue: payments.filter((p) => p.status === "completed").reduce((sum, p) => sum + Number(p.amount || 0) - Number(p.coupon_discount || 0), 0),
-            orders: payments.length,
-            completedOrders: payments.filter((p) => p.status === "completed").length,
-            pendingOrders: payments.filter((p) => p.status === "pending").length,
-          });
-        })
-        .catch(() => setStats({}));
-      return;
-    }
+          setStats(data || {});
+          const topCourses = data?.topCourses || [];
+          setItems(topCourses);
 
-    if (role === "instructor") {
-      getCoursesAPI()
-        .then((courses) => {
-          const mine = courses.filter((course) => !user?._id || course.instructor_id === user._id);
-          const visible = mine.length ? mine : courses;
-          setItems(visible.slice(0, 5));
-          setStats({
-            courses: visible.length,
-            students: visible.reduce((sum, course) => sum + Number(course.total_students || 0), 0),
-            rating: visible.length ? (visible.reduce((sum, course) => sum + Number(course.rating || 0), 0) / visible.length).toFixed(1) : "0.0",
-            published: visible.filter((course) => course.status === "published").length,
-          });
+          return getAdminOrdersAPI()
+            .then((orders) => {
+              setRecentOrders((orders || []).slice(0, 5));
+              if (topCourses.length === 0) {
+                setItems(buildTopPurchasedCourses(orders));
+              }
+            })
+            .catch(() => {
+              setRecentOrders([]);
+              if (topCourses.length === 0) setItems([]);
+            });
         })
-        .catch(() => setStats({}));
-      return;
-    }
-
-    getMyCoursesAPI()
-      .then((courses) => {
-        setItems(courses.slice(0, 5));
-        setStats({
-          courses: courses.length,
-          completed: courses.filter((course) => Number(course.progress || 0) >= 100).length,
-          progress: courses.length ? Math.round(courses.reduce((sum, course) => sum + Number(course.progress || 0), 0) / courses.length) : 0,
-          lessons: courses.reduce((sum, course) => sum + Number(course.completedLessons || 0), 0),
+        .catch(() => {
+          setStats({});
+          setItems([]);
+          setRecentOrders([]);
         });
+      return;
+    }
+
+    getDashboardOverviewAPI()
+      .then((data) => {
+        const nextStats = data.stats || {};
+        setStats(nextStats);
+        setItems(data.items || []);
+
+        if (role === "instructor" && !nextStats.courses) {
+          return getCoursesAPI().then((courses) => {
+            const visible = courses.filter((course) => !user?._id || course.instructor_id === user._id);
+            const fallback = visible.length ? visible : courses;
+            setItems(fallback.slice(0, 5));
+            setStats({
+              courses: fallback.length,
+              students: fallback.reduce((sum, course) => sum + Number(course.total_students || 0), 0),
+              rating: fallback.length ? (fallback.reduce((sum, course) => sum + Number(course.rating || 0), 0) / fallback.length).toFixed(1) : "0.0",
+              published: fallback.filter((course) => course.status === "published").length,
+            });
+          });
+        }
       })
-      .catch(() => setStats({}));
+      .catch(() => {
+        if (role !== "instructor") {
+          setStats({});
+          setItems([]);
+          return;
+        }
+
+        getCoursesAPI()
+          .then((courses) => {
+            const visible = courses.filter((course) => !user?._id || course.instructor_id === user._id);
+            const fallback = visible.length ? visible : courses;
+            setItems(fallback.slice(0, 5));
+            setStats({
+              courses: fallback.length,
+              students: fallback.reduce((sum, course) => sum + Number(course.total_students || 0), 0),
+              rating: fallback.length ? (fallback.reduce((sum, course) => sum + Number(course.rating || 0), 0) / fallback.length).toFixed(1) : "0.0",
+              published: fallback.filter((course) => course.status === "published").length,
+            });
+          })
+          .catch(() => {
+            setStats({});
+            setItems([]);
+          });
+      });
   }, [role, user?._id]);
 
   const cards = useMemo(() => {
@@ -119,25 +172,71 @@ export default function DashboardOverview() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">
-          {role === "operator" ? "Giao dịch gần đây" : role === "student" ? "Khóa học đang học" : "Mục cần theo dõi"}
-        </h2>
-        <div className="divide-y divide-gray-100">
-          {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
-          {items.map((item) => (
-            <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="font-medium text-gray-900">{item.title || item.id || item._id}</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {item.status || (item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`)}
-                </p>
-              </div>
-              <span className="text-sm font-semibold text-primary">{item.amount ? currency(item.amount) : item.level || item.card_brand || ""}</span>
+      {role === "admin" ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">Khóa học có lượt mua nhiều</h2>
+            <div className="divide-y divide-gray-100">
+              {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
+              {items.map((item) => (
+                <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-gray-900">{item.title || item.id || item._id}</p>
+                    <p className="text-sm text-gray-500 mt-1">Doanh thu: {currency(item.revenue)}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">{item.purchases || 0} lượt mua</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">Đơn hàng gần đây</h2>
+            <div className="divide-y divide-gray-100">
+              {recentOrders.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
+              {recentOrders.map((order) => (
+                <div key={order.id || order._id} className="py-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-gray-900">{order.user?.name || order.user?.email || order.id || order._id}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {order.created_at ? new Date(order.created_at * 1000).toLocaleDateString("vi-VN") : "Chưa có ngày"} · {order.status}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">{currency(order.final_amount ?? order.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-4">
+            {role === "operator" ? "Giao dịch gần đây" : role === "student" ? "Khóa học đang học" : "Mục cần theo dõi"}
+          </h2>
+          <div className="divide-y divide-gray-100">
+            {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
+            {items.map((item) => (
+              <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {role === "operator"
+                      ? item.user?.name || item.user?.email || "Khách hàng"
+                      : item.title || item.id || item._id}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {role === "operator"
+                      ? `${(item.courses || []).map((course) => course.title).join(", ") || "Chưa có tên khóa học"} · ${item.status || ""}`
+                      : item.status || (item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`)}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-primary">
+                  {role === "operator" ? currency(item.final_amount ?? item.amount) : item.amount ? currency(item.amount) : item.level || item.card_brand || ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

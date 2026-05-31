@@ -17,3 +17,16 @@ type ValidateCouponRequest struct {
 	Code   string `json:"code"`
 	Amount int64  `json:"amount"`
 }
+
+type CreateCouponRequest struct {
+	Code     string `json:"code"`
+	Discount int64  `json:"discount"`
+	Type     string `json:"type"`
+	MaxUses  int64  `json:"max_uses"`
+	Expiry   int64  `json:"expiry"`
+	Active   bool   `json:"active"`
+}
+
+type UpdateCouponStatusRequest struct {
+	Active bool `json:"active"`
+}

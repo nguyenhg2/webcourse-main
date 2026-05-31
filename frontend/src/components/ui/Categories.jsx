@@ -9,15 +9,16 @@ import {
   FiCpu,
   FiTrendingUp,
 } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import { getCategoriesAPI } from "../../services/api";
 
 const ICON_MAP = {
-  "Web Development": <FiCode size={28} />,
+  "Phát triển website": <FiCode size={28} />,
   Python: <FiTrendingUp size={28} />,
   "Ứng dụng di động": <FiSmartphone size={28} />,
-  "Data Science": <FiDatabase size={28} />,
+  "Khoa học dữ liệu": <FiDatabase size={28} />,
   "DevOps & Cloud": <FiCloud size={28} />,
-  "UI/UX Design": <FiLayout size={28} />,
+  "Thiết kế giao diện": <FiLayout size={28} />,
   "An ninh mạng": <FiShield size={28} />,
   "AI & Machine Learning": <FiCpu size={28} />,
 };
@@ -32,10 +33,7 @@ export default function Categories() {
     getCategoriesAPI()
       .then((data) => {
         // API trả về mảng object {_id, name, icon} — chỉ lấy name
-        const names = data.map((item) =>
-          typeof item === "string" ? item : item.name
-        );
-        setCategories(names);
+        setCategories(data);
       })
       .catch(() => setCategories([]))
       .finally(() => setLoading(false));
@@ -65,18 +63,19 @@ export default function Categories() {
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
-          {categories.map((name) => (
-            <div
-              key={name}
+          {categories.map((category) => (
+            <Link
+              key={category._id || category.name}
+              to={`/khoa-hoc?category=${encodeURIComponent(category._id)}`}
               className="flex flex-col items-center gap-3 p-6 rounded-xl border border-gray-100 hover:border-primary hover:shadow-md transition-all cursor-pointer group"
             >
               <span className="text-primary group-hover:scale-110 transition-transform">
-                {ICON_MAP[name] || DEFAULT_ICON}
+                {ICON_MAP[category.name] || DEFAULT_ICON}
               </span>
               <span className="text-sm font-semibold text-secondary text-center">
-                {name}
+                {category.name}
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

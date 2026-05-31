@@ -28,10 +28,23 @@ type cloudinaryUploadResponse struct {
 	Format    string  `json:"format"`
 }
 
+type fileUploadResponse struct {
+	SecureURL    string `json:"secure_url"`
+	PublicID     string `json:"public_id"`
+	Bytes        int64  `json:"bytes"`
+	Format       string `json:"format"`
+	OriginalName string `json:"original_filename"`
+}
+
 func RegisterVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
 	h := &VideoHandler{cfg: cfg}
 	g.POST("/upload", h.Upload)
 	g.GET("/:lessonId/signed-url", h.SignedURL)
+}
+
+func RegisterFileHandlers(g *gin.RouterGroup, cfg *config.Config) {
+	h := &VideoHandler{cfg: cfg}
+	g.POST("/upload", h.UploadFile)
 }
 
 func RegisterSignedVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
@@ -118,6 +131,83 @@ func (h *VideoHandler) Upload(c *gin.Context) {
 		"video_url": upload.SecureURL,
 		"public_id": upload.PublicID,
 		"duration":  upload.Duration,
+		"bytes":     upload.Bytes,
+		"format":    upload.Format,
+	})
+}
+
+func (h *VideoHandler) UploadFile(c *gin.Context) {
+	if h.cfg.CloudinaryCloud == "" || h.cfg.CloudinaryKey == "" || h.cfg.CloudinarySecret == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary config is missing"})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+		return
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	part, err := writer.CreateFormFile("file", header.Filename)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if _, err := io.Copy(part, file); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	folder := "codecamp/attachments"
+	signature := signCloudinary("folder="+folder+"&timestamp="+timestamp, h.cfg.CloudinarySecret)
+
+	writer.WriteField("api_key", h.cfg.CloudinaryKey)
+	writer.WriteField("timestamp", timestamp)
+	writer.WriteField("folder", folder)
+	writer.WriteField("signature", signature)
+	writer.Close()
+
+	url := "https://api.cloudinary.com/v1_1/" + h.cfg.CloudinaryCloud + "/raw/upload"
+	req, err := http.NewRequest(http.MethodPost, url, body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		c.JSON(resp.StatusCode, gin.H{"error": string(respBody)})
+		return
+	}
+
+	var upload fileUploadResponse
+	if err := json.Unmarshal(respBody, &upload); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	name := upload.OriginalName
+	if name == "" {
+		name = header.Filename
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"name":      name,
+		"url":       upload.SecureURL,
+		"public_id": upload.PublicID,
 		"bytes":     upload.Bytes,
 		"format":    upload.Format,
 	})

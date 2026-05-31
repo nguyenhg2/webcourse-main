@@ -42,6 +42,11 @@ export async function getMeAPI() {
   return res.data;
 }
 
+export async function getProfileAPI() {
+  const res = await api.get("/api/auth/profile");
+  return res.data;
+}
+
 // Courses
 export async function getCoursesAPI(params) {
   const res = await api.get("/api/courses", { params });
@@ -65,6 +70,16 @@ export async function createCourseAPI(payload) {
 
 export async function updateCourseAPI(id, payload) {
   const res = await api.put(`/api/courses/${id}`, payload);
+  return res.data;
+}
+
+export async function submitCourseAPI(id) {
+  const res = await api.patch(`/api/courses/${id}/submit`);
+  return res.data;
+}
+
+export async function reviewCourseAPI(id, payload) {
+  const res = await api.patch(`/api/courses/${id}/review`, payload);
   return res.data;
 }
 
@@ -207,10 +222,10 @@ export async function createPaymentAPI(payload) {
   return res.data;
 }
 
-export async function confirmTestPaymentAPI(paymentId) {
+export async function confirmTestPaymentAPI(paymentId, cardInfo = {}) {
   const res = await axios.post(
     PAYMENT_API_BASE + "/api/payments/confirm-test",
-    { payment_id: paymentId },
+    { payment_id: paymentId, ...cardInfo },
     { headers: authHeaders() }
   );
   return res.data;
@@ -240,9 +255,35 @@ export async function validateCouponAPI(code, amount) {
 }
 
 export async function getCouponsAPI() {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
+  try {
+    const res = await axios.get(PAYMENT_API_BASE + "/api/coupons", {
+      headers: authHeaders(),
+    });
+    return res.data;
+  } catch (err) {
+    if (err.response?.status !== 404) {
+      throw err;
+    }
+    const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
+      headers: authHeaders(),
+    });
+    return res.data;
+  }
+}
+
+export async function createCouponAPI(payload) {
+  const res = await axios.post(PAYMENT_API_BASE + "/api/coupons", payload, {
     headers: authHeaders(),
   });
+  return res.data;
+}
+
+export async function updateCouponStatusAPI(couponId, active) {
+  const res = await axios.put(
+    PAYMENT_API_BASE + `/api/coupons/${couponId}/active`,
+    { active },
+    { headers: authHeaders() }
+  );
   return res.data;
 }
 
@@ -273,9 +314,23 @@ export async function uploadLessonVideoAPI(file) {
   return uploadVideoAPI(file);
 }
 
+export async function uploadAttachmentAPI(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await axios.post(PAYMENT_API_BASE + "/api/files/upload", formData, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
 // Admin APIs
 export async function getAdminDashboardAPI() {
   const res = await api.get("/api/admin/dashboard");
+  return res.data;
+}
+
+export async function getDashboardOverviewAPI() {
+  const res = await api.get("/api/dashboard");
   return res.data;
 }
 

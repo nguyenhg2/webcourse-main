@@ -1,20 +1,30 @@
 import { useState, useEffect } from "react";
 import { FiSearch, FiGrid, FiList } from "react-icons/fi";
+import { useSearchParams } from "react-router-dom";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import CourseListCard from "../components/course/CourseListCard";
 import CourseGridCard from "../components/course/CourseGridCard";
 import CourseSidebar from "../components/course/CourseSidebar";
 import Pagination from "../components/ui/Pagination";
-import { getCoursesAPI } from "../services/api";
+import { addCartAPI, getCartAPI, getCoursesAPI, getMyCoursesAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const PER_PAGE = 6;
 
 export default function CourseListingPage() {
+  const { user, refreshCartCount } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("grid");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedLevels, setSelectedLevels] = useState([]);
+  const [selectedRatings, setSelectedRatings] = useState([]);
+  const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
+  const [cartCourseIds, setCartCourseIds] = useState(new Set());
+  const [addingCartId, setAddingCartId] = useState("");
 
   useEffect(() => {
     getCoursesAPI()
@@ -23,9 +33,98 @@ export default function CourseListingPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = courses.filter((c) =>
-    c.title.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (user?.role !== "student") {
+      setOwnedCourseIds(new Set());
+      setCartCourseIds(new Set());
+      return;
+    }
+
+    getMyCoursesAPI()
+      .then((items) => setOwnedCourseIds(new Set(items.map((item) => item._id))))
+      .catch(() => setOwnedCourseIds(new Set()));
+    getCartAPI()
+      .then((data) => setCartCourseIds(new Set((data.items || []).map((item) => item._id))))
+      .catch(() => setCartCourseIds(new Set()));
+  }, [user]);
+
+  async function handleAddCart(course) {
+    if (!user) {
+      window.location.href = "/dang-nhap";
+      return;
+    }
+    if (user.role !== "student" || ownedCourseIds.has(course._id) || cartCourseIds.has(course._id)) {
+      return;
+    }
+
+    setAddingCartId(course._id);
+    try {
+      await addCartAPI(course._id);
+      setCartCourseIds((current) => new Set([...current, course._id]));
+      await refreshCartCount?.();
+    } finally {
+      setAddingCartId("");
+    }
+  }
+
+  useEffect(() => {
+    const categories = searchParams.get("category");
+    setSelectedCategories(categories ? categories.split(",").filter(Boolean) : []);
+    setPage(1);
+  }, [searchParams]);
+
+  function toggleValue(setter, value) {
+    setter((current) => {
+      setPage(1);
+      return current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value];
+    });
+  }
+
+  function clearFilters() {
+    setSelectedCategories([]);
+    setSelectedLevels([]);
+    setSelectedRatings([]);
+    setSearchParams({});
+    setPage(1);
+  }
+
+  const sidebarProps = {
+    selectedCategories,
+    selectedLevels,
+    selectedRatings,
+    onToggleCategory: (id) => {
+      const nextCategories = selectedCategories.includes(id)
+        ? selectedCategories.filter((item) => item !== id)
+        : [...selectedCategories, id];
+      setSelectedCategories(nextCategories);
+      setPage(1);
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        if (nextCategories.length) {
+          next.set("category", nextCategories.join(","));
+        } else {
+          next.delete("category");
+        }
+        return next;
+      });
+    },
+    onToggleLevel: (level) => toggleValue(setSelectedLevels, level),
+    onToggleRating: (rating) => toggleValue(setSelectedRatings, rating),
+    onClearFilters: clearFilters,
+  };
+
+  const minRating = selectedRatings.length ? Math.min(...selectedRatings) : 0;
+  const filtered = courses.filter((c) => {
+    const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      selectedCategories.length === 0 || selectedCategories.includes(c.category_id);
+    const matchesLevel =
+      selectedLevels.length === 0 || selectedLevels.includes(c.level);
+    const matchesRating = !minRating || Number(c.rating || 0) >= minRating;
+    return matchesSearch && matchesCategory && matchesLevel && matchesRating;
+  });
   const totalPages = Math.ceil(filtered.length / PER_PAGE) || 1;
   const visible = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
@@ -37,9 +136,12 @@ export default function CourseListingPage() {
       <div className="max-w-[1290px] mx-auto px-5 py-10">
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="hidden lg:block">
-            <CourseSidebar />
+            <CourseSidebar {...sidebarProps} />
           </div>
           <div className="flex-1">
+            <div className="lg:hidden mb-6 border border-gray-100 rounded-lg p-4">
+              <CourseSidebar {...sidebarProps} />
+            </div>
             <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
               <div className="relative flex-1 max-w-md">
                 <FiSearch
@@ -93,13 +195,27 @@ export default function CourseListingPage() {
             ) : viewMode === "list" ? (
               <div className="flex flex-col gap-6">
                 {visible.map((course) => (
-                  <CourseListCard key={course._id} course={course} />
+                  <CourseListCard
+                    key={course._id}
+                    course={course}
+                    isOwned={ownedCourseIds.has(course._id)}
+                    isInCart={cartCourseIds.has(course._id)}
+                    isAdding={addingCartId === course._id}
+                    onAddCart={handleAddCart}
+                  />
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {visible.map((course) => (
-                  <CourseGridCard key={course._id} course={course} />
+                  <CourseGridCard
+                    key={course._id}
+                    course={course}
+                    isOwned={ownedCourseIds.has(course._id)}
+                    isInCart={cartCourseIds.has(course._id)}
+                    isAdding={addingCartId === course._id}
+                    onAddCart={handleAddCart}
+                  />
                 ))}
               </div>
             )}

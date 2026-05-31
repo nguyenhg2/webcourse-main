@@ -15,7 +15,7 @@ const navLinks = [
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, cartCount } = useAuth();
   const isStudent = !user || user.role === "student";
 
   const linkClass = ({ isActive }) =>
@@ -41,8 +41,13 @@ export default function Header() {
             <FiSearch size={20} />
           </button>
           {isStudent && (
-            <Link to="/gio-hang" className="p-2 text-gray-600 hover:text-primary transition-colors">
+            <Link to="/gio-hang" className="relative p-2 text-gray-600 hover:text-primary transition-colors">
               <FiShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-primary text-white text-[11px] font-semibold flex items-center justify-center">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
             </Link>
           )}
 

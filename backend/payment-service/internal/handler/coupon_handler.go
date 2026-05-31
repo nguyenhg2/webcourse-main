@@ -17,6 +17,10 @@ func RegisterCouponHandlers(g *gin.RouterGroup, db *mongo.Database) {
 	h := &CouponHandler{service: couponSvc}
 	g.POST("/validate", h.ValidateCoupon)
 	g.GET("/list", h.ListActiveCoupons)
+	g.GET("", h.ListCoupons)
+	g.POST("", h.CreateCoupon)
+	g.PATCH("/:id/active", h.UpdateCouponStatus)
+	g.PUT("/:id/active", h.UpdateCouponStatus)
 }
 
 type CouponHandler struct {
@@ -50,4 +54,61 @@ func (h *CouponHandler) ListActiveCoupons(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"coupons": coupons})
+}
+
+func (h *CouponHandler) ListCoupons(c *gin.Context) {
+	if c.GetString("role") != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+		return
+	}
+
+	coupons, err := h.service.ListCoupons(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"coupons": coupons})
+}
+
+func (h *CouponHandler) CreateCoupon(c *gin.Context) {
+	if c.GetString("role") != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+		return
+	}
+
+	var req model.CreateCouponRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	coupon, err := h.service.CreateCoupon(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, coupon)
+}
+
+func (h *CouponHandler) UpdateCouponStatus(c *gin.Context) {
+	if c.GetString("role") != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+		return
+	}
+
+	var req model.UpdateCouponStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	coupon, err := h.service.SetCouponActive(c.Request.Context(), c.Param("id"), req.Active)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, coupon)
 }

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FiClock, FiUsers, FiBarChart, FiBookOpen } from "react-icons/fi";
+import { FiClock, FiUsers, FiBarChart, FiBookOpen, FiShoppingCart } from "react-icons/fi";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -7,7 +7,7 @@ const LEVEL_MAP = {
   advanced: "Nâng cao",
 };
 
-export default function CourseCard({ course }) {
+export default function CourseCard({ course, isOwned = false, isInCart = false, isAdding = false, onAddCart }) {
   const levelText = LEVEL_MAP[course.level] || course.level;
   const priceText =
     course.price === 0
@@ -23,7 +23,7 @@ export default function CourseCard({ course }) {
           className="w-full h-48 object-cover"
         />
         <span className="absolute top-3 left-3 text-xs font-semibold px-3 py-1 rounded-full bg-white text-secondary shadow">
-          {priceText}
+          {isOwned ? "Đã mua" : priceText}
         </span>
       </div>
       <div className="p-5 flex flex-col gap-3">
@@ -54,6 +54,24 @@ export default function CourseCard({ course }) {
             </span>
           )}
         </div>
+        {isOwned ? (
+          <Link
+            to={"/khoa-hoc/" + course.slug}
+            className="w-full py-2.5 bg-success text-white rounded-lg text-sm font-semibold text-center hover:bg-green-600 transition-colors"
+          >
+            Vào học
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onAddCart?.(course)}
+            disabled={isInCart || isAdding}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            <FiShoppingCart size={16} />
+            {isAdding ? "Đang thêm..." : isInCart ? "Đã có trong giỏ" : "Thêm vào giỏ"}
+          </button>
+        )}
       </div>
     </div>
   );

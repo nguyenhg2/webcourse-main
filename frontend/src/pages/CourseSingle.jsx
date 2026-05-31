@@ -46,10 +46,23 @@ function formatDuration(seconds) {
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
+function displayLessonTitle(section, lesson) {
+  const sectionOrder = Number(section?.order || 1);
+  const lessonOrder = Number(lesson?.order || 1);
+  const cleanTitle = String(lesson?.title || "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*[-–—:]\s*/i, "")
+    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*/i, "")
+    .trim();
+
+  return cleanTitle
+    ? `Bài ${sectionOrder}.${lessonOrder} - ${cleanTitle}`
+    : `Bài ${sectionOrder}.${lessonOrder}`;
+}
+
 export default function CourseSingle() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshCartCount } = useAuth();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
@@ -106,6 +119,7 @@ export default function CourseSingle() {
 
     try {
       await addCartAPI(course._id);
+      await refreshCartCount();
       navigate("/gio-hang");
     } catch (err) {
       if (err.response?.status === 401) {
@@ -146,6 +160,7 @@ export default function CourseSingle() {
     : 0;
   const firstLesson = (course.sections || []).flatMap((section) => section.lessons || [])[0];
   const hasCourseAccess = ownedCourseIds.has(course._id);
+  const learnPath = firstLesson ? `/khoa-hoc/${slug}/hoc/${firstLesson._id}` : `/khoa-hoc/${slug}`;
 
   const tabs = [
     { id: "overview", label: "Tổng quan" },
@@ -269,11 +284,11 @@ export default function CourseSingle() {
                                   )}
                                   {canOpenLesson ? (
                                     <Link to={`/khoa-hoc/${slug}/hoc/${lesson._id}`} className="text-sm text-gray-600 hover:text-primary">
-                                      {lesson.title}
+                                      {displayLessonTitle(section, lesson)}
                                     </Link>
                                   ) : (
                                     <span className="text-sm text-gray-600">
-                                      {lesson.title}
+                                      {displayLessonTitle(section, lesson)}
                                     </span>
                                   )}
                                   {lesson.is_free_preview && (
@@ -406,12 +421,22 @@ export default function CourseSingle() {
                 alt={course.title}
                 className="w-full rounded-lg"
               />
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold text-primary">
-                  {priceText}
-                </span>
-              </div>
-              {(!user || user.role === "student") && (
+              {!hasCourseAccess && (
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-bold text-primary">
+                    {priceText}
+                  </span>
+                </div>
+              )}
+              {hasCourseAccess && (
+                <Link
+                  to={learnPath}
+                  className="w-full py-3 bg-success text-white font-semibold rounded-lg text-center hover:bg-green-600 transition-colors"
+                >
+                  Vào học
+                </Link>
+              )}
+              {!hasCourseAccess && (!user || user.role === "student") && (
                 <>
               <Link
                 to={user ? "/thanh-toan" : "/dang-nhap"}

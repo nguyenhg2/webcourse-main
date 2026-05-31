@@ -6,7 +6,7 @@ import logging
 router = APIRouter()
 
 SERVICES = {
-    "core": os.getenv("CORE_SERVICE_URL", "http://backend:8001"),
+    "core": os.getenv("CORE_SERVICE_URL", "http://core:8001"),
     "payment": os.getenv("PAYMENT_SERVICE_URL", "http://payment:8002"),
     "video": os.getenv("VIDEO_SERVICE_URL", os.getenv("PAYMENT_SERVICE_URL", "http://payment:8002")),
     "blog": os.getenv("BLOG_SERVICE_URL", "http://blog:8003"),
