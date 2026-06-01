@@ -6,6 +6,8 @@ class Lesson(BaseModel):
     course_id: str
     title: str
     video_url: str
+    video_public_id: Optional[str] = None
+    video_asset_folder: Optional[str] = None
     duration: int
     is_free_preview: bool
     attachments: Optional[list] = None
@@ -14,6 +16,8 @@ class Lesson(BaseModel):
 class UpdateLesson(BaseModel):
     title: Optional[str] = None
     video_url: Optional[str] = None
+    video_public_id: Optional[str] = None
+    video_asset_folder: Optional[str] = None
     duration: Optional[int] = None
     is_free_preview: Optional[bool] = None
     attachments: Optional[list] = None

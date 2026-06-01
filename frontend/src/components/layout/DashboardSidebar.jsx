@@ -40,10 +40,17 @@ const MENU_ITEMS = {
     { title: "Kiểm duyệt đánh giá", path: "/dashboard/reviews", icon: <FiCheckSquare /> },
     { title: "Quản lý danh mục", path: "/dashboard/categories", icon: <FiTag /> },
     { title: "Mã giảm giá", path: "/dashboard/coupons", icon: <FiAlertCircle /> },
-    { title: "Quản lý Blog", path: "/dashboard/blogs", icon: <FiPenTool /> },
+    { title: "Quản lý bài viết", path: "/dashboard/blogs", icon: <FiPenTool /> },
     { title: "Liên hệ", path: "/dashboard/contacts", icon: <FiMail /> },
     { title: "Cấu hình hệ thống", path: "/dashboard/settings", icon: <FiSettings /> },
   ],
+};
+
+const ROLE_LABELS = {
+  admin: "Quản trị viên",
+  operator: "Vận hành",
+  instructor: "Giảng viên",
+  student: "Học viên",
 };
 
 export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
@@ -69,7 +76,7 @@ export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
           <Link to="/" className="text-xl font-bold text-primary">
             WebCourse
-            <span className="text-xs ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">{role}</span>
+            <span className="text-xs ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{ROLE_LABELS[role] || role}</span>
           </Link>
         </div>
 

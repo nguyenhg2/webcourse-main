@@ -8,6 +8,12 @@ const FILTERS = [
   { value: "published", label: "Đã xuất bản" },
 ];
 
+const LEVEL_LABELS = {
+  beginner: "Cơ bản",
+  intermediate: "Trung cấp",
+  advanced: "Nâng cao",
+};
+
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString("vi-VN") + "đ";
 }
@@ -168,7 +174,7 @@ export default function CourseReviewManager() {
                   className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${active ? "bg-primary-light text-primary" : "text-gray-700 hover:bg-gray-50"}`}
                 >
                   <span className="block text-sm font-semibold">{course.title}</span>
-                  <span className="mt-1 block text-xs text-gray-500">{course.level} · {formatCurrency(course.price)}</span>
+                  <span className="mt-1 block text-xs text-gray-500">{LEVEL_LABELS[course.level] || course.level} · {formatCurrency(course.price)}</span>
                   <span className="mt-2 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{statusLabel(course.status)}</span>
                 </button>
               );
@@ -181,7 +187,7 @@ export default function CourseReviewManager() {
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             {selectedCourse ? (
               <div className="flex flex-col gap-5 xl:flex-row">
-                <img src={selectedCourse.thumbnail || "https://placehold.co/220x130?text=Course"} alt={selectedCourse.title} className="h-36 w-full rounded-lg object-cover xl:w-56" />
+                <img src={selectedCourse.thumbnail || "https://placehold.co/220x130?text=Khoa+hoc"} alt={selectedCourse.title} className="h-36 w-full rounded-lg object-cover xl:w-56" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
@@ -189,8 +195,8 @@ export default function CourseReviewManager() {
                   </div>
                   <p className="mt-2 text-sm text-gray-500">{selectedCourse.description}</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Section</p><p className="mt-1 text-lg font-bold text-gray-900">{sections.length}</p></div>
-                    <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Lesson</p><p className="mt-1 text-lg font-bold text-gray-900">{lessons.length}</p></div>
+                    <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Phần</p><p className="mt-1 text-lg font-bold text-gray-900">{sections.length}</p></div>
+                    <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Bài học</p><p className="mt-1 text-lg font-bold text-gray-900">{lessons.length}</p></div>
                     <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Thiếu video</p><p className="mt-1 text-lg font-bold text-gray-900">{missingVideoCount}</p></div>
                   </div>
                 </div>
@@ -215,7 +221,7 @@ export default function CourseReviewManager() {
                   <div key={section._id} className="rounded-lg border border-gray-100 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <h4 className="font-semibold text-gray-900">{section.title}</h4>
-                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">Section {section.order || "-"}</span>
+                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">Phần {section.order || "-"}</span>
                     </div>
                     <div className="mt-3 divide-y divide-gray-100">
                       {(section.lessons || []).map((lesson) => (
@@ -229,11 +235,11 @@ export default function CourseReviewManager() {
                           </span>
                         </div>
                       ))}
-                      {(section.lessons || []).length === 0 && <p className="py-3 text-sm text-gray-500">Section này chưa có lesson.</p>}
+                      {(section.lessons || []).length === 0 && <p className="py-3 text-sm text-gray-500">Phần này chưa có bài học.</p>}
                     </div>
                   </div>
                 ))}
-                {!loadingDetail && sections.length === 0 && <div className="rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500">Khóa học chưa có section hoặc lesson.</div>}
+                {!loadingDetail && sections.length === 0 && <div className="rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500">Khóa học chưa có phần hoặc bài học.</div>}
               </div>
             </div>
           )}

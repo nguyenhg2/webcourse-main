@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import { getAdminUsersAPI, updateAdminUserRoleAPI } from "../../services/api";
 
 const ROLES = ["admin", "operator", "instructor", "student"];
+const ROLE_LABELS = {
+  admin: "Quản trị viên",
+  operator: "Vận hành",
+  instructor: "Giảng viên",
+  student: "Học viên",
+};
 const ROLE_TABS = [
   { value: "all", label: "Tất cả" },
-  { value: "admin", label: "Admin" },
-  { value: "operator", label: "Operator" },
-  { value: "instructor", label: "Instructor" },
-  { value: "student", label: "Student" },
+  { value: "admin", label: ROLE_LABELS.admin },
+  { value: "operator", label: ROLE_LABELS.operator },
+  { value: "instructor", label: ROLE_LABELS.instructor },
+  { value: "student", label: ROLE_LABELS.student },
 ];
 const ROLE_ORDER = {
   admin: 0,
@@ -57,7 +63,7 @@ export default function UserManager() {
       const updated = await updateAdminUserRoleAPI(userId, role);
       setUsers((prev) => sortUsers(prev.map((u) => (u._id === userId ? { ...u, role: updated.role } : u))));
     } catch (err) {
-      alert(err.response?.data?.detail || "Cap nhat that bai");
+      alert(err.response?.data?.detail || "Cập nhật thất bại");
     } finally {
       setUpdating(null);
     }
@@ -148,7 +154,7 @@ export default function UserManager() {
                   <td className="p-4 text-gray-600">{u.email}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${ROLE_COLORS[u.role] || ROLE_COLORS.student}`}>
-                      {u.role}
+                      {ROLE_LABELS[u.role] || u.role}
                     </span>
                   </td>
                   <td className="p-4 text-gray-500">
@@ -158,12 +164,12 @@ export default function UserManager() {
                     <select
                       value={u.role}
                       disabled={u.role === "admin" || updating === u._id}
-                      title={u.role === "admin" ? "Khong duoc doi vai tro cua admin" : undefined}
+                      title={u.role === "admin" ? "Không được đổi vai trò của admin" : undefined}
                       onChange={(e) => changeRole(u._id, e.target.value)}
                       className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary disabled:opacity-50"
                     >
                       {ROLES.map((r) => (
-                        <option key={r} value={r}>{r}</option>
+                        <option key={r} value={r}>{ROLE_LABELS[r] || r}</option>
                       ))}
                     </select>
                   </td>

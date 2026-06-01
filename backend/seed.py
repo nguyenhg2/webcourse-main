@@ -14,6 +14,16 @@ DEMO_VIDEO_URL = os.getenv(
     "CLOUDINARY_DEMO_VIDEO_URL",
     "https://res.cloudinary.com/ddskipu10/video/upload/v1779970878/eodkpjke6tiwrwsc2prt.mp4",
 )
+PYTHON_VIDEO_FOLDER = os.getenv("CLOUDINARY_PYTHON_FOLDER", "codecamp/videos/Python")
+PYTHON_VIDEO_URLS = [
+    url.strip()
+    for url in os.getenv(
+        "CLOUDINARY_PYTHON_VIDEO_URLS",
+        "https://res.cloudinary.com/ddskipu10/video/upload/v1779970878/eodkpjke6tiwrwsc2prt.mp4,https://res.cloudinary.com/ddskipu10/video/upload/v1779970868/fhuyqtzaqlokolciuaed.mp4",
+    ).split(",")
+    if url.strip()
+]
+PYTHON_VIDEO_PUBLIC_IDS = ["eodkpjke6tiwrwsc2prt", "fhuyqtzaqlokolciuaed"]
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -256,6 +266,11 @@ async def seed():
 
     for c in courses_data:
         c["create_at"] = datetime.now(timezone.utc).isoformat()
+        c["cloudinary_folder"] = (
+            PYTHON_VIDEO_FOLDER
+            if c["slug"] == "python-cho-nguoi-moi-bat-dau"
+            else f"codecamp/courses/{c['slug']}"
+        )
         course_result = await db["courses"].insert_one(c)
         course_id_str = str(course_result.inserted_id)
         course_ids[c["slug"]] = course_id_str
@@ -276,12 +291,26 @@ async def seed():
                 f"Bài {s_order}.2 - Thực hành bài tập",
             ]
             for l_order, l_title in enumerate(lesson_names, start=1):
+                python_video_index = len(lesson_ids_by_course[course_id_str])
+                is_python_course = c["slug"] == "python-cho-nguoi-moi-bat-dau"
+                video_url = (
+                    PYTHON_VIDEO_URLS[python_video_index]
+                    if is_python_course and python_video_index < len(PYTHON_VIDEO_URLS)
+                    else ""
+                )
+                video_public_id = (
+                    PYTHON_VIDEO_PUBLIC_IDS[python_video_index]
+                    if is_python_course and python_video_index < len(PYTHON_VIDEO_PUBLIC_IDS)
+                    else ""
+                )
                 lesson_result = await db["lessons"].insert_one(
                     {
                         "section_id": section_id_str,
                         "course_id": course_id_str,
                         "title": l_title,
-                        "video_url": DEMO_VIDEO_URL,
+                        "video_url": video_url,
+                        "video_public_id": video_public_id,
+                        "video_asset_folder": PYTHON_VIDEO_FOLDER if video_url else "",
                         "duration": 600 + l_order * 120,
                         "is_free_preview": s_order == 1 and l_order == 1,
                         "attachments": [],

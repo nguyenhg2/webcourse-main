@@ -57,9 +57,20 @@ type cloudinaryResourcesResponse struct {
 	NextCursor string               `json:"next_cursor"`
 }
 
+type createFolderRequest struct {
+	Folder string `json:"folder"`
+}
+
+type deleteVideoRequest struct {
+	PublicID string `json:"public_id"`
+	VideoURL string `json:"video_url"`
+}
+
 func RegisterVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
 	h := &VideoHandler{cfg: cfg}
 	g.POST("/upload", h.Upload)
+	g.POST("/folders", h.CreateFolder)
+	g.DELETE("/delete", h.Delete)
 	g.GET("/:lessonId/signed-url", h.SignedURL)
 }
 
@@ -124,7 +135,7 @@ func (h *VideoHandler) Upload(c *gin.Context) {
 	}
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	folder := h.uploadFolder("codecamp/videos")
+	folder := h.uploadFolder(c.PostForm("folder"), "codecamp/videos")
 	signature := signCloudinary("asset_folder="+folder+"&timestamp="+timestamp, h.cfg.CloudinarySecret)
 
 	writer.WriteField("api_key", h.cfg.CloudinaryKey)
@@ -248,6 +259,110 @@ func (h *VideoHandler) UploadFile(c *gin.Context) {
 	})
 }
 
+func (h *VideoHandler) CreateFolder(c *gin.Context) {
+	if err := h.ensureCloudinaryConfig(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload createFolderRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "folder is required"})
+		return
+	}
+
+	folder := strings.Trim(payload.Folder, "/")
+	if folder == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "folder is required"})
+		return
+	}
+
+	apiURL := fmt.Sprintf(
+		"https://api.cloudinary.com/v1_1/%s/folders/%s",
+		url.PathEscape(h.cfg.CloudinaryCloud),
+		escapeCloudinaryFolderPath(folder),
+	)
+	req, err := http.NewRequest(http.MethodPost, apiURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	req.SetBasicAuth(h.cfg.CloudinaryKey, h.cfg.CloudinarySecret)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusConflict || strings.Contains(strings.ToLower(string(respBody)), "already exists") {
+		c.JSON(http.StatusOK, gin.H{"folder": folder, "created": false})
+		return
+	}
+	if resp.StatusCode >= 300 {
+		c.JSON(resp.StatusCode, gin.H{"error": string(respBody)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"folder": folder, "created": true})
+}
+
+func (h *VideoHandler) Delete(c *gin.Context) {
+	if err := h.ensureCloudinaryConfig(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload deleteVideoRequest
+	if err := c.ShouldBindJSON(&payload); err != nil && err != io.EOF {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "public_id or video_url is required"})
+		return
+	}
+
+	publicID := strings.TrimSpace(payload.PublicID)
+	if publicID == "" {
+		publicID = cloudinaryPublicIDFromURL(payload.VideoURL)
+	}
+	if publicID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "public_id or valid Cloudinary video_url is required"})
+		return
+	}
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	signature := signCloudinary("invalidate=true&public_id="+publicID+"&timestamp="+timestamp, h.cfg.CloudinarySecret)
+
+	form := url.Values{}
+	form.Set("api_key", h.cfg.CloudinaryKey)
+	form.Set("timestamp", timestamp)
+	form.Set("public_id", publicID)
+	form.Set("invalidate", "true")
+	form.Set("signature", signature)
+
+	destroyURL := "https://api.cloudinary.com/v1_1/" + h.cfg.CloudinaryCloud + "/video/destroy"
+	resp, err := http.PostForm(destroyURL, form)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		c.JSON(resp.StatusCode, gin.H{"error": string(respBody)})
+		return
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		c.JSON(http.StatusOK, gin.H{"public_id": publicID, "raw": string(respBody)})
+		return
+	}
+	result["public_id"] = publicID
+	c.JSON(http.StatusOK, result)
+}
+
 func (h *VideoHandler) SignedURL(c *gin.Context) {
 	video, err := h.latestCloudinaryVideo(h.requestedFolder(c))
 	if err != nil {
@@ -284,7 +399,10 @@ func (h *VideoHandler) requestedFolder(c *gin.Context) string {
 	return strings.Trim(strings.TrimSpace(h.cfg.CloudinaryFolder), "/")
 }
 
-func (h *VideoHandler) uploadFolder(fallback string) string {
+func (h *VideoHandler) uploadFolder(preferred string, fallback string) string {
+	if folder := strings.Trim(strings.TrimSpace(preferred), "/"); folder != "" {
+		return folder
+	}
 	if folder := strings.Trim(strings.TrimSpace(h.cfg.CloudinaryFolder), "/"); folder != "" {
 		return folder
 	}
@@ -380,6 +498,49 @@ func cloudinaryCreatedAfter(left string, right string) bool {
 		return leftTime.After(rightTime)
 	}
 	return left > right
+}
+
+func escapeCloudinaryFolderPath(folder string) string {
+	parts := strings.Split(strings.Trim(folder, "/"), "/")
+	for i, part := range parts {
+		parts[i] = url.PathEscape(part)
+	}
+	return strings.Join(parts, "/")
+}
+
+func cloudinaryPublicIDFromURL(videoURL string) string {
+	parsed, err := url.Parse(strings.TrimSpace(videoURL))
+	if err != nil || parsed.Path == "" {
+		return ""
+	}
+
+	parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+	uploadIndex := -1
+	for i, part := range parts {
+		if part == "upload" {
+			uploadIndex = i
+			break
+		}
+	}
+	if uploadIndex == -1 || uploadIndex+1 >= len(parts) {
+		return ""
+	}
+
+	publicParts := parts[uploadIndex+1:]
+	if len(publicParts) > 0 && strings.HasPrefix(publicParts[0], "v") {
+		if _, err := strconv.ParseInt(strings.TrimPrefix(publicParts[0], "v"), 10, 64); err == nil {
+			publicParts = publicParts[1:]
+		}
+	}
+	if len(publicParts) == 0 {
+		return ""
+	}
+
+	publicID := strings.Join(publicParts, "/")
+	if dot := strings.LastIndex(publicID, "."); dot > 0 {
+		publicID = publicID[:dot]
+	}
+	return publicID
 }
 
 func signCloudinary(payload string, secret string) string {

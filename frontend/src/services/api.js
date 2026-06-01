@@ -287,11 +287,29 @@ export async function updateCouponStatusAPI(couponId, active) {
   return res.data;
 }
 
-export async function uploadVideoAPI(file) {
+export async function uploadVideoAPI(file, folder) {
   const formData = new FormData();
   formData.append("video", file);
+  if (folder) {
+    formData.append("folder", folder);
+  }
   const res = await axios.post(PAYMENT_API_BASE + "/api/videos/upload", formData, {
     headers: authHeaders(),
+  });
+  return res.data;
+}
+
+export async function createVideoFolderAPI(folder) {
+  const res = await axios.post(PAYMENT_API_BASE + "/api/videos/folders", { folder }, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
+export async function deleteVideoAPI(payload) {
+  const res = await axios.delete(PAYMENT_API_BASE + "/api/videos/delete", {
+    headers: authHeaders(),
+    data: payload,
   });
   return res.data;
 }
@@ -310,8 +328,8 @@ export async function getSignedVideoAPI(lessonId) {
   return res.data;
 }
 
-export async function uploadLessonVideoAPI(file) {
-  return uploadVideoAPI(file);
+export async function uploadLessonVideoAPI(file, folder) {
+  return uploadVideoAPI(file, folder);
 }
 
 export async function uploadAttachmentAPI(file) {

@@ -22,15 +22,20 @@ const DATA = {
     items: ["Thanh toán chưa ghi nhận", "Video bài 2 bị lỗi", "Yêu cầu hoàn tiền"],
   },
   blogs: {
-    title: "Quản lý Blog",
+    title: "Quản lý bài viết",
     description: "Lập lịch, kiểm tra và biên tập bài viết.",
     items: ["5 ngôn ngữ lập trình nên học", "React Hooks nâng cao", "Triển khai ứng dụng với Docker"],
   },
   settings: {
     title: "Cấu hình hệ thống",
     description: "Thiết lập thông số vận hành phía frontend.",
-    items: ["CORS frontend", "Cloudinary upload", "Payment callback"],
+    items: ["CORS frontend", "Tải lên Cloudinary", "Callback thanh toán"],
   },
+};
+
+const STATUS_LABELS = {
+  open: "Đang mở",
+  pending: "Đang chờ",
 };
 
 export default function WorkflowBoard({ type }) {
@@ -57,7 +62,7 @@ export default function WorkflowBoard({ type }) {
           <div key={item.id} className="bg-white border border-gray-100 rounded-lg p-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-primary">#{item.id}</span>
-              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">{item.status}</span>
+              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">{STATUS_LABELS[item.status] || item.status}</span>
             </div>
             <h2 className="font-semibold text-gray-900 mt-4">{item.title}</h2>
             <textarea className="mt-4 w-full h-24 border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-primary resize-none" placeholder="Ghi chú xử lý..." />

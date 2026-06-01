@@ -12,7 +12,7 @@ SERVICES = {
     "blog": os.getenv("BLOG_SERVICE_URL", "http://blog:8003"),
 }
 
-client = httpx.AsyncClient(timeout=10.0)
+client = httpx.AsyncClient(timeout=float(os.getenv("PROXY_TIMEOUT_SECONDS", "60")))
 
 async def proxy_request(service_name: str, path: str, request: Request):
     if service_name not in SERVICES:

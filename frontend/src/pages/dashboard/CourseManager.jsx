@@ -19,6 +19,8 @@ import {
   createCourseAPI,
   createLessonAPI,
   createSectionAPI,
+  createVideoFolderAPI,
+  deleteVideoAPI,
   getCategoriesAPI,
   getCourseBySlugAPI,
   getCoursesAPI,
@@ -39,6 +41,22 @@ const emptyCourseForm = {
   category_id: "",
   level: "beginner",
   status: "draft",
+  cloudinary_folder: "",
+};
+
+const COURSE_VIDEO_ROOT = "codecamp/courses";
+
+const LEVEL_LABELS = {
+  beginner: "Cơ bản",
+  intermediate: "Trung cấp",
+  advanced: "Nâng cao",
+};
+
+const COURSE_STATUS_LABELS = {
+  draft: "Nháp",
+  pending_review: "Chờ duyệt",
+  published: "Đã xuất bản",
+  rejected: "Cần chỉnh sửa",
 };
 
 function formatCurrency(value) {
@@ -67,10 +85,17 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function courseFolderFromSlug(slug) {
+  const cleanSlug = slugify(slug || "course") || "course";
+  return `${COURSE_VIDEO_ROOT}/${cleanSlug}`;
+}
+
 function emptyLessonForm(nextOrder = 1) {
   return {
     title: "",
     video_url: "",
+    video_public_id: "",
+    video_asset_folder: "",
     duration: 0,
     is_free_preview: false,
     attachmentsText: "",
@@ -141,6 +166,7 @@ export default function CourseManager() {
   const [savingEditLesson, setSavingEditLesson] = useState(false);
   const [savingLessonSectionId, setSavingLessonSectionId] = useState("");
   const [uploadingLessonId, setUploadingLessonId] = useState("");
+  const [deletingLessonVideoId, setDeletingLessonVideoId] = useState("");
   const [uploadingAttachmentKey, setUploadingAttachmentKey] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
@@ -187,6 +213,11 @@ export default function CourseManager() {
     () => visibleCourses.find((course) => course._id === selectedCourseId),
     [selectedCourseId, visibleCourses]
   );
+
+  const selectedCourseFolder = useMemo(() => {
+    const folder = courseDetail?.cloudinary_folder || selectedCourse?.cloudinary_folder;
+    return folder || (selectedCourse?.slug ? courseFolderFromSlug(selectedCourse.slug) : "");
+  }, [courseDetail, selectedCourse]);
 
   async function loadCourseDetail(course = selectedCourse) {
     if (!course?.slug) {
@@ -239,10 +270,12 @@ export default function CourseManager() {
     setSavingCourse(true);
     setMessage("");
     try {
+      const slug = courseForm.slug.trim() || slugify(title);
+      const cloudinaryFolder = courseForm.cloudinary_folder.trim() || courseFolderFromSlug(slug);
       const created = await createCourseAPI({
         ...courseForm,
         title,
-        slug: courseForm.slug.trim() || slugify(title),
+        slug,
         description: courseForm.description.trim() || title,
         thumbnail: courseForm.thumbnail.trim() || null,
         price: Number(courseForm.price || 0),
@@ -250,12 +283,18 @@ export default function CourseManager() {
         status: user?.role === "instructor" ? "draft" : courseForm.status,
         rating: 0,
         total_students: 0,
+        cloudinary_folder: cloudinaryFolder,
       });
+      try {
+        await createVideoFolderAPI(created.cloudinary_folder || cloudinaryFolder);
+      } catch {
+        // Cloudinary cũng tự tạo asset folder khi tải lên; vẫn giữ bản nháp nếu bước tạo thư mục lỗi.
+      }
       setCourseForm({ ...emptyCourseForm, category_id: categories[0]?._id || "" });
       await loadCourses();
       setSelectedCourseId(created._id);
       setMessageType("success");
-      setMessage("Đã tạo khóa học nháp. Thêm section và lesson rồi gửi duyệt khi hoàn tất.");
+      setMessage("Đã tạo khóa học nháp. Thêm phần và bài học rồi gửi duyệt khi hoàn tất.");
     } catch (err) {
       setMessageType("error");
       setMessage(err.response?.data?.detail || err.message || "Tạo khóa học thất bại.");
@@ -276,6 +315,7 @@ export default function CourseManager() {
       category_id: selectedCourse.category_id || categories[0]?._id || "",
       level: selectedCourse.level || "beginner",
       status: selectedCourse.status || "draft",
+      cloudinary_folder: selectedCourse.cloudinary_folder || courseFolderFromSlug(selectedCourse.slug),
     });
   }
 
@@ -362,14 +402,14 @@ export default function CourseManager() {
 
     if (!sections.length || !lessonCount) {
       setMessageType("error");
-      setMessage("Cần thêm section và lesson trước khi gửi operator duyệt.");
+      setMessage("Cần thêm phần và bài học trước khi gửi operator duyệt.");
       return;
     }
 
     const hasEmptySection = sections.some((section) => !(section.lessons || []).length);
     if (hasEmptySection) {
       setMessageType("error");
-      setMessage("Mỗi section cần có ít nhất một lesson trước khi gửi duyệt.");
+      setMessage("Mỗi phần cần có ít nhất một bài học trước khi gửi duyệt.");
       return;
     }
 
@@ -422,10 +462,10 @@ export default function CourseManager() {
       });
       await loadCourseDetail();
       setMessageType("success");
-      setMessage("Đã thêm section mới.");
+      setMessage("Đã thêm phần mới.");
     } catch (err) {
       setMessageType("error");
-      setMessage(err.response?.data?.detail || err.message || "Thêm section thất bại.");
+      setMessage(err.response?.data?.detail || err.message || "Thêm phần thất bại.");
     } finally {
       setSavingSection(false);
     }
@@ -447,6 +487,8 @@ export default function CourseManager() {
         course_id: selectedCourseId,
         title: form.title.trim(),
         video_url: form.video_url.trim(),
+        video_public_id: form.video_public_id || "",
+        video_asset_folder: form.video_asset_folder || selectedCourseFolder || "",
         duration: Number(form.duration || 0),
         is_free_preview: Boolean(form.is_free_preview),
         attachments: parseAttachments(form.attachmentsText),
@@ -483,10 +525,10 @@ export default function CourseManager() {
       });
       await loadCourseDetail();
       setMessageType("success");
-      setMessage("Đã cập nhật section.");
+      setMessage("Đã cập nhật phần.");
     } catch (err) {
       setMessageType("error");
-      setMessage(err.response?.data?.detail || err.message || "Cập nhật section thất bại.");
+      setMessage(err.response?.data?.detail || err.message || "Cập nhật phần thất bại.");
     } finally {
       setSavingEditSection(false);
     }
@@ -497,6 +539,8 @@ export default function CourseManager() {
     setEditingLessonForm({
       title: lesson.title || "",
       video_url: lesson.video_url || "",
+      video_public_id: lesson.video_public_id || "",
+      video_asset_folder: lesson.video_asset_folder || selectedCourseFolder || "",
       duration: lesson.duration || 0,
       is_free_preview: Boolean(lesson.is_free_preview),
       attachmentsText: formatAttachments(lesson.attachments),
@@ -523,6 +567,8 @@ export default function CourseManager() {
       await updateLessonAPI(lessonId, {
         title: editingLessonForm.title.trim(),
         video_url: editingLessonForm.video_url.trim(),
+        video_public_id: editingLessonForm.video_public_id || "",
+        video_asset_folder: editingLessonForm.video_asset_folder || selectedCourseFolder || "",
         duration: Number(editingLessonForm.duration || 0),
         is_free_preview: Boolean(editingLessonForm.is_free_preview),
         attachments: parseAttachments(editingLessonForm.attachmentsText),
@@ -541,17 +587,24 @@ export default function CourseManager() {
 
   async function uploadVideoForLesson(lesson, file) {
     if (!file || !lesson?._id) return;
+    if (!selectedCourseFolder) {
+      setMessageType("error");
+      setMessage("Chưa có thư mục Cloudinary cho khóa học.");
+      return;
+    }
 
     setUploadingLessonId(lesson._id);
     setMessage("");
 
     try {
-      const upload = await uploadLessonVideoAPI(file);
+      const upload = await uploadLessonVideoAPI(file, selectedCourseFolder);
       const videoUrl = upload.video_url;
       if (!videoUrl) throw new Error("Cloudinary không trả về video_url");
 
       const updatedLesson = await updateLessonAPI(lesson._id, {
         video_url: videoUrl,
+        video_public_id: upload.public_id || "",
+        video_asset_folder: upload.asset_folder || selectedCourseFolder,
         duration: Math.round(upload.duration || lesson.duration || 0),
       });
 
@@ -572,9 +625,49 @@ export default function CourseManager() {
       setMessage(`Đã cập nhật video cho bài "${lesson.title}".`);
     } catch (err) {
       setMessageType("error");
-      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Upload video thất bại.");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Tải video lên thất bại.");
     } finally {
       setUploadingLessonId("");
+    }
+  }
+
+  async function deleteVideoForLesson(lesson) {
+    if (!lesson?._id || !lesson.video_url) return;
+
+    setDeletingLessonVideoId(lesson._id);
+    setMessage("");
+    try {
+      await deleteVideoAPI({
+        public_id: lesson.video_public_id || "",
+        video_url: lesson.video_url,
+      });
+
+      const updatedLesson = await updateLessonAPI(lesson._id, {
+        video_url: "",
+        video_public_id: "",
+        video_asset_folder: selectedCourseFolder || lesson.video_asset_folder || "",
+      });
+
+      setCourseDetail((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          sections: (current.sections || []).map((section) => ({
+            ...section,
+            lessons: (section.lessons || []).map((item) =>
+              item._id === lesson._id ? { ...item, ...updatedLesson } : item
+            ),
+          })),
+        };
+      });
+
+      setMessageType("success");
+      setMessage("Đã xóa video khỏi Cloudinary và bài học.");
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Xóa video thất bại.");
+    } finally {
+      setDeletingLessonVideoId("");
     }
   }
 
@@ -596,10 +689,10 @@ export default function CourseManager() {
         };
       });
       setMessageType("success");
-      setMessage(`Đã upload tệp "${upload.name || file.name}".`);
+      setMessage(`Đã tải tệp "${upload.name || file.name}" lên.`);
     } catch (err) {
       setMessageType("error");
-      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Upload tệp đính kèm thất bại.");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Tải tệp đính kèm lên thất bại.");
     } finally {
       setUploadingAttachmentKey("");
     }
@@ -617,10 +710,10 @@ export default function CourseManager() {
         attachmentsText: appendAttachmentLine(current.attachmentsText, upload),
       }));
       setMessageType("success");
-      setMessage(`Đã upload tệp "${upload.name || file.name}".`);
+      setMessage(`Đã tải tệp "${upload.name || file.name}" lên.`);
     } catch (err) {
       setMessageType("error");
-      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Upload tệp đính kèm thất bại.");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Tải tệp đính kèm lên thất bại.");
     } finally {
       setUploadingAttachmentKey("");
     }
@@ -647,7 +740,7 @@ export default function CourseManager() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý khóa học</h1>
-          <p className="text-gray-500 mt-1">Tạo khóa học, chia section, thêm lesson và upload video bài học.</p>
+          <p className="text-gray-500 mt-1">Tạo khóa học, chia phần, thêm bài học và tải video bài học lên Cloudinary.</p>
         </div>
 
         <button
@@ -671,7 +764,7 @@ export default function CourseManager() {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-gray-900">Thêm khóa học</h2>
-            <p className="mt-1 text-xs text-gray-500">Khóa học mới của giảng viên sẽ ở trạng thái nháp. Sau khi thêm đủ section và lesson mới gửi duyệt.</p>
+            <p className="mt-1 text-xs text-gray-500">Khóa học mới của giảng viên sẽ ở trạng thái nháp. Sau khi thêm đủ phần và bài học mới gửi duyệt.</p>
           </div>
           <button disabled={savingCourse || !canManage} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60">
             {savingCourse ? <FiLoader className="animate-spin" /> : <FiPlus size={16} />}
@@ -687,16 +780,16 @@ export default function CourseManager() {
             {categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}
           </select>
           <select value={courseForm.level} onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+            <option value="beginner">Cơ bản</option>
+            <option value="intermediate">Trung cấp</option>
+            <option value="advanced">Nâng cao</option>
           </select>
           <input type="number" min="0" value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} placeholder="Giá" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
-          <input value={courseForm.thumbnail} onChange={(e) => setCourseForm({ ...courseForm, thumbnail: e.target.value })} placeholder="Thumbnail URL" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-2" />
+          <input value={courseForm.thumbnail} onChange={(e) => setCourseForm({ ...courseForm, thumbnail: e.target.value })} placeholder="URL ảnh khóa học" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-2" />
           {user?.role === "admin" && (
             <select value={courseForm.status} onChange={(e) => setCourseForm({ ...courseForm, status: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
+              <option value="draft">Nháp</option>
+              <option value="published">Đã xuất bản</option>
             </select>
           )}
           <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} placeholder="Mô tả khóa học" className="min-h-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-4" />
@@ -716,8 +809,8 @@ export default function CourseManager() {
               return (
                 <button key={course._id} type="button" onClick={() => setSelectedCourseId(course._id)} className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${active ? "bg-primary-light text-primary" : "text-gray-700 hover:bg-gray-50"}`}>
                   <span className="block text-sm font-semibold">{course.title}</span>
-                  <span className="mt-1 block text-xs text-gray-500">{course.level} · {formatCurrency(course.price)}</span>
-                  <span className="mt-2 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{course.status || "draft"}</span>
+                  <span className="mt-1 block text-xs text-gray-500">{LEVEL_LABELS[course.level] || course.level} · {formatCurrency(course.price)}</span>
+                  <span className="mt-2 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{COURSE_STATUS_LABELS[course.status] || course.status || "Nháp"}</span>
                 </button>
               );
             })}
@@ -730,10 +823,17 @@ export default function CourseManager() {
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             {selectedCourse ? (
               <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
-                <img src={selectedCourse.thumbnail || "https://placehold.co/160x96?text=Course"} alt={selectedCourse.title} className="h-32 w-full rounded-lg object-cover xl:h-24 xl:w-40" />
+              <img src={selectedCourse.thumbnail || "https://placehold.co/160x96?text=Khoa+hoc"} alt={selectedCourse.title} className="h-32 w-full rounded-lg object-cover xl:h-24 xl:w-40" />
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-500">{selectedCourse.description}</p>
+                  {selectedCourseFolder && (
+                    <div className="mt-3 flex min-w-0 items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                      <FiUploadCloud className="shrink-0 text-primary" size={15} />
+                      <p className="truncate text-xs text-gray-600">{selectedCourseFolder}</p>
+                      <button type="button" onClick={() => copy(selectedCourseFolder)} className="ml-auto rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-primary" title="Sao chép thư mục"><FiCopy size={14} /></button>
+                    </div>
+                  )}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -769,8 +869,8 @@ export default function CourseManager() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center xl:w-72">
-                  <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Section</p><p className="mt-1 text-lg font-bold text-gray-900">{sections.length}</p></div>
-                  <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Lesson</p><p className="mt-1 text-lg font-bold text-gray-900">{lessonCount}</p></div>
+                  <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Phần</p><p className="mt-1 text-lg font-bold text-gray-900">{sections.length}</p></div>
+                  <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Bài học</p><p className="mt-1 text-lg font-bold text-gray-900">{lessonCount}</p></div>
                   <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Video</p><p className="mt-1 text-lg font-bold text-gray-900">{videoCount}</p></div>
                 </div>
               </div>
@@ -809,16 +909,16 @@ export default function CourseManager() {
                   {categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}
                 </select>
                 <select value={editingCourseForm.level} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, level: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
+                  <option value="beginner">Cơ bản</option>
+                  <option value="intermediate">Trung cấp</option>
+                  <option value="advanced">Nâng cao</option>
                 </select>
                 <input type="number" min="0" value={editingCourseForm.price} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, price: e.target.value })} placeholder="Giá" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
-                <input value={editingCourseForm.thumbnail} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, thumbnail: e.target.value })} placeholder="Thumbnail URL" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-2" />
+                <input value={editingCourseForm.thumbnail} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, thumbnail: e.target.value })} placeholder="URL ảnh khóa học" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-2" />
                 {user?.role === "admin" && (
                   <select value={editingCourseForm.status} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, status: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">Nháp</option>
+                    <option value="published">Đã xuất bản</option>
                   </select>
                 )}
                 <textarea value={editingCourseForm.description} onChange={(e) => setEditingCourseForm({ ...editingCourseForm, description: e.target.value })} placeholder="Mô tả khóa học" className="min-h-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary lg:col-span-4" />
@@ -830,16 +930,16 @@ export default function CourseManager() {
             <form onSubmit={handleCreateSection} className="rounded-lg border border-gray-100 bg-white p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-gray-900">Thêm section</h3>
-                  <p className="mt-1 text-xs text-gray-500">Section là nhóm bài học trong khóa học đang chọn.</p>
+                  <h3 className="font-semibold text-gray-900">Thêm phần</h3>
+                  <p className="mt-1 text-xs text-gray-500">Phần là nhóm bài học trong khóa học đang chọn.</p>
                 </div>
                 <button disabled={savingSection} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60">
                   {savingSection ? <FiLoader className="animate-spin" /> : <FiPlus size={16} />}
-                  Thêm section
+                  Thêm phần
                 </button>
               </div>
               <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
-                <input value={sectionForm.title} onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })} placeholder="Tên section" required className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                <input value={sectionForm.title} onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })} placeholder="Tên phần" required className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
                 <input type="number" min="1" value={sectionForm.order} onChange={(e) => setSectionForm({ ...sectionForm, order: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
               </div>
             </form>
@@ -848,8 +948,8 @@ export default function CourseManager() {
           <div className="rounded-lg border border-gray-100 bg-white">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <div>
-                <p className="font-semibold text-gray-900">Section và lesson</p>
-                <p className="mt-1 text-xs text-gray-500">Thêm lesson trong từng section, sau đó upload video cho lesson.</p>
+                <p className="font-semibold text-gray-900">Phần và bài học</p>
+                <p className="mt-1 text-xs text-gray-500">Thêm bài học trong từng phần, sau đó tải video lên Cloudinary.</p>
               </div>
               {loadingDetail && <span className="inline-flex items-center gap-2 text-sm text-gray-500"><FiLoader className="animate-spin" /> Đang tải</span>}
             </div>
@@ -877,7 +977,7 @@ export default function CourseManager() {
                         <p className="mt-1 text-xs text-gray-500">{(section.lessons || []).length} bài học</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">Section {section.order || "-"}</span>
+                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">Phần {section.order || "-"}</span>
                         <button type="button" onClick={() => startEditSection(section)} disabled={!canManage} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-primary hover:text-primary disabled:opacity-50">Sửa</button>
                       </div>
                       </>
@@ -885,14 +985,14 @@ export default function CourseManager() {
                     </div>
 
                     <div className="mb-4 grid gap-3 rounded-lg bg-gray-50 p-4 lg:grid-cols-[1fr_110px_120px_160px]">
-                      <input value={lessonForm.title} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, title: e.target.value } })} placeholder="Tên lesson" className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                      <input value={lessonForm.title} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, title: e.target.value } })} placeholder="Tên bài học" className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
                       <input type="number" min="0" value={lessonForm.duration} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, duration: e.target.value } })} placeholder="Giây" className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
                       <input type="number" min="1" value={lessonForm.order} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, order: e.target.value } })} className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
                       <label className="flex items-center gap-2 text-sm text-gray-600">
                         <input type="checkbox" checked={lessonForm.is_free_preview} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, is_free_preview: e.target.checked } })} />
                         Xem thử
                       </label>
-                      <input value={lessonForm.video_url} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, video_url: e.target.value } })} placeholder="Video URL nếu có" className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary lg:col-span-3" />
+                      <input value={lessonForm.video_url} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, video_url: e.target.value } })} placeholder="URL video nếu có" className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary lg:col-span-3" />
                       <textarea
                         value={lessonForm.attachmentsText}
                         onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, attachmentsText: e.target.value } })}
@@ -901,7 +1001,7 @@ export default function CourseManager() {
                       />
                       <label className={`inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold ${uploadingAttachmentKey === `new-${section._id}` ? "cursor-wait text-gray-400" : "cursor-pointer text-gray-700 hover:border-primary hover:text-primary"}`}>
                         {uploadingAttachmentKey === `new-${section._id}` ? <FiLoader className="animate-spin" /> : <FiPaperclip size={16} />}
-                        {uploadingAttachmentKey === `new-${section._id}` ? "Đang upload..." : "Chọn tệp"}
+                        {uploadingAttachmentKey === `new-${section._id}` ? "Đang tải lên..." : "Chọn tệp"}
                         <input
                           type="file"
                           disabled={uploadingAttachmentKey === `new-${section._id}` || !canManage}
@@ -915,13 +1015,14 @@ export default function CourseManager() {
                       </label>
                       <button type="button" onClick={() => handleCreateLesson(section)} disabled={savingLesson} className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-light disabled:opacity-60">
                         {savingLesson ? <FiLoader className="animate-spin" /> : <FiPlus size={16} />}
-                        Thêm lesson
+                        Thêm bài học
                       </button>
                     </div>
 
                     <div className="space-y-3">
                       {(section.lessons || []).map((lesson) => {
                         const isUploading = uploadingLessonId === lesson._id;
+                        const isDeletingVideo = deletingLessonVideoId === lesson._id;
                         return (
                           <div key={lesson._id} className="grid gap-4 rounded-lg border border-gray-100 p-4 lg:grid-cols-[1fr_300px]">
                             {editingLessonId === lesson._id ? (
@@ -935,7 +1036,7 @@ export default function CourseManager() {
                                     Xem thử
                                   </label>
                                 </div>
-                                <input value={editingLessonForm.video_url} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, video_url: e.target.value })} placeholder="Video URL" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                                <input value={editingLessonForm.video_url} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, video_url: e.target.value })} placeholder="URL video" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
                                 <textarea
                                   value={editingLessonForm.attachmentsText}
                                   onChange={(e) => setEditingLessonForm({ ...editingLessonForm, attachmentsText: e.target.value })}
@@ -944,7 +1045,7 @@ export default function CourseManager() {
                                 />
                                 <label className={`inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold ${uploadingAttachmentKey === `edit-${lesson._id}` ? "cursor-wait text-gray-400" : "cursor-pointer text-gray-700 hover:border-primary hover:text-primary"}`}>
                                   {uploadingAttachmentKey === `edit-${lesson._id}` ? <FiLoader className="animate-spin" /> : <FiPaperclip size={16} />}
-                                  {uploadingAttachmentKey === `edit-${lesson._id}` ? "Đang upload..." : "Chọn tệp từ máy"}
+                                  {uploadingAttachmentKey === `edit-${lesson._id}` ? "Đang tải lên..." : "Chọn tệp từ máy"}
                                   <input
                                     type="file"
                                     disabled={uploadingAttachmentKey === `edit-${lesson._id}` || !canManage}
@@ -1009,7 +1110,7 @@ export default function CourseManager() {
                               )}
                               <label className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white ${isUploading ? "cursor-wait bg-gray-400" : "cursor-pointer bg-primary hover:bg-orange-600"}`}>
                                 {isUploading ? <FiLoader className="animate-spin" /> : <FiUploadCloud size={16} />}
-                                {isUploading ? "Đang upload..." : lesson.video_url ? "Thay video" : "Upload video"}
+                                {isUploading ? "Đang tải lên..." : lesson.video_url ? "Thay video" : "Tải video lên"}
                                 <input type="file" accept="video/*" disabled={isUploading || !canManage} onChange={(event) => {
                                   const file = event.target.files?.[0];
                                   uploadVideoForLesson(lesson, file);
@@ -1018,18 +1119,29 @@ export default function CourseManager() {
                               </label>
 
                               {lesson.video_url && <a href={lesson.video_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary">Xem video</a>}
+                              {lesson.video_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => deleteVideoForLesson(lesson)}
+                                  disabled={isDeletingVideo || !canManage}
+                                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                                >
+                                  {isDeletingVideo ? <FiLoader className="animate-spin" size={16} /> : <FiX size={16} />}
+                                  {isDeletingVideo ? "Đang xóa..." : "Xóa video"}
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
                       })}
 
-                      {(section.lessons || []).length === 0 && <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">Section này chưa có lesson.</div>}
+                      {(section.lessons || []).length === 0 && <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">Phần này chưa có bài học.</div>}
                     </div>
                   </div>
                 );
               })}
 
-              {!loadingDetail && selectedCourse && sections.length === 0 && <div className="p-8 text-center text-sm text-gray-500">Khóa học này chưa có section hoặc lesson.</div>}
+              {!loadingDetail && selectedCourse && sections.length === 0 && <div className="p-8 text-center text-sm text-gray-500">Khóa học này chưa có phần hoặc bài học.</div>}
               {!selectedCourse && <div className="p-8 text-center text-sm text-gray-500">Chưa có khóa học để hiển thị.</div>}
             </div>
           </div>
