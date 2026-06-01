@@ -1,4 +1,4 @@
-package model
+package payment
 
 import "go.mongodb.org/mongo-driver/bson/primitive"
 

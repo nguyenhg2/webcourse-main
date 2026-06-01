@@ -12,7 +12,7 @@ func JWTAuth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu Authorization header"})
 			c.Abort()
 			return
 		}
@@ -23,7 +23,7 @@ func JWTAuth(secret string) gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token không hợp lệ"})
 			c.Abort()
 			return
 		}
@@ -52,7 +52,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role := c.GetString("role")
 		if !allowed[role] {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Không đủ quyền thực hiện"})
 			c.Abort()
 			return
 		}

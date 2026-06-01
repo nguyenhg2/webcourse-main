@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -21,9 +20,7 @@ type Config struct {
 }
 
 func Load() *Config {
-	if err := godotenv.Load("../../.env"); err != nil {
-		log.Println("No .env file found")
-	}
+	_ = godotenv.Load(".env", "../../.env")
 
 	return &Config{
 		MongoURI:         getEnv("MONGODB_URI", "mongodb://localhost:27017"),

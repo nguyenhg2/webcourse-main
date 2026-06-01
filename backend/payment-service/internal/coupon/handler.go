@@ -1,20 +1,16 @@
-package handler
+package coupon
 
 import (
 	"net/http"
-
-	"payment-service/internal/model"
-	"payment-service/internal/repository"
-	"payment-service/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func RegisterCouponHandlers(g *gin.RouterGroup, db *mongo.Database) {
-	couponRepo := repository.NewCouponRepo(db)
-	couponSvc := service.NewCouponService(couponRepo)
-	h := &CouponHandler{service: couponSvc}
+func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database) {
+	store := NewStore(db)
+	h := &Handler{service: NewService(store)}
+
 	g.POST("/validate", h.ValidateCoupon)
 	g.GET("/list", h.ListActiveCoupons)
 	g.GET("", h.ListCoupons)
@@ -23,18 +19,18 @@ func RegisterCouponHandlers(g *gin.RouterGroup, db *mongo.Database) {
 	g.PUT("/:id/active", h.UpdateCouponStatus)
 }
 
-type CouponHandler struct {
-	service *service.CouponService
+type Handler struct {
+	service *Service
 }
 
-func (h *CouponHandler) ValidateCoupon(c *gin.Context) {
-	var req model.ValidateCouponRequest
+func (h *Handler) ValidateCoupon(c *gin.Context) {
+	var req ValidateCouponRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	valid, discount, err := h.service.ValidateCoupon(c.Request.Context(), req.Code, req.Amount)
+	valid, discount, err := h.service.Validate(c.Request.Context(), req.Code, req.Amount)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -46,8 +42,8 @@ func (h *CouponHandler) ValidateCoupon(c *gin.Context) {
 	})
 }
 
-func (h *CouponHandler) ListActiveCoupons(c *gin.Context) {
-	coupons, err := h.service.ListActiveCoupons(c.Request.Context())
+func (h *Handler) ListActiveCoupons(c *gin.Context) {
+	coupons, err := h.service.ListActive(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -56,13 +52,13 @@ func (h *CouponHandler) ListActiveCoupons(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"coupons": coupons})
 }
 
-func (h *CouponHandler) ListCoupons(c *gin.Context) {
+func (h *Handler) ListCoupons(c *gin.Context) {
 	if c.GetString("role") != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Không đủ quyền thực hiện"})
 		return
 	}
 
-	coupons, err := h.service.ListCoupons(c.Request.Context())
+	coupons, err := h.service.ListAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -71,19 +67,19 @@ func (h *CouponHandler) ListCoupons(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"coupons": coupons})
 }
 
-func (h *CouponHandler) CreateCoupon(c *gin.Context) {
+func (h *Handler) CreateCoupon(c *gin.Context) {
 	if c.GetString("role") != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Không đủ quyền thực hiện"})
 		return
 	}
 
-	var req model.CreateCouponRequest
+	var req CreateCouponRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	coupon, err := h.service.CreateCoupon(c.Request.Context(), req)
+	coupon, err := h.service.Create(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -92,19 +88,19 @@ func (h *CouponHandler) CreateCoupon(c *gin.Context) {
 	c.JSON(http.StatusCreated, coupon)
 }
 
-func (h *CouponHandler) UpdateCouponStatus(c *gin.Context) {
+func (h *Handler) UpdateCouponStatus(c *gin.Context) {
 	if c.GetString("role") != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient role"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Không đủ quyền thực hiện"})
 		return
 	}
 
-	var req model.UpdateCouponStatusRequest
+	var req UpdateCouponStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	coupon, err := h.service.SetCouponActive(c.Request.Context(), c.Param("id"), req.Active)
+	coupon, err := h.service.SetActive(c.Request.Context(), c.Param("id"), req.Active)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

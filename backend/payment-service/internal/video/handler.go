@@ -1,4 +1,4 @@
-package handler
+package video
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type VideoHandler struct {
+type Handler struct {
 	cfg *config.Config
 }
 
@@ -66,30 +66,30 @@ type deleteVideoRequest struct {
 	VideoURL string `json:"video_url"`
 }
 
-func RegisterVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
-	h := &VideoHandler{cfg: cfg}
+func RegisterRoutes(g *gin.RouterGroup, cfg *config.Config) {
+	h := &Handler{cfg: cfg}
 	g.POST("/upload", h.Upload)
 	g.POST("/folders", h.CreateFolder)
 	g.DELETE("/delete", h.Delete)
 	g.GET("/:lessonId/signed-url", h.SignedURL)
 }
 
-func RegisterFileHandlers(g *gin.RouterGroup, cfg *config.Config) {
-	h := &VideoHandler{cfg: cfg}
+func RegisterFileRoutes(g *gin.RouterGroup, cfg *config.Config) {
+	h := &Handler{cfg: cfg}
 	g.POST("/upload", h.UploadFile)
 }
 
-func RegisterSignedVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
-	h := &VideoHandler{cfg: cfg}
+func RegisterSignedRoutes(g *gin.RouterGroup, cfg *config.Config) {
+	h := &Handler{cfg: cfg}
 	g.GET("/:lessonId/signed-url", h.SignedURL)
 }
 
-func RegisterPublicVideoHandlers(g *gin.RouterGroup, cfg *config.Config) {
-	h := &VideoHandler{cfg: cfg}
+func RegisterPublicRoutes(g *gin.RouterGroup, cfg *config.Config) {
+	h := &Handler{cfg: cfg}
 	g.GET("/preview", h.Preview)
 }
 
-func (h *VideoHandler) Preview(c *gin.Context) {
+func (h *Handler) Preview(c *gin.Context) {
 	video, err := h.latestCloudinaryVideo(h.requestedFolder(c))
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
@@ -97,7 +97,7 @@ func (h *VideoHandler) Preview(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"title":        "Video xem thu",
+		"title":        "Video xem thử",
 		"video_url":    video.SecureURL,
 		"signed_url":   video.SecureURL,
 		"public_id":    video.PublicID,
@@ -108,7 +108,7 @@ func (h *VideoHandler) Preview(c *gin.Context) {
 	})
 }
 
-func (h *VideoHandler) Upload(c *gin.Context) {
+func (h *Handler) Upload(c *gin.Context) {
 	if err := h.ensureCloudinaryConfig(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -116,7 +116,7 @@ func (h *VideoHandler) Upload(c *gin.Context) {
 
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "video file is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vui lòng chọn tệp video"})
 		return
 	}
 	defer file.Close()
@@ -181,7 +181,7 @@ func (h *VideoHandler) Upload(c *gin.Context) {
 	})
 }
 
-func (h *VideoHandler) UploadFile(c *gin.Context) {
+func (h *Handler) UploadFile(c *gin.Context) {
 	if err := h.ensureCloudinaryConfig(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -189,7 +189,7 @@ func (h *VideoHandler) UploadFile(c *gin.Context) {
 
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vui lòng chọn tệp"})
 		return
 	}
 	defer file.Close()
@@ -259,7 +259,7 @@ func (h *VideoHandler) UploadFile(c *gin.Context) {
 	})
 }
 
-func (h *VideoHandler) CreateFolder(c *gin.Context) {
+func (h *Handler) CreateFolder(c *gin.Context) {
 	if err := h.ensureCloudinaryConfig(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -267,13 +267,13 @@ func (h *VideoHandler) CreateFolder(c *gin.Context) {
 
 	var payload createFolderRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "folder is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vui lòng nhập thư mục Cloudinary"})
 		return
 	}
 
 	folder := strings.Trim(payload.Folder, "/")
 	if folder == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "folder is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vui lòng nhập thư mục Cloudinary"})
 		return
 	}
 
@@ -309,7 +309,7 @@ func (h *VideoHandler) CreateFolder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"folder": folder, "created": true})
 }
 
-func (h *VideoHandler) Delete(c *gin.Context) {
+func (h *Handler) Delete(c *gin.Context) {
 	if err := h.ensureCloudinaryConfig(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -317,7 +317,7 @@ func (h *VideoHandler) Delete(c *gin.Context) {
 
 	var payload deleteVideoRequest
 	if err := c.ShouldBindJSON(&payload); err != nil && err != io.EOF {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "public_id or video_url is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vui lòng gửi public_id hoặc video_url"})
 		return
 	}
 
@@ -326,7 +326,7 @@ func (h *VideoHandler) Delete(c *gin.Context) {
 		publicID = cloudinaryPublicIDFromURL(payload.VideoURL)
 	}
 	if publicID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "public_id or valid Cloudinary video_url is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "public_id hoặc Cloudinary video_url không hợp lệ"})
 		return
 	}
 
@@ -363,7 +363,7 @@ func (h *VideoHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *VideoHandler) SignedURL(c *gin.Context) {
+func (h *Handler) SignedURL(c *gin.Context) {
 	video, err := h.latestCloudinaryVideo(h.requestedFolder(c))
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
@@ -385,21 +385,21 @@ func (h *VideoHandler) SignedURL(c *gin.Context) {
 	})
 }
 
-func (h *VideoHandler) ensureCloudinaryConfig() error {
+func (h *Handler) ensureCloudinaryConfig() error {
 	if h.cfg.CloudinaryCloud == "" || h.cfg.CloudinaryKey == "" || h.cfg.CloudinarySecret == "" {
-		return fmt.Errorf("Cloudinary config is missing")
+		return fmt.Errorf("thiếu cấu hình Cloudinary")
 	}
 	return nil
 }
 
-func (h *VideoHandler) requestedFolder(c *gin.Context) string {
+func (h *Handler) requestedFolder(c *gin.Context) string {
 	if folder := strings.TrimSpace(c.Query("folder")); folder != "" {
 		return strings.Trim(folder, "/")
 	}
 	return strings.Trim(strings.TrimSpace(h.cfg.CloudinaryFolder), "/")
 }
 
-func (h *VideoHandler) uploadFolder(preferred string, fallback string) string {
+func (h *Handler) uploadFolder(preferred string, fallback string) string {
 	if folder := strings.Trim(strings.TrimSpace(preferred), "/"); folder != "" {
 		return folder
 	}
@@ -409,7 +409,7 @@ func (h *VideoHandler) uploadFolder(preferred string, fallback string) string {
 	return fallback
 }
 
-func (h *VideoHandler) latestCloudinaryVideo(folder string) (*cloudinaryResource, error) {
+func (h *Handler) latestCloudinaryVideo(folder string) (*cloudinaryResource, error) {
 	if err := h.ensureCloudinaryConfig(); err != nil {
 		return nil, err
 	}
@@ -474,9 +474,9 @@ func (h *VideoHandler) latestCloudinaryVideo(folder string) (*cloudinaryResource
 
 	if best == nil {
 		if folder != "" {
-			return nil, fmt.Errorf("no Cloudinary videos found in asset_folder %q", folder)
+			return nil, fmt.Errorf("không tìm thấy video Cloudinary trong asset_folder %q", folder)
 		}
-		return nil, fmt.Errorf("no Cloudinary videos found")
+		return nil, fmt.Errorf("không tìm thấy video Cloudinary")
 	}
 
 	return best, nil
