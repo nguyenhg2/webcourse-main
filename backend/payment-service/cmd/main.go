@@ -24,7 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Mongo connect error:", err)
 	}
-	db := mongoClient.Database("codecamp_payment")
+	db := mongoClient.Database(cfg.PaymentDB)
 
 	redisAddr := strings.TrimPrefix(cfg.RedisURL, "redis://")
 	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})

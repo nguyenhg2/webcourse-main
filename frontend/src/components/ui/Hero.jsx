@@ -18,8 +18,8 @@ export default function Hero() {
         <div className="flex flex-col gap-6 max-w-lg">
                     
           <h1 className="text-4xl lg:text-5xl py-2 xl:text-6xl font-bold leading-tight text-primary-light">
-            Nền tảng học lập trình trực tuyến từ<br/>
-            <span className="text-primary"> zero đến heroooooo</span>
+            Nền tảng học lập trình trực tuyến <br/>
+            <span className="text-primary"> "Từ zero đến heroooooo"</span>
           </h1>
 
           <p className="text-primary-light text-xl leading-6">

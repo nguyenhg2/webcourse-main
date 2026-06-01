@@ -10,6 +10,10 @@ MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("MONGODB_DB", "codecamp_core")
 BLOG_DB_NAME = os.getenv("BLOG_MONGODB_DB", "codecamp_php")
 PAYMENT_DB_NAME = os.getenv("PAYMENT_MONGODB_DB", "codecamp_payment")
+DEMO_VIDEO_URL = os.getenv(
+    "CLOUDINARY_DEMO_VIDEO_URL",
+    "https://res.cloudinary.com/ddskipu10/video/upload/v1779970878/eodkpjke6tiwrwsc2prt.mp4",
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -277,7 +281,7 @@ async def seed():
                         "section_id": section_id_str,
                         "course_id": course_id_str,
                         "title": l_title,
-                        "video_url": "https://res.cloudinary.com/ddskipu10/video/upload/v1778484853/codecamp/videos/bffyy4vzlsnmwfboorwu.mp4",
+                        "video_url": DEMO_VIDEO_URL,
                         "duration": 600 + l_order * 120,
                         "is_free_preview": s_order == 1 and l_order == 1,
                         "attachments": [],
