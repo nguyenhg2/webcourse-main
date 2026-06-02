@@ -3,7 +3,7 @@ from pydantic import Field
 
 
 class Settings(BaseSettings):
-    mongo_url: str = Field(default="mongodb://localhost:27017", alias="MONGODB_URI")
+    mongo_url: str = Field(alias="MONGODB_URI")
     mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
     payment_db: str = Field(default="codecamp_payment", alias="PAYMENT_MONGODB_DB")
     redis_url: str | None = Field(default="redis://localhost:6379", alias="REDIS_URL")

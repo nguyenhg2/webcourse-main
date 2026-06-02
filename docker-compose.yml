@@ -1,13 +1,4 @@
 services:
-  mongo:
-    image: mongo:7
-    container_name: webcourse-mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    restart: unless-stopped
-
   redis:
     image: redis:7-alpine
     container_name: webcourse-redis
@@ -21,7 +12,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - MONGODB_DB=${MONGODB_DB:-codecamp_core}
       - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
       - REDIS_URL=${DOCKER_REDIS_URL:-redis://redis:6379}
@@ -29,7 +20,6 @@ services:
       - CORS_ORIGINS=*
     restart: unless-stopped
     depends_on:
-      - mongo
       - redis
 
   api-gateway:
@@ -69,36 +59,25 @@ services:
     depends_on:
       - api-gateway
 
-  seed:
-    build: ./backend/core-service
-    container_name: webcourse-seed
-    working_dir: /app
-    command: python -c "import sys; sys.path.insert(0,'/seed'); exec(open('/seed/seed.py').read())"
-    volumes:
-      - ./backend:/seed
-    environment:
-      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://mongo:27017}
-      - MONGODB_DB=${MONGODB_DB:-codecamp_core}
-      - BLOG_MONGODB_DB=${BLOG_MONGODB_DB:-codecamp_php}
-      - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
-    profiles:
-      - seed
-    depends_on:
-      - mongo
-
   blog:
     build: ./backend/blog-service
     container_name: webcourse-blog
     ports:
       - "8003:8003"
     environment:
-      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - BLOG_MONGODB_DB=${BLOG_MONGODB_DB:-codecamp_php}
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
-    command: sh -c "php artisan config:clear && php artisan serve --host=0.0.0.0 --port=8003"
+    command: >
+      sh -c 'for key in MONGODB_URI BLOG_MONGODB_DB JWT_SECRET; do
+        value=$$(printenv "$$key");
+        if [ -n "$$value" ]; then
+          sed -i "/^$${key}=/d" .env;
+          printf "\n%s=%s\n" "$$key" "$$value" >> .env;
+        fi;
+      done;
+      php artisan config:clear && php artisan serve --host=0.0.0.0 --port=8003'
     restart: unless-stopped
-    depends_on:
-      - mongo
 
   payment:
     build: ./backend/payment-service
@@ -106,7 +85,7 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - MONGODB_URI=${DOCKER_MONGODB_URI:-mongodb://mongo:27017}
+      - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
       - REDIS_URL=${DOCKER_REDIS_URL:-redis://redis:6379}
       - PORT=8002
@@ -119,9 +98,5 @@ services:
       - CLOUDINARY_PYTHON_FOLDER=${CLOUDINARY_PYTHON_FOLDER:-}
     restart: unless-stopped
     depends_on:
-      - mongo
       - core
       - redis
-
-volumes:
-  mongo_data:
