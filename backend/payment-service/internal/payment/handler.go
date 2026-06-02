@@ -17,12 +17,10 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, rc *redis.Client) {
 	h := &Handler{service: NewService(paymentStore, couponStore, rc)}
 
 	g.POST("", h.CreatePaymentIntent)
-	g.POST("/create", h.CreatePaymentIntent)
 	g.POST("/confirm-test", h.ConfirmTestPayment)
 	g.GET("", h.ListPayments)
 	g.GET("/history", h.PaymentHistory)
 	g.GET("/:id", h.GetPayment)
-	g.POST("/webhook", webhookHandler)
 }
 
 type Handler struct {
@@ -93,8 +91,4 @@ func (h *Handler) ListPayments(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"payments": payments})
-}
-
-func webhookHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "received"})
 }

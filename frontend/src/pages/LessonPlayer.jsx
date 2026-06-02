@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiDownload, FiLock, FiMessageCircle, FiMoon, FiPlay, FiSun } from "react-icons/fi";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
-import { getCourseBySlugAPI, getCourseReviewsAPI, getLessonAPI, getMyCoursesAPI, getPreviewVideoAPI, getSignedVideoAPI, saveProgressAPI } from "../services/api";
+import { getCourseBySlugAPI, getCourseReviewsAPI, getLessonAPI, getMyCoursesAPI, saveProgressAPI } from "../services/api";
 
 function formatDuration(seconds) {
   if (!seconds) return "";
@@ -68,7 +68,8 @@ export default function LessonPlayer() {
   useEffect(() => {
     setMessage("");
     if (!/^[a-f\d]{24}$/i.test(lessonId || "")) {
-      getPreviewVideoAPI().then(setLesson).catch(() => setMessage("Không tải được video xem thử"));
+      setLesson(null);
+      setMessage("Bài học không hợp lệ");
       return;
     }
 
@@ -98,16 +99,9 @@ export default function LessonPlayer() {
           return;
         }
 
-        try {
-          const data = await getSignedVideoAPI(lessonId);
-          if (!cancelled) setLesson(data);
-        } catch {
-          try {
-            const data = await getPreviewVideoAPI();
-            if (!cancelled) setLesson(data);
-          } catch {
-            if (!cancelled) setMessage("Không tải được video bài học");
-          }
+        if (!cancelled) {
+          setLesson(null);
+          setMessage(detail || "Không tải được video bài học");
         }
       }
     }

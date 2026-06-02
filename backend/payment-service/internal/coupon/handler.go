@@ -12,11 +12,9 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database) {
 	h := &Handler{service: NewService(store)}
 
 	g.POST("/validate", h.ValidateCoupon)
-	g.GET("/list", h.ListActiveCoupons)
 	g.GET("", h.ListCoupons)
 	g.POST("", h.CreateCoupon)
 	g.PATCH("/:id/active", h.UpdateCouponStatus)
-	g.PUT("/:id/active", h.UpdateCouponStatus)
 }
 
 type Handler struct {
@@ -40,16 +38,6 @@ func (h *Handler) ValidateCoupon(c *gin.Context) {
 		"valid":    valid,
 		"discount": discount,
 	})
-}
-
-func (h *Handler) ListActiveCoupons(c *gin.Context) {
-	coupons, err := h.service.ListActive(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"coupons": coupons})
 }
 
 func (h *Handler) ListCoupons(c *gin.Context) {

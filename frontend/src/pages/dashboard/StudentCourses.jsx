@@ -31,7 +31,7 @@ export default function StudentCourses() {
                   <div className="h-full bg-primary rounded-full" style={{ width: `${course.progress || 0}%` }} />
                 </div>
               </div>
-              <Link to={`/khoa-hoc/${course.slug}/hoc/${course.lastLessonId}`} className="mt-5 w-full inline-flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-lg font-semibold">
+              <Link to={course.lastLessonId ? `/khoa-hoc/${course.slug}/hoc/${course.lastLessonId}` : `/khoa-hoc/${course.slug}`} className="mt-5 w-full inline-flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-lg font-semibold">
                 <FiPlay size={14} /> Tiếp tục học
               </Link>
             </div>

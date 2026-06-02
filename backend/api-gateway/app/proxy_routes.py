@@ -1,136 +1,52 @@
-import os
-from fastapi import APIRouter, Request, HTTPException, Response
-import httpx
 import logging
+import os
+
+import httpx
+from fastapi import APIRouter, HTTPException, Request, Response
 
 router = APIRouter()
 
 SERVICES = {
     "core": os.getenv("CORE_SERVICE_URL", "http://core:8001"),
     "payment": os.getenv("PAYMENT_SERVICE_URL", "http://payment:8002"),
-    "video": os.getenv("VIDEO_SERVICE_URL", os.getenv("PAYMENT_SERVICE_URL", "http://payment:8002")),
+    "media": os.getenv("MEDIA_SERVICE_URL", "http://media:8004"),
     "blog": os.getenv("BLOG_SERVICE_URL", "http://blog:8003"),
 }
 
 client = httpx.AsyncClient(timeout=float(os.getenv("PROXY_TIMEOUT_SECONDS", "60")))
 
+
 async def proxy_request(service_name: str, path: str, request: Request):
-    if service_name not in SERVICES:
-        raise HTTPException(status_code=404, detail="Service không tồn tại")
-    
-    base_url = SERVICES[service_name].rstrip('/')
-    clean_path = path.lstrip('/')
-    target_url = f"{base_url}/{clean_path}"
-    
-    method = request.method
-    params = request.query_params
+    base_url = SERVICES.get(service_name)
+    if not base_url:
+        raise HTTPException(status_code=404, detail="Service does not exist")
+
     headers = dict(request.headers)
     headers.pop("host", None)
-    body = await request.body()
+    target_url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
 
     try:
         response = await client.request(
-            method=method,
+            method=request.method,
             url=target_url,
-            params=params,
+            params=request.query_params,
             headers=headers,
-            content=body
+            content=await request.body(),
         )
-
-        return Response(
-            content=response.content,
-            status_code=response.status_code,
-            headers=dict(response.headers)
-        )
-        
     except httpx.RequestError as exc:
-        logging.error(f"Lỗi kết nối đến {service_name}: {exc}")
-        raise HTTPException(status_code=503, detail=f"Dịch vụ {service_name} tạm thời không khả dụng")
+        logging.error("Cannot connect to %s service: %s", service_name, exc)
+        raise HTTPException(status_code=503, detail=f"Service {service_name} is unavailable") from exc
+
+    return Response(
+        content=response.content,
+        status_code=response.status_code,
+        headers=dict(response.headers),
+    )
 
 
-#CORE SERVICE PROXIES
-@router.get("/core/{path:path}")
-async def get_core_proxy(path: str, request: Request):
-    return await proxy_request("core", path, request)
-
-@router.post("/core/{path:path}")
-async def post_core_proxy(path: str, request: Request):
-    return await proxy_request("core", path, request)
-
-@router.put("/core/{path:path}")
-async def put_core_proxy(path: str, request: Request):
-    return await proxy_request("core", path, request)
-
-@router.delete("/core/{path:path}")
-async def delete_core_proxy(path: str, request: Request):
-    return await proxy_request("core", path, request)
-
-@router.patch("/core/{path:path}")
-async def patch_core_proxy(path: str, request: Request):
-    return await proxy_request("core", path, request)
-
-
-
-#PAYMENT SERVICE PROXIES
-@router.get("/payment/{path:path}")
-async def get_payment_proxy(path: str, request: Request):
-    return await proxy_request("payment", path, request)
-
-@router.post("/payment/{path:path}")
-async def post_payment_proxy(path: str, request: Request):
-    return await proxy_request("payment", path, request)
-
-@router.put("/payment/{path:path}")
-async def put_payment_proxy(path: str, request: Request):
-    return await proxy_request("payment", path, request)
-
-@router.delete("/payment/{path:path}")
-async def delete_payment_proxy(path: str, request: Request):
-    return await proxy_request("payment", path, request)
-
-@router.patch("/payment/{path:path}")
-async def patch_payment_proxy(path: str, request: Request):
-    return await proxy_request("payment", path, request)
-
-
-#VIDEO SERVICE PROXIES
-@router.get("/video/{path:path}")
-async def get_video_proxy(path: str, request: Request):
-    return await proxy_request("video", path, request)
-
-@router.post("/video/{path:path}")
-async def post_video_proxy(path: str, request: Request):
-    return await proxy_request("video", path, request)
-
-@router.put("/video/{path:path}")
-async def put_video_proxy(path: str, request: Request):
-    return await proxy_request("video", path, request)
-
-@router.delete("/video/{path:path}")
-async def delete_video_proxy(path: str, request: Request):
-    return await proxy_request("video", path, request)
-
-@router.patch("/video/{path:path}")
-async def patch_video_proxy(path: str, request: Request):
-    return await proxy_request("video", path, request)
-
-#BLOG SERVICE PROXIES
-@router.get("/blog/{path:path}")
-async def get_blog_proxy(path: str, request: Request):
-    return await proxy_request("blog", path, request)
-
-@router.post("/blog/{path:path}")
-async def post_blog_proxy(path: str, request: Request):
-    return await proxy_request("blog", path, request)
-
-@router.put("/blog/{path:path}")
-async def put_blog_proxy(path: str, request: Request):
-    return await proxy_request("blog", path, request)
-
-@router.delete("/blog/{path:path}")
-async def delete_blog_proxy(path: str, request: Request):
-    return await proxy_request("blog", path, request)
-
-@router.patch("/blog/{path:path}")
-async def patch_blog_proxy(path: str, request: Request):
-    return await proxy_request("blog", path, request)
+@router.api_route(
+    "/{service_name}/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
+async def service_proxy(service_name: str, path: str, request: Request):
+    return await proxy_request(service_name, path, request)

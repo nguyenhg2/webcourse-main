@@ -19,7 +19,6 @@ import {
   createCourseAPI,
   createLessonAPI,
   createSectionAPI,
-  createVideoFolderAPI,
   deleteVideoAPI,
   getCategoriesAPI,
   getCourseBySlugAPI,
@@ -285,11 +284,6 @@ export default function CourseManager() {
         total_students: 0,
         cloudinary_folder: cloudinaryFolder,
       });
-      try {
-        await createVideoFolderAPI(created.cloudinary_folder || cloudinaryFolder);
-      } catch {
-        // Cloudinary cũng tự tạo asset folder khi tải lên; vẫn giữ bản nháp nếu bước tạo thư mục lỗi.
-      }
       setCourseForm({ ...emptyCourseForm, category_id: categories[0]?._id || "" });
       await loadCourses();
       setSelectedCourseId(created._id);

@@ -57,7 +57,7 @@ export default function MyCourses() {
             <span>Bài gần nhất: {course.lastLesson}</span>
           </div>
           <Link
-            to={done ? `/khoa-hoc/${course.slug}` : `/khoa-hoc/${course.slug}/hoc/${course.lastLessonId}`}
+            to={!done && course.lastLessonId ? `/khoa-hoc/${course.slug}/hoc/${course.lastLessonId}` : `/khoa-hoc/${course.slug}`}
             className={`mt-1 w-full py-2.5 text-sm font-semibold rounded-lg text-center transition-colors flex items-center justify-center gap-2 ${done ? "border border-primary text-primary hover:bg-primary hover:text-white" : "bg-primary text-white hover:bg-orange-600"}`}
           >
             <FiPlay size={14} /> {done ? "Xem lại khóa học" : "Tiếp tục học"}

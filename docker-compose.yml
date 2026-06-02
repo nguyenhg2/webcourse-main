@@ -15,7 +15,7 @@ services:
       - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - MONGODB_DB=${MONGODB_DB:-codecamp_core}
       - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
-      - REDIS_URL=${DOCKER_REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - CORS_ORIGINS=*
     restart: unless-stopped
@@ -30,11 +30,13 @@ services:
     environment:
       - CORE_SERVICE_URL=http://core:8001
       - PAYMENT_SERVICE_URL=http://payment:8002
+      - MEDIA_SERVICE_URL=http://media:8004
       - BLOG_SERVICE_URL=http://blog:8003
     restart: unless-stopped
     depends_on:
       - core
       - payment
+      - media
       - blog
 
   frontend:
@@ -51,6 +53,7 @@ services:
       - NODE_ENV=development
       - VITE_API_URL=http://localhost:8000/core
       - VITE_PAYMENT_API_URL=http://localhost:8000/payment
+      - VITE_MEDIA_API_URL=http://localhost:8000/media
       - VITE_BLOG_API_URL=http://localhost:8000/blog
     command: npm run dev -- --host 0.0.0.0
     stdin_open: true
@@ -87,16 +90,24 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
-      - REDIS_URL=${DOCKER_REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=redis://redis:6379
       - PORT=8002
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
-      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
-      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
-      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
-      - CLOUDINARY_VIDEO_FOLDER=${CLOUDINARY_VIDEO_FOLDER:-}
-      - CLOUDINARY_PYTHON_FOLDER=${CLOUDINARY_PYTHON_FOLDER:-}
     restart: unless-stopped
     depends_on:
       - core
       - redis
+
+  media:
+    build: ./backend/media-service
+    container_name: webcourse-media
+    ports:
+      - "8004:8004"
+    environment:
+      - PORT=8004
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+    restart: unless-stopped

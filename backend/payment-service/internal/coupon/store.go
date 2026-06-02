@@ -35,25 +35,6 @@ func (s *Store) FindValid(ctx context.Context, code string) (*Coupon, error) {
 	return &coupon, err
 }
 
-func (s *Store) ListActive(ctx context.Context) ([]*Coupon, error) {
-	filter := bson.M{
-		"active": true,
-		"expiry": bson.M{"$gte": time.Now().Unix()},
-	}
-	opts := options.Find().SetSort(bson.D{{Key: "code", Value: 1}})
-	cursor, err := s.collection.Find(ctx, filter, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var coupons []*Coupon
-	if err := cursor.All(ctx, &coupons); err != nil {
-		return nil, err
-	}
-	return coupons, nil
-}
-
 func (s *Store) ListAll(ctx context.Context) ([]*Coupon, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "active", Value: -1}, {Key: "code", Value: 1}})
 	cursor, err := s.collection.Find(ctx, bson.M{}, opts)

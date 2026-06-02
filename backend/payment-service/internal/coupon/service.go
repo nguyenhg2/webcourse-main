@@ -34,10 +34,6 @@ func (s *Service) Validate(ctx context.Context, code string, amount int64) (bool
 	return true, discount, nil
 }
 
-func (s *Service) ListActive(ctx context.Context) ([]*Coupon, error) {
-	return s.store.ListActive(ctx)
-}
-
 func (s *Service) ListAll(ctx context.Context) ([]*Coupon, error) {
 	return s.store.ListAll(ctx)
 }

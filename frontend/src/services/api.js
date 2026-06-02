@@ -2,25 +2,27 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/core";
 const PAYMENT_API_BASE = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:8000/payment";
+const MEDIA_API_BASE = import.meta.env.VITE_MEDIA_API_URL || "http://localhost:8000/media";
 const BLOG_API_BASE = import.meta.env.VITE_BLOG_API_URL || "http://localhost:8000/blog";
 
-const api = axios.create({
-  baseURL: API_BASE,
-  headers: { "Content-Type": "application/json" },
-});
+function createClient(baseURL) {
+  const client = axios.create({ baseURL });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = "Bearer " + token;
-  }
-  return config;
-});
+  client.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = "Bearer " + token;
+    }
+    return config;
+  });
 
-function authHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: "Bearer " + token } : {};
+  return client;
 }
+
+const api = createClient(API_BASE);
+const paymentApi = createClient(PAYMENT_API_BASE);
+const mediaApi = createClient(MEDIA_API_BASE);
+const blogApi = createClient(BLOG_API_BASE);
 
 // Auth
 export async function loginAPI(email, password, expectedRole) {
@@ -145,19 +147,17 @@ export async function updateLessonAPI(lessonId, payload) {
 
 // Blog & Contact
 export async function getBlogsAPI(params) {
-  const res = await axios.get(BLOG_API_BASE + "/api/blogs", { params });
+  const res = await blogApi.get("/api/blogs", { params });
   return res.data;
 }
 
 export async function getBlogBySlugAPI(slug) {
-  const res = await axios.get(BLOG_API_BASE + "/api/blogs/" + slug);
+  const res = await blogApi.get("/api/blogs/" + slug);
   return res.data;
 }
 
 export async function sendContactAPI(payload) {
-  const res = await axios.post(BLOG_API_BASE + "/api/contact", payload, {
-    headers: { "Content-Type": "application/json" },
-  });
+  const res = await blogApi.post("/api/contact", payload);
   return res.data;
 }
 
@@ -216,115 +216,59 @@ export async function deleteReviewAPI(reviewId) {
 
 // Payment
 export async function createPaymentAPI(payload) {
-  const res = await axios.post(PAYMENT_API_BASE + "/api/payments", payload, {
-    headers: authHeaders(),
-  });
+  const res = await paymentApi.post("/api/payments", payload);
   return res.data;
 }
 
 export async function confirmTestPaymentAPI(paymentId, cardInfo = {}) {
-  const res = await axios.post(
-    PAYMENT_API_BASE + "/api/payments/confirm-test",
-    { payment_id: paymentId, ...cardInfo },
-    { headers: authHeaders() }
-  );
+  const res = await paymentApi.post("/api/payments/confirm-test", { payment_id: paymentId, ...cardInfo });
   return res.data;
 }
 
 export async function getAllPaymentsAPI() {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/payments", {
-    headers: authHeaders(),
-  });
+  const res = await paymentApi.get("/api/payments");
   return res.data;
 }
 
 export async function getPaymentHistoryAPI() {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/payments/history", {
-    headers: authHeaders(),
-  });
+  const res = await paymentApi.get("/api/payments/history");
   return res.data;
 }
 
 export async function validateCouponAPI(code, amount) {
-  const res = await axios.post(
-    PAYMENT_API_BASE + "/api/coupons/validate",
-    { code, amount },
-    { headers: authHeaders() }
-  );
+  const res = await paymentApi.post("/api/coupons/validate", { code, amount });
   return res.data;
 }
 
 export async function getCouponsAPI() {
-  try {
-    const res = await axios.get(PAYMENT_API_BASE + "/api/coupons", {
-      headers: authHeaders(),
-    });
-    return res.data;
-  } catch (err) {
-    if (err.response?.status !== 404) {
-      throw err;
-    }
-    const res = await axios.get(PAYMENT_API_BASE + "/api/coupons/list", {
-      headers: authHeaders(),
-    });
-    return res.data;
-  }
+  const res = await paymentApi.get("/api/coupons");
+  return res.data;
 }
 
 export async function createCouponAPI(payload) {
-  const res = await axios.post(PAYMENT_API_BASE + "/api/coupons", payload, {
-    headers: authHeaders(),
-  });
+  const res = await paymentApi.post("/api/coupons", payload);
   return res.data;
 }
 
 export async function updateCouponStatusAPI(couponId, active) {
-  const res = await axios.put(
-    PAYMENT_API_BASE + `/api/coupons/${couponId}/active`,
-    { active },
-    { headers: authHeaders() }
-  );
+  const res = await paymentApi.patch(`/api/coupons/${couponId}/active`, { active });
   return res.data;
 }
 
 export async function uploadVideoAPI(file, folder) {
+  if (!folder) {
+    throw new Error("Vui lòng nhập thư mục Cloudinary");
+  }
+
   const formData = new FormData();
   formData.append("video", file);
-  if (folder) {
-    formData.append("folder", folder);
-  }
-  const res = await axios.post(PAYMENT_API_BASE + "/api/videos/upload", formData, {
-    headers: authHeaders(),
-  });
-  return res.data;
-}
-
-export async function createVideoFolderAPI(folder) {
-  const res = await axios.post(PAYMENT_API_BASE + "/api/videos/folders", { folder }, {
-    headers: authHeaders(),
-  });
+  formData.append("folder", folder);
+  const res = await mediaApi.post("/api/videos/upload", formData);
   return res.data;
 }
 
 export async function deleteVideoAPI(payload) {
-  const res = await axios.delete(PAYMENT_API_BASE + "/api/videos/delete", {
-    headers: authHeaders(),
-    data: payload,
-  });
-  return res.data;
-}
-
-export async function getPreviewVideoAPI() {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/videos/preview", {
-    headers: authHeaders(),
-  });
-  return res.data;
-}
-
-export async function getSignedVideoAPI(lessonId) {
-  const res = await axios.get(PAYMENT_API_BASE + "/api/video/" + lessonId + "/signed-url", {
-    headers: authHeaders(),
-  });
+  const res = await mediaApi.delete("/api/videos/delete", { data: payload });
   return res.data;
 }
 
@@ -335,9 +279,7 @@ export async function uploadLessonVideoAPI(file, folder) {
 export async function uploadAttachmentAPI(file) {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await axios.post(PAYMENT_API_BASE + "/api/files/upload", formData, {
-    headers: authHeaders(),
-  });
+  const res = await mediaApi.post("/api/files/upload", formData);
   return res.data;
 }
 
@@ -374,32 +316,32 @@ export async function getAdminRevenueAPI() {
 
 // Admin Blog & Contact
 export async function getAdminBlogsAPI() {
-  const res = await axios.get(BLOG_API_BASE + "/api/admin/blogs", { headers: authHeaders() });
+  const res = await blogApi.get("/api/admin/blogs");
   return res.data;
 }
 
 export async function createBlogAPI(payload) {
-  const res = await axios.post(BLOG_API_BASE + "/api/admin/blogs", payload, { headers: authHeaders() });
+  const res = await blogApi.post("/api/admin/blogs", payload);
   return res.data;
 }
 
 export async function updateBlogAPI(id, payload) {
-  const res = await axios.put(BLOG_API_BASE + `/api/admin/blogs/${id}`, payload, { headers: authHeaders() });
+  const res = await blogApi.put(`/api/admin/blogs/${id}`, payload);
   return res.data;
 }
 
 export async function deleteBlogAPI(id) {
-  const res = await axios.delete(BLOG_API_BASE + `/api/admin/blogs/${id}`, { headers: authHeaders() });
+  const res = await blogApi.delete(`/api/admin/blogs/${id}`);
   return res.data;
 }
 
 export async function getAdminContactsAPI() {
-  const res = await axios.get(BLOG_API_BASE + "/api/admin/contacts", { headers: authHeaders() });
+  const res = await blogApi.get("/api/admin/contacts");
   return res.data;
 }
 
 export async function markContactReadAPI(id) {
-  const res = await axios.patch(BLOG_API_BASE + `/api/admin/contacts/${id}/read`, {}, { headers: authHeaders() });
+  const res = await blogApi.patch(`/api/admin/contacts/${id}/read`, {});
   return res.data;
 }
 
