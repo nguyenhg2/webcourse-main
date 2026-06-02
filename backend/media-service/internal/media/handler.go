@@ -1,17 +1,11 @@
 package media
 
 import (
-	"bytes"
-	"crypto/sha1"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
-	"mime/multipart"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
-	"time"
 
 	"media-service/internal/config"
 
@@ -35,7 +29,6 @@ type cloudinaryUpload struct {
 
 type deleteVideoRequest struct {
 	PublicID string `json:"public_id"`
-	VideoURL string `json:"video_url"`
 }
 
 type uploadResult struct {
@@ -63,9 +56,9 @@ func RegisterFileRoutes(g *gin.RouterGroup, cfg *config.Config) {
 }
 
 func (h *Handler) UploadVideo(c *gin.Context) {
-	folder := strings.Trim(strings.TrimSpace(c.PostForm("folder")), "/")
+	folder := cleanFolder(c.PostForm("folder"))
 	if folder == "" {
-		writeError(c, apiError{Status: http.StatusBadRequest, Message: "Vui lòng nhập thư mục Cloudinary"})
+		writeError(c, apiError{Status: http.StatusBadRequest, Message: "folder is required"})
 		return
 	}
 
@@ -115,48 +108,23 @@ func (h *Handler) DeleteVideo(c *gin.Context) {
 
 	var payload deleteVideoRequest
 	if err := c.ShouldBindJSON(&payload); err != nil && err != io.EOF {
-		writeError(c, apiError{Status: http.StatusBadRequest, Message: "Vui lòng gửi public_id hoặc video_url"})
+		writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id is required"})
 		return
 	}
 
 	publicID := strings.TrimSpace(payload.PublicID)
 	if publicID == "" {
-		publicID = cloudinaryPublicIDFromURL(payload.VideoURL)
-	}
-	if publicID == "" {
-		writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id hoặc Cloudinary video_url không hợp lệ"})
+		writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id is required"})
 		return
 	}
 
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	form := url.Values{}
-	form.Set("api_key", h.cfg.CloudinaryKey)
-	form.Set("timestamp", timestamp)
-	form.Set("public_id", publicID)
-	form.Set("invalidate", "true")
-	form.Set("signature", signCloudinary("invalidate=true&public_id="+publicID+"&timestamp="+timestamp, h.cfg.CloudinarySecret))
-
-	destroyURL := "https://api.cloudinary.com/v1_1/" + h.cfg.CloudinaryCloud + "/video/destroy"
-	resp, err := http.PostForm(destroyURL, form)
+	body, err := postCloudinaryForm(h.cloudinaryURL("video", "destroy"), h.destroyForm(publicID))
 	if err != nil {
-		writeError(c, apiError{Status: http.StatusBadGateway, Message: err.Error()})
-		return
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= http.StatusMultipleChoices {
-		writeError(c, apiError{Status: resp.StatusCode, Message: string(respBody)})
+		writeError(c, err)
 		return
 	}
 
-	var result map[string]any
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		c.JSON(http.StatusOK, gin.H{"public_id": publicID, "raw": string(respBody)})
-		return
-	}
-	result["public_id"] = publicID
-	c.JSON(http.StatusOK, result)
+	writeDeleteResult(c, publicID, body)
 }
 
 func (h *Handler) upload(c *gin.Context, formField string, resourceType string, folder string) (*uploadResult, error) {
@@ -166,44 +134,18 @@ func (h *Handler) upload(c *gin.Context, formField string, resourceType string, 
 
 	file, header, err := c.Request.FormFile(formField)
 	if err != nil {
-		return nil, apiError{Status: http.StatusBadRequest, Message: "Vui lòng chọn tệp"}
+		return nil, apiError{Status: http.StatusBadRequest, Message: "choose a file to upload"}
 	}
 	defer file.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", header.Filename)
+	body, contentType, err := h.uploadBody(file, header.Filename, folder)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := io.Copy(part, file); err != nil {
-		return nil, err
-	}
 
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	signaturePayload := "asset_folder=" + folder + "&timestamp=" + timestamp
-	writer.WriteField("api_key", h.cfg.CloudinaryKey)
-	writer.WriteField("timestamp", timestamp)
-	writer.WriteField("asset_folder", folder)
-	writer.WriteField("signature", signCloudinary(signaturePayload, h.cfg.CloudinarySecret))
-	writer.Close()
-
-	uploadURL := "https://api.cloudinary.com/v1_1/" + h.cfg.CloudinaryCloud + "/" + resourceType + "/upload"
-	req, err := http.NewRequest(http.MethodPost, uploadURL, body)
+	respBody, err := postCloudinaryMultipart(h.cloudinaryURL(resourceType, "upload"), body, contentType)
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, apiError{Status: http.StatusBadGateway, Message: err.Error()}
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, apiError{Status: resp.StatusCode, Message: string(respBody)}
 	}
 
 	var upload cloudinaryUpload
@@ -214,57 +156,26 @@ func (h *Handler) upload(c *gin.Context, formField string, resourceType string, 
 	return &uploadResult{FileName: header.Filename, Folder: folder, Data: upload}, nil
 }
 
-func (h *Handler) ensureCloudinaryConfig() error {
-	if h.cfg.CloudinaryCloud == "" || h.cfg.CloudinaryKey == "" || h.cfg.CloudinarySecret == "" {
-		return apiError{Status: http.StatusInternalServerError, Message: "Thiếu cấu hình Cloudinary"}
+func writeDeleteResult(c *gin.Context, publicID string, body []byte) {
+	var result map[string]any
+	if err := json.Unmarshal(body, &result); err != nil {
+		c.JSON(http.StatusOK, gin.H{"public_id": publicID, "raw": string(body)})
+		return
 	}
-	return nil
+
+	result["public_id"] = publicID
+	c.JSON(http.StatusOK, result)
 }
 
 func writeError(c *gin.Context, err error) {
-	if apiErr, ok := err.(apiError); ok {
+	var apiErr apiError
+	if errors.As(err, &apiErr) {
 		c.JSON(apiErr.Status, gin.H{"error": apiErr.Message})
 		return
 	}
 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
 
-func cloudinaryPublicIDFromURL(videoURL string) string {
-	parsed, err := url.Parse(strings.TrimSpace(videoURL))
-	if err != nil || parsed.Path == "" {
-		return ""
-	}
-
-	parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
-	uploadIndex := -1
-	for i, part := range parts {
-		if part == "upload" {
-			uploadIndex = i
-			break
-		}
-	}
-	if uploadIndex == -1 || uploadIndex+1 >= len(parts) {
-		return ""
-	}
-
-	publicParts := parts[uploadIndex+1:]
-	if len(publicParts) > 0 && strings.HasPrefix(publicParts[0], "v") {
-		if _, err := strconv.ParseInt(strings.TrimPrefix(publicParts[0], "v"), 10, 64); err == nil {
-			publicParts = publicParts[1:]
-		}
-	}
-	if len(publicParts) == 0 {
-		return ""
-	}
-
-	publicID := strings.Join(publicParts, "/")
-	if dot := strings.LastIndex(publicID, "."); dot > 0 {
-		publicID = publicID[:dot]
-	}
-	return publicID
-}
-
-func signCloudinary(payload string, secret string) string {
-	sum := sha1.Sum([]byte(payload + secret))
-	return hex.EncodeToString(sum[:])
+func cleanFolder(folder string) string {
+	return strings.Trim(strings.TrimSpace(folder), "/")
 }

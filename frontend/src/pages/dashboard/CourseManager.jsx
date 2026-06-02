@@ -631,10 +631,9 @@ export default function CourseManager() {
     setDeletingLessonVideoId(lesson._id);
     setMessage("");
     try {
-      await deleteVideoAPI({
-        public_id: lesson.video_public_id || "",
-        video_url: lesson.video_url,
-      });
+      if (lesson.video_public_id) {
+        await deleteVideoAPI({ public_id: lesson.video_public_id });
+      }
 
       const updatedLesson = await updateLessonAPI(lesson._id, {
         video_url: "",

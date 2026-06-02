@@ -15,8 +15,9 @@ internal/config          Environment config
 ## Routes
 
 ```text
-/api/videos
-/api/files
+POST   /api/videos/upload  Upload video, form fields: video, folder
+DELETE /api/videos/delete  Delete video, JSON field: public_id
+POST   /api/files/upload   Upload attachment, form field: file
 ```
 
 ## Data

@@ -216,12 +216,7 @@ export async function deleteReviewAPI(reviewId) {
 
 // Payment
 export async function createPaymentAPI(payload) {
-  const res = await paymentApi.post("/api/payments", payload);
-  return res.data;
-}
-
-export async function confirmTestPaymentAPI(paymentId, cardInfo = {}) {
-  const res = await paymentApi.post("/api/payments/confirm-test", { payment_id: paymentId, ...cardInfo });
+  const res = await api.post("/api/checkout/pay", payload);
   return res.data;
 }
 
@@ -241,17 +236,17 @@ export async function validateCouponAPI(code, amount) {
 }
 
 export async function getCouponsAPI() {
-  const res = await paymentApi.get("/api/coupons");
+  const res = await api.get("/api/coupons");
   return res.data;
 }
 
 export async function createCouponAPI(payload) {
-  const res = await paymentApi.post("/api/coupons", payload);
+  const res = await api.post("/api/coupons", payload);
   return res.data;
 }
 
 export async function updateCouponStatusAPI(couponId, active) {
-  const res = await paymentApi.patch(`/api/coupons/${couponId}/active`, { active });
+  const res = await api.patch(`/api/coupons/${couponId}/active`, { active });
   return res.data;
 }
 

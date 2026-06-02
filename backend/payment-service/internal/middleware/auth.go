@@ -10,20 +10,22 @@ import (
 
 func JWTAuth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu Authorization header"})
+		tokenStr, ok := bearerToken(c.GetHeader("Authorization"))
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing bearer token"})
 			c.Abort()
 			return
 		}
 
-		tokenStr := strings.Replace(authHeader, "Bearer ", "", 1)
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrTokenSignatureInvalid
+			}
 			return []byte(secret), nil
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token không hợp lệ"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			c.Abort()
 			return
 		}
@@ -43,16 +45,35 @@ func JWTAuth(secret string) gin.HandlerFunc {
 	}
 }
 
-func RequireRole(roles ...string) gin.HandlerFunc {
-	allowed := map[string]bool{}
-	for _, role := range roles {
-		allowed[role] = true
+func bearerToken(header string) (string, bool) {
+	const prefix = "Bearer "
+	if !strings.HasPrefix(header, prefix) {
+		return "", false
 	}
 
+	token := strings.TrimSpace(strings.TrimPrefix(header, prefix))
+	return token, token != ""
+}
+
+func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role := c.GetString("role")
-		if !allowed[role] {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Không đủ quyền thực hiện"})
+		userRole := c.GetString("role")
+		for _, role := range roles {
+			if userRole == role {
+				c.Next()
+				return
+			}
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		c.Abort()
+	}
+}
+
+func RequireInternalToken(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if secret != "" && c.GetHeader("X-Internal-Token") != secret {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid internal token"})
 			c.Abort()
 			return
 		}
@@ -64,7 +85,7 @@ func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, PATCH, DELETE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Internal-Token")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)

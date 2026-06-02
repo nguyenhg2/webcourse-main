@@ -15,6 +15,8 @@ services:
       - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - MONGODB_DB=${MONGODB_DB:-codecamp_core}
       - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
+      - PAYMENT_SERVICE_URL=http://payment:8002
+      - PAYMENT_INTERNAL_TOKEN=${PAYMENT_INTERNAL_TOKEN:-dev-internal-token}
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - CORS_ORIGINS=*
@@ -90,14 +92,11 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
-      - REDIS_URL=redis://redis:6379
+      - PAYMENT_INTERNAL_TOKEN=${PAYMENT_INTERNAL_TOKEN:-dev-internal-token}
       - PORT=8002
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
     restart: unless-stopped
-    depends_on:
-      - core
-      - redis
 
   media:
     build: ./backend/media-service

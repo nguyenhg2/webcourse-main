@@ -7,19 +7,19 @@ import (
 	"payment-service/internal/payment"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func SetupRouter(db *mongo.Database, rc *redis.Client, cfg *config.Config) *gin.Engine {
+func SetupRouter(db *mongo.Database, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORSMiddleware())
 
 	api := r.Group("/api")
 	api.Use(middleware.JWTAuth(cfg.JWTSecret))
 
-	payment.RegisterRoutes(api.Group("/payments"), db, rc)
-	coupon.RegisterRoutes(api.Group("/coupons"), db)
+	couponStore := coupon.NewStore(db)
+	coupon.RegisterRoutes(api.Group("/coupons"), couponStore)
+	payment.RegisterRoutes(api.Group("/payments"), db, couponStore, cfg.StripeSecretKey, middleware.RequireInternalToken(cfg.InternalToken))
 
 	return r
 }

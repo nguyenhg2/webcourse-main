@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     mongo_url: str = Field(alias="MONGODB_URI")
     mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
     payment_db: str = Field(default="codecamp_payment", alias="PAYMENT_MONGODB_DB")
+    payment_service_url: str = Field(default="http://localhost:8002", alias="PAYMENT_SERVICE_URL")
+    payment_internal_token: str = Field(default="dev-internal-token", alias="PAYMENT_INTERNAL_TOKEN")
     redis_url: str | None = Field(default="redis://localhost:6379", alias="REDIS_URL")
     jwt_secret: str = Field(default="dev-secret", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")

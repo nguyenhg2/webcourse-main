@@ -2,230 +2,192 @@ package payment
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
 	"payment-service/internal/coupon"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/paymentintent"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
-	defaultAmount = int64(599000)
-	minCardAmount = int64(1000)
+	methodStripe   = "stripe"
+	statusPending  = "pending"
+	statusComplete = "completed"
 )
 
 type Service struct {
-	paymentStore *Store
-	couponStore  *coupon.Store
-	redisClient  *redis.Client
+	payments *Store
+	coupons  *coupon.Store
 }
 
-func NewService(paymentStore *Store, couponStore *coupon.Store, redisClient *redis.Client) *Service {
-	return &Service{
-		paymentStore: paymentStore,
-		couponStore:  couponStore,
-		redisClient:  redisClient,
-	}
+func NewService(payments *Store, coupons *coupon.Store, stripeSecretKey string) *Service {
+	stripe.Key = strings.TrimSpace(stripeSecretKey)
+	return &Service{payments: payments, coupons: coupons}
 }
 
-func (s *Service) CreateIntent(ctx context.Context, userID string, req PaymentRequest) (*PaymentResponse, error) {
-	if userID == "" {
-		return nil, errors.New("không tìm thấy người dùng")
-	}
-	if len(req.CourseIDs) == 0 {
-		return nil, errors.New("vui lòng chọn khóa học cần thanh toán")
-	}
-	if req.Amount < 0 {
-		return nil, errors.New("số tiền phải lớn hơn hoặc bằng 0")
+func (s *Service) CreatePayment(ctx context.Context, userID string, req PaymentRequest) (*PaymentResponse, error) {
+	payment, err := s.buildPayment(ctx, userID, req)
+	if err != nil {
+		return nil, err
 	}
 
-	amount := req.Amount
-	if amount == 0 {
-		amount = defaultAmount
-	}
-
-	couponCode := strings.ToUpper(strings.TrimSpace(req.CouponCode))
-	couponDiscount := int64(0)
-	if couponCode != "" {
-		coupon, err := s.couponStore.FindValid(ctx, couponCode)
+	clientSecret := ""
+	if payment.FinalAmount > 0 {
+		intent, err := createStripeIntent(payment)
 		if err != nil {
 			return nil, err
 		}
-		if coupon.MaxUses > 0 && coupon.Used >= coupon.MaxUses {
-			return nil, errors.New("mã giảm giá đã hết lượt sử dụng")
-		}
-		couponDiscount = discountAmount(amount, coupon.Type, coupon.Discount)
+		payment.Status = statusPending
+		payment.StripePaymentID = intent.ID
+		clientSecret = intent.ClientSecret
 	}
 
-	finalAmount := amount - couponDiscount
-	cardLast4 := normalizeCardLast4(req.CardLast4)
-	cardBrand := normalizeCardBrand(req.CardBrand)
-	payment := &Payment{
-		ID:             primitive.NewObjectID(),
-		UserID:         userID,
-		CourseIDs:      req.CourseIDs,
-		Amount:         amount,
-		CouponCode:     couponCode,
-		CouponDiscount: couponDiscount,
-		CardLast4:      cardLast4,
-		CardBrand:      cardBrand,
-		Status:         "pending",
-		CreatedAt:      time.Now().Unix(),
+	if err := s.payments.Create(ctx, payment); err != nil {
+		return nil, err
+	}
+	if payment.Status == statusComplete {
+		s.useCoupon(ctx, payment)
 	}
 
-	if finalAmount <= 0 {
-		payment.Status = "completed"
-		payment.CardBrand = "free"
-		if err := s.paymentStore.Create(ctx, payment); err != nil {
-			return nil, err
-		}
-		s.useCoupon(ctx, couponCode)
-		s.publishPaymentSuccess(ctx, payment)
-		return &PaymentResponse{
-			ClientSecret: "",
-			PaymentID:    payment.ID.Hex(),
-			Amount:       0,
-			Status:       payment.Status,
-		}, nil
+	return paymentResponse(payment, clientSecret), nil
+}
+
+func (s *Service) buildPayment(ctx context.Context, userID string, req PaymentRequest) (*Payment, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, errors.New("user not found")
+	}
+	if req.Amount < 0 {
+		return nil, errors.New("amount must be greater than or equal to 0")
 	}
 
-	if finalAmount < minCardAmount {
-		return nil, errors.New("số tiền thanh toán quá nhỏ")
+	courseIDs := normalizedCourseIDs(req)
+	if len(courseIDs) == 0 {
+		return nil, errors.New("course_ids is required")
 	}
 
-	params := &stripe.PaymentIntentParams{
-		Amount:   stripe.Int64(finalAmount),
-		Currency: stripe.String("vnd"),
-		PaymentMethodTypes: []*string{
-			stripe.String("card"),
-		},
-	}
-	intent, err := paymentintent.New(params)
+	discount, couponCode, err := s.discount(ctx, req.CouponCode, req.Amount)
 	if err != nil {
 		return nil, err
 	}
 
-	payment.StripePaymentID = intent.ID
-	if err := s.paymentStore.Create(ctx, payment); err != nil {
-		return nil, err
-	}
-	s.useCoupon(ctx, couponCode)
-
-	return &PaymentResponse{
-		ClientSecret: intent.ClientSecret,
-		PaymentID:    payment.ID.Hex(),
-		Amount:       finalAmount,
-		Status:       payment.Status,
+	now := time.Now().Unix()
+	return &Payment{
+		ID:             primitive.NewObjectID(),
+		UserID:         userID,
+		UserEmail:      strings.TrimSpace(req.UserEmail),
+		CourseIDs:      courseIDs,
+		Amount:         req.Amount,
+		OriginalAmount: req.Amount,
+		DiscountAmount: discount,
+		FinalAmount:    positive(req.Amount - discount),
+		CouponCode:     couponCode,
+		CouponDiscount: discount,
+		Method:         methodStripe,
+		CardLast4:      normalizeCardLast4(req.CardLast4),
+		CardBrand:      normalizeCardBrand(req.CardBrand),
+		Status:         statusComplete,
+		BillingAddress: normalizeBillingAddress(req.BillingAddress, req.UserEmail),
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}, nil
 }
 
-func (s *Service) ConfirmTest(ctx context.Context, paymentID, cardLast4, cardBrand string) error {
-	payment, err := s.paymentStore.GetByID(ctx, paymentID)
-	if err != nil {
-		return err
+func createStripeIntent(payment *Payment) (*stripe.PaymentIntent, error) {
+	params := &stripe.PaymentIntentParams{
+		Amount:             stripe.Int64(payment.FinalAmount),
+		Currency:           stripe.String("vnd"),
+		PaymentMethodTypes: []*string{stripe.String("card")},
+		Metadata: map[string]string{
+			"payment_id":   payment.ID.Hex(),
+			"user_id":      payment.UserID,
+			"course_count": strconv.Itoa(len(payment.CourseIDs)),
+		},
 	}
-	if payment.Status == "completed" {
-		return nil
+	if payment.UserEmail != "" {
+		params.ReceiptEmail = stripe.String(payment.UserEmail)
 	}
-	if payment.StripePaymentID == "" {
-		return errors.New("giao dịch chưa có Stripe intent")
-	}
-
-	params := &stripe.PaymentIntentConfirmParams{
-		PaymentMethod: stripe.String("pm_card_visa"),
-	}
-	intent, err := paymentintent.Confirm(payment.StripePaymentID, params)
-	if err != nil {
-		return err
-	}
-	if intent.Status != stripe.PaymentIntentStatusSucceeded {
-		return errors.New("thanh toán chưa hoàn tất")
-	}
-
-	cardLast4 = normalizeCardLast4(cardLast4)
-	cardBrand = normalizeCardBrand(cardBrand)
-	if cardLast4 == "" {
-		cardLast4 = payment.CardLast4
-	}
-	if cardBrand == "" {
-		cardBrand = payment.CardBrand
-	}
-
-	return s.MarkCompleted(ctx, paymentID, cardLast4, cardBrand)
+	return paymentintent.New(params)
 }
 
-func (s *Service) MarkCompleted(ctx context.Context, paymentID string, cardLast4, cardBrand string) error {
-	payment, err := s.paymentStore.GetByID(ctx, paymentID)
-	if err != nil {
-		return err
+func (s *Service) discount(ctx context.Context, code string, amount int64) (int64, string, error) {
+	code = coupon.NormalizeCode(code)
+	if code == "" {
+		return 0, "", nil
 	}
 
-	update := bson.M{
-		"status":     "completed",
-		"card_last4": cardLast4,
-		"card_brand": cardBrand,
-		"updated_at": time.Now().Unix(),
+	discount, ok := s.coupons.Discount(ctx, code, amount)
+	if !ok {
+		return 0, "", errors.New("coupon is invalid")
 	}
-	if err := s.paymentStore.Update(ctx, paymentID, update); err != nil {
-		return err
-	}
+	return discount, code, nil
+}
 
-	s.publishPaymentSuccess(ctx, payment)
-	return nil
+func (s *Service) useCoupon(ctx context.Context, payment *Payment) {
+	if payment.DiscountAmount <= 0 {
+		return
+	}
+	if err := s.coupons.Use(ctx, payment.CouponCode, payment.DiscountAmount); err != nil {
+		log.Printf("cannot update coupon usage: %v", err)
+	}
+}
+
+func paymentResponse(payment *Payment, clientSecret string) *PaymentResponse {
+	return &PaymentResponse{
+		ClientSecret:    clientSecret,
+		PaymentID:       payment.ID.Hex(),
+		StripePaymentID: payment.StripePaymentID,
+		Amount:          payment.FinalAmount,
+		Status:          payment.Status,
+	}
 }
 
 func (s *Service) GetByID(ctx context.Context, paymentID string) (*Payment, error) {
-	return s.paymentStore.GetByID(ctx, paymentID)
+	return s.payments.GetByID(ctx, paymentID)
 }
 
 func (s *Service) ListByUser(ctx context.Context, userID string) ([]*Payment, error) {
-	return s.paymentStore.ListByUser(ctx, userID)
+	return s.payments.ListByUser(ctx, userID)
 }
 
 func (s *Service) ListAll(ctx context.Context) ([]*Payment, error) {
-	return s.paymentStore.ListAll(ctx)
+	return s.payments.ListAll(ctx)
 }
 
-func (s *Service) useCoupon(ctx context.Context, code string) {
-	if code == "" {
-		return
+func normalizedCourseIDs(req PaymentRequest) []string {
+	seen := map[string]bool{}
+	result := []string{}
+	for _, id := range req.CourseIDs {
+		id = strings.TrimSpace(id)
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		result = append(result, id)
 	}
-	if err := s.couponStore.Use(ctx, code); err != nil {
-		log.Printf("Không thể cập nhật lượt dùng mã giảm giá: %v", err)
-	}
+	return result
 }
 
-func (s *Service) publishPaymentSuccess(ctx context.Context, payment *Payment) {
-	if s.redisClient == nil {
-		return
+func normalizeBillingAddress(value BillingAddress, fallbackEmail string) BillingAddress {
+	value.Name = strings.TrimSpace(value.Name)
+	value.Email = strings.TrimSpace(value.Email)
+	if value.Email == "" {
+		value.Email = strings.TrimSpace(fallbackEmail)
 	}
-
-	data, _ := json.Marshal(map[string]interface{}{
-		"user_id":    payment.UserID,
-		"course_ids": payment.CourseIDs,
-		"payment_id": payment.ID.Hex(),
-	})
-	if err := s.redisClient.Publish(ctx, "payment.success", data).Err(); err != nil {
-		log.Printf("Redis publish error: %v", err)
-	}
-}
-
-func discountAmount(amount int64, couponType string, discount int64) int64 {
-	if couponType == "percentage" {
-		discount = amount * discount / 100
-	}
-	if discount > amount {
-		return amount
-	}
-	return discount
+	value.Phone = strings.TrimSpace(value.Phone)
+	value.Line1 = strings.TrimSpace(value.Line1)
+	value.Line2 = strings.TrimSpace(value.Line2)
+	value.City = strings.TrimSpace(value.City)
+	value.State = strings.TrimSpace(value.State)
+	value.PostalCode = strings.TrimSpace(value.PostalCode)
+	value.Country = strings.ToUpper(strings.TrimSpace(value.Country))
+	return value
 }
 
 func normalizeCardLast4(value string) string {
@@ -249,7 +211,16 @@ func normalizeCardBrand(value string) string {
 	switch value {
 	case "visa", "mastercard", "amex", "jcb", "discover", "unionpay":
 		return value
+	case "american express":
+		return "amex"
 	default:
 		return ""
 	}
+}
+
+func positive(value int64) int64 {
+	if value < 0 {
+		return 0
+	}
+	return value
 }
