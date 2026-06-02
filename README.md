@@ -17,20 +17,15 @@ frontend                  React/Vite app
 
 ```env
 MONGODB_URI=
+MONGODB_DB=codecamp_core
+PAYMENT_MONGODB_DB=codecamp_payment
+BLOG_MONGODB_DB=codecamp_php
 JWT_SECRET=
 STRIPE_SECRET_KEY=
 
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
-```
-
-Database names have defaults in the services:
-
-```text
-MONGODB_DB=codecamp_core
-PAYMENT_MONGODB_DB=codecamp_payment
-BLOG_MONGODB_DB=codecamp_php
 ```
 
 ## Run
