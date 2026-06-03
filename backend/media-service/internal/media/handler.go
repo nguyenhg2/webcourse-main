@@ -12,29 +12,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Handler struct {
-	cfg *config.Config
-}
-
 func RegisterRoutes(g *gin.RouterGroup, cfg *config.Config) {
-	h := &Handler{cfg: cfg}
-	g.POST("/upload", h.UploadVideo)
-	g.DELETE("/delete", h.DeleteVideo)
+	g.POST("/upload", func(c *gin.Context) { uploadVideo(c, cfg) })
+	g.DELETE("/delete", func(c *gin.Context) { deleteVideo(c, cfg) })
 }
 
 func RegisterFileRoutes(g *gin.RouterGroup, cfg *config.Config) {
-	h := &Handler{cfg: cfg}
-	g.POST("/upload", h.UploadFile)
+	g.POST("/upload", func(c *gin.Context) { uploadFile(c, cfg) })
 }
 
-func (h *Handler) UploadVideo(c *gin.Context) {
+func uploadVideo(c *gin.Context, cfg *config.Config) {
 	folder := cleanFolder(c.PostForm("folder"))
 	if folder == "" {
 		writeError(c, apiError{Status: http.StatusBadRequest, Message: "folder is required"})
 		return
 	}
 
-	upload, err := h.upload(c, "video", "video", folder)
+	upload, err := upload(c, cfg, "video", "video", folder)
 	if err != nil {
 		writeError(c, err)
 		return
@@ -50,8 +44,8 @@ func (h *Handler) UploadVideo(c *gin.Context) {
 	})
 }
 
-func (h *Handler) UploadFile(c *gin.Context) {
-	upload, err := h.upload(c, "file", "raw", attachmentFolder)
+func uploadFile(c *gin.Context, cfg *config.Config) {
+	upload, err := upload(c, cfg, "file", "raw", attachmentFolder)
 	if err != nil {
 		writeError(c, err)
 		return
@@ -72,25 +66,25 @@ func (h *Handler) UploadFile(c *gin.Context) {
 	})
 }
 
-func (h *Handler) DeleteVideo(c *gin.Context) {
-	if err := h.ensureCloudinaryConfig(); err != nil {
+func deleteVideo(c *gin.Context, cfg *config.Config) {
+	if err := ensureCloudinaryConfig(cfg); err != nil {
 		writeError(c, err)
 		return
 	}
 
-	var payload deleteVideoRequest
-	if err := c.ShouldBindJSON(&payload); err != nil && err != io.EOF {
+	var req deleteVideoRequest
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
 		writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id is required"})
 		return
 	}
 
-	publicID := strings.TrimSpace(payload.PublicID)
+	publicID := strings.TrimSpace(req.PublicID)
 	if publicID == "" {
 		writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id is required"})
 		return
 	}
 
-	body, err := postCloudinaryForm(h.cloudinaryURL("video", "destroy"), h.destroyForm(publicID))
+	body, err := postCloudinaryForm(cloudinaryURL(cfg, "video", "destroy"), destroyForm(cfg, publicID))
 	if err != nil {
 		writeError(c, err)
 		return
@@ -99,8 +93,8 @@ func (h *Handler) DeleteVideo(c *gin.Context) {
 	writeDeleteResult(c, publicID, body)
 }
 
-func (h *Handler) upload(c *gin.Context, formField string, resourceType string, folder string) (*uploadResult, error) {
-	if err := h.ensureCloudinaryConfig(); err != nil {
+func upload(c *gin.Context, cfg *config.Config, formField string, resourceType string, folder string) (*uploadResult, error) {
+	if err := ensureCloudinaryConfig(cfg); err != nil {
 		return nil, err
 	}
 
@@ -110,22 +104,22 @@ func (h *Handler) upload(c *gin.Context, formField string, resourceType string, 
 	}
 	defer file.Close()
 
-	body, contentType, err := h.uploadBody(file, header.Filename, folder)
+	body, contentType, err := uploadBody(cfg, file, header.Filename, folder)
 	if err != nil {
 		return nil, err
 	}
 
-	respBody, err := postCloudinaryMultipart(h.cloudinaryURL(resourceType, "upload"), body, contentType)
+	respBody, err := postCloudinaryMultipart(cloudinaryURL(cfg, resourceType, "upload"), body, contentType)
 	if err != nil {
 		return nil, err
 	}
 
-	var upload cloudinaryUpload
-	if err := json.Unmarshal(respBody, &upload); err != nil {
+	var data cloudinaryUpload
+	if err := json.Unmarshal(respBody, &data); err != nil {
 		return nil, err
 	}
 
-	return &uploadResult{FileName: header.Filename, Folder: folder, Data: upload}, nil
+	return &uploadResult{FileName: header.Filename, Folder: folder, Data: data}, nil
 }
 
 func writeDeleteResult(c *gin.Context, publicID string, body []byte) {

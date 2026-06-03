@@ -10,71 +10,41 @@ import (
 
 func JWTAuth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenStr, ok := bearerToken(c.GetHeader("Authorization"))
+		claims, ok := parseToken(c.GetHeader("Authorization"), secret)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing bearer token"})
-			c.Abort()
+			abort(c, http.StatusUnauthorized, "invalid token")
 			return
 		}
 
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrTokenSignatureInvalid
-			}
-			return []byte(secret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
-			c.Abort()
-			return
+		if userID := claimString(claims, "user_id"); userID != "" {
+			c.Set("user_id", userID)
+		} else if sub := claimString(claims, "sub"); sub != "" {
+			c.Set("user_id", sub)
 		}
-
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			if userID, ok := claims["user_id"].(string); ok {
-				c.Set("user_id", userID)
-			} else if sub, ok := claims["sub"].(string); ok {
-				c.Set("user_id", sub)
-			}
-			if role, ok := claims["role"].(string); ok {
-				c.Set("role", role)
-			}
+		if role := claimString(claims, "role"); role != "" {
+			c.Set("role", role)
 		}
 
 		c.Next()
 	}
 }
 
-func bearerToken(header string) (string, bool) {
-	const prefix = "Bearer "
-	if !strings.HasPrefix(header, prefix) {
-		return "", false
-	}
-
-	token := strings.TrimSpace(strings.TrimPrefix(header, prefix))
-	return token, token != ""
-}
-
 func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole := c.GetString("role")
 		for _, role := range roles {
-			if userRole == role {
+			if c.GetString("role") == role {
 				c.Next()
 				return
 			}
 		}
-
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-		c.Abort()
+		abort(c, http.StatusForbidden, "forbidden")
 	}
 }
 
 func RequireInternalToken(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if secret != "" && c.GetHeader("X-Internal-Token") != secret {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid internal token"})
-			c.Abort()
+			abort(c, http.StatusUnauthorized, "invalid internal token")
 			return
 		}
 		c.Next()
@@ -83,15 +53,44 @@ func RequireInternalToken(secret string) gin.HandlerFunc {
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, PATCH, DELETE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Internal-Token")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, PATCH, DELETE")
+		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Internal-Token")
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
-
 		c.Next()
 	}
+}
+
+func parseToken(header string, secret string) (jwt.MapClaims, bool) {
+	if !strings.HasPrefix(header, "Bearer ") {
+		return nil, false
+	}
+
+	raw := strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
+	if raw == "" {
+		return nil, false
+	}
+
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(raw, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrTokenSignatureInvalid
+		}
+		return []byte(secret), nil
+	})
+	return claims, err == nil && token.Valid
+}
+
+func claimString(claims jwt.MapClaims, key string) string {
+	value, _ := claims[key].(string)
+	return value
+}
+
+func abort(c *gin.Context, status int, message string) {
+	c.JSON(status, gin.H{"error": message})
+	c.Abort()
 }
