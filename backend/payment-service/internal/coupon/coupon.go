@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -92,32 +93,27 @@ func Discount(ctx context.Context, db *mongo.Database, code string, amount int64
 	return coupon.discountFor(amount), true
 }
 
-func listCoupons(ctx context.Context, col *mongo.Collection) ([]CouponResponse, error) {
+func listCoupons(ctx context.Context, col *mongo.Collection) ([]Coupon, error) {
 	cursor, err := col.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var docs []Coupon
-	if err := cursor.All(ctx, &docs); err != nil {
+	var coupons []Coupon
+	if err := cursor.All(ctx, &coupons); err != nil {
 		return nil, err
 	}
-
-	items := make([]CouponResponse, 0, len(docs))
-	for _, doc := range docs {
-		items = append(items, doc.response())
-	}
-	sort.SliceStable(items, func(i, j int) bool {
-		if items[i].Active != items[j].Active {
-			return items[i].Active
+	sort.SliceStable(coupons, func(i, j int) bool {
+		if coupons[i].Active != coupons[j].Active {
+			return coupons[i].Active
 		}
-		return items[i].Code < items[j].Code
+		return coupons[i].Code < coupons[j].Code
 	})
-	return items, nil
+	return coupons, nil
 }
 
-func createCoupon(ctx context.Context, col *mongo.Collection, req CreateRequest) (*CouponResponse, error) {
+func createCoupon(ctx context.Context, col *mongo.Collection, req CreateRequest) (*Coupon, error) {
 	coupon, err := newCoupon(req)
 	if err != nil {
 		return nil, err
@@ -135,31 +131,26 @@ func createCoupon(ctx context.Context, col *mongo.Collection, req CreateRequest)
 	if id, ok := result.InsertedID.(primitive.ObjectID); ok {
 		coupon.ID = id
 	}
-
-	response := coupon.response()
-	return &response, nil
+	return coupon, nil
 }
 
-func setActive(ctx context.Context, col *mongo.Collection, id string, active bool) (*CouponResponse, error) {
+func setActive(ctx context.Context, col *mongo.Collection, id string, active bool) (*Coupon, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, errors.New("invalid coupon id")
 	}
 
-	result, err := col.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": bson.M{"active": active}})
+	var coupon Coupon
+	err = col.FindOneAndUpdate(
+		ctx,
+		bson.M{"_id": objectID},
+		bson.M{"$set": bson.M{"active": active}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&coupon)
 	if err != nil {
 		return nil, err
 	}
-	if result.MatchedCount == 0 {
-		return nil, mongo.ErrNoDocuments
-	}
-
-	var coupon Coupon
-	if err := col.FindOne(ctx, bson.M{"_id": objectID}).Decode(&coupon); err != nil {
-		return nil, err
-	}
-	response := coupon.response()
-	return &response, nil
+	return &coupon, nil
 }
 
 func newCoupon(req CreateRequest) (*Coupon, error) {
@@ -178,11 +169,14 @@ func newCoupon(req CreateRequest) (*Coupon, error) {
 	if couponType == couponTypePercentage && req.Discount > 100 {
 		return nil, errors.New("percentage discount cannot be greater than 100")
 	}
+	if req.MaxUses < 0 {
+		return nil, errors.New("max_uses must be greater than or equal to 0")
+	}
 	if req.Expiry <= 0 {
 		req.Expiry = time.Now().Add(365 * 24 * time.Hour).Unix()
 	}
 
-	return &Coupon{Code: code, Type: couponType, Discount: req.Discount, Active: req.Active, Expiry: req.Expiry}, nil
+	return &Coupon{Code: code, Type: couponType, Discount: req.Discount, Active: req.Active, Expiry: req.Expiry, MaxUses: req.MaxUses}, nil
 }
 
 func NormalizeCode(code string) string {
@@ -201,36 +195,35 @@ func normalizeType(value string) string {
 }
 
 func (c Coupon) validFor(amount int64) bool {
-	return amount >= 0 && c.Active && !c.expired() && c.Discount > 0 && normalizeType(c.Type) != ""
-}
-
-func (c Coupon) expired() bool {
-	return c.Expiry > 0 && c.Expiry < time.Now().Unix()
+	expired := c.Expiry > 0 && c.Expiry < time.Now().Unix()
+	usedUp := c.MaxUses > 0 && c.UsedCount >= c.MaxUses
+	return amount >= 0 && c.Active && !expired && !usedUp && c.Discount > 0 && normalizeType(c.Type) != ""
 }
 
 func (c Coupon) discountFor(amount int64) int64 {
 	if amount <= 0 {
 		return 0
 	}
+	discount := int64(0)
 	switch normalizeType(c.Type) {
 	case couponTypePercentage:
-		return min(amount*c.Discount/100, amount)
+		discount = amount * c.Discount / 100
 	case couponTypeFixed:
-		return min(c.Discount, amount)
-	default:
-		return 0
+		discount = c.Discount
 	}
+	if discount > amount {
+		return amount
+	}
+	return discount
 }
 
-func (c Coupon) response() CouponResponse {
-	return CouponResponse{ID: c.ID.Hex(), Code: c.Code, Type: c.Type, Discount: c.Discount, Active: c.Active, Expiry: c.Expiry}
-}
-
-func min(a, b int64) int64 {
-	if a < b {
-		return a
+func MarkUsed(ctx context.Context, db *mongo.Database, code string) error {
+	code = NormalizeCode(code)
+	if code == "" {
+		return nil
 	}
-	return b
+	_, err := db.Collection("coupons").UpdateOne(ctx, bson.M{"code": code}, bson.M{"$inc": bson.M{"used_count": 1}})
+	return err
 }
 
 func positive(value int64) int64 {

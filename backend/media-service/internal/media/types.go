@@ -15,12 +15,6 @@ type deleteVideoRequest struct {
 	PublicID string `json:"public_id"`
 }
 
-type uploadResult struct {
-	FileName string
-	Folder   string
-	Data     cloudinaryUpload
-}
-
 type apiError struct {
 	Status  int
 	Message string

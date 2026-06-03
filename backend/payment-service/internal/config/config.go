@@ -9,24 +9,28 @@ import (
 )
 
 type Config struct {
-	MongoURI        string
-	PaymentDB       string
-	JWTSecret       string
-	InternalToken   string
-	StripeSecretKey string
-	Port            string
+	MongoURI            string
+	PaymentDB           string
+	JWTSecret           string
+	InternalToken       string
+	StripeSecretKey     string
+	StripeWebhookSecret string
+	RedisURL            string
+	Port                string
 }
 
 func Load() *Config {
 	_ = godotenv.Load(".env", "../../.env")
 
 	return &Config{
-		MongoURI:        requiredEnv("MONGODB_URI"),
-		PaymentDB:       getEnv("PAYMENT_MONGODB_DB", "codecamp_payment"),
-		JWTSecret:       getEnv("JWT_SECRET", "dev-secret"),
-		InternalToken:   getEnv("PAYMENT_INTERNAL_TOKEN", "dev-internal-token"),
-		StripeSecretKey: requiredEnv("STRIPE_SECRET_KEY"),
-		Port:            getEnv("PORT", "8002"),
+		MongoURI:            requiredEnv("MONGODB_URI"),
+		PaymentDB:           getEnv("PAYMENT_MONGODB_DB", "codecamp_payment"),
+		JWTSecret:           getEnv("JWT_SECRET", "dev-secret"),
+		InternalToken:       getEnv("PAYMENT_INTERNAL_TOKEN", "dev-internal-token"),
+		StripeSecretKey:     requiredEnv("STRIPE_SECRET_KEY"),
+		StripeWebhookSecret: getEnv("STRIPE_WEBHOOK_SECRET", ""),
+		RedisURL:            getEnv("REDIS_URL", ""),
+		Port:                getEnv("PORT", "8002"),
 	}
 }
 

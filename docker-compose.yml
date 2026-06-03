@@ -96,7 +96,11 @@ services:
       - PORT=8002
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - REDIS_URL=redis://redis:6379
     restart: unless-stopped
+    depends_on:
+      - redis
 
   media:
     build: ./backend/media-service

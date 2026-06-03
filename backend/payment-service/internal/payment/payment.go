@@ -2,8 +2,10 @@ package payment
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,7 +13,9 @@ import (
 	"payment-service/internal/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/paymentintent"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,12 +23,15 @@ import (
 )
 
 const (
-	methodStripe   = "stripe"
-	statusPending  = "pending"
-	statusComplete = "completed"
+	methodStripe          = "stripe"
+	statusPending         = "pending"
+	statusComplete        = "completed"
+	statusFailed          = "failed"
+	statusCanceled        = "canceled"
+	paymentSuccessChannel = "payment.success"
 )
 
-func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, stripeSecretKey string, internalOnly gin.HandlerFunc) {
+func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, stripeSecretKey string, internalOnly gin.HandlerFunc, redisClient *redis.Client) {
 	stripe.Key = strings.TrimSpace(stripeSecretKey)
 	payments := db.Collection("payments")
 
@@ -35,7 +42,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, stripeSecretKey stri
 			return
 		}
 
-		response, err := createPayment(c.Request.Context(), db, payments, c.GetString("user_id"), req)
+		response, err := createPayment(c.Request.Context(), db, payments, c.GetString("user_id"), req, redisClient)
 		if err != nil {
 			jsonError(c, http.StatusBadRequest, err)
 			return
@@ -71,7 +78,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, stripeSecretKey stri
 	})
 }
 
-func createPayment(ctx context.Context, db *mongo.Database, col *mongo.Collection, userID string, req PaymentRequest) (*PaymentResponse, error) {
+func createPayment(ctx context.Context, db *mongo.Database, col *mongo.Collection, userID string, req PaymentRequest, redisClient *redis.Client) (*PaymentResponse, error) {
 	payment, err := buildPayment(ctx, db, userID, req)
 	if err != nil {
 		return nil, err
@@ -79,7 +86,21 @@ func createPayment(ctx context.Context, db *mongo.Database, col *mongo.Collectio
 
 	clientSecret := ""
 	if payment.FinalAmount > 0 {
-		intent, err := createStripeIntent(payment)
+		params := &stripe.PaymentIntentParams{
+			Amount:             stripe.Int64(payment.FinalAmount),
+			Currency:           stripe.String("vnd"),
+			PaymentMethodTypes: []*string{stripe.String("card")},
+			Metadata: map[string]string{
+				"payment_id":   payment.ID.Hex(),
+				"user_id":      payment.UserID,
+				"course_count": strconv.Itoa(len(payment.CourseIDs)),
+			},
+		}
+		if payment.UserEmail != "" {
+			params.ReceiptEmail = stripe.String(payment.UserEmail)
+		}
+
+		intent, err := paymentintent.New(params)
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +112,18 @@ func createPayment(ctx context.Context, db *mongo.Database, col *mongo.Collectio
 	if _, err := col.InsertOne(ctx, payment); err != nil {
 		return nil, err
 	}
-	return paymentResponse(payment, clientSecret), nil
+	if payment.Status == statusComplete {
+		if err := afterPaymentCompleted(ctx, db, payment, redisClient); err != nil {
+			return nil, err
+		}
+	}
+	return &PaymentResponse{
+		ClientSecret:    clientSecret,
+		PaymentID:       payment.ID.Hex(),
+		StripePaymentID: payment.StripePaymentID,
+		Amount:          payment.FinalAmount,
+		Status:          payment.Status,
+	}, nil
 }
 
 func buildPayment(ctx context.Context, db *mongo.Database, userID string, req PaymentRequest) (*Payment, error) {
@@ -103,15 +135,51 @@ func buildPayment(ctx context.Context, db *mongo.Database, userID string, req Pa
 		return nil, errors.New("amount must be greater than or equal to 0")
 	}
 
-	courseIDs := normalizedCourseIDs(req)
+	seen := map[string]bool{}
+	courseIDs := []string{}
+	for _, id := range req.CourseIDs {
+		id = strings.TrimSpace(id)
+		if id != "" && !seen[id] {
+			seen[id] = true
+			courseIDs = append(courseIDs, id)
+		}
+	}
 	if len(courseIDs) == 0 {
 		return nil, errors.New("course_ids is required")
 	}
 
-	discount, couponCode, err := couponDiscount(ctx, db, req.CouponCode, req.Amount)
-	if err != nil {
-		return nil, err
+	discount, couponCode := int64(0), coupon.NormalizeCode(req.CouponCode)
+	if couponCode != "" {
+		validDiscount, ok := coupon.Discount(ctx, db, couponCode, req.Amount)
+		if !ok {
+			return nil, errors.New("coupon is invalid")
+		}
+		discount = validDiscount
 	}
+
+	finalAmount := req.Amount - discount
+	if finalAmount < 0 {
+		finalAmount = 0
+	}
+
+	cardLast4 := strings.TrimSpace(req.CardLast4)
+	if len(cardLast4) > 4 {
+		cardLast4 = cardLast4[len(cardLast4)-4:]
+	}
+	if len(cardLast4) != 4 {
+		cardLast4 = ""
+	}
+
+	cardBrand := strings.ToLower(strings.TrimSpace(req.CardBrand))
+	if cardBrand == "american express" {
+		cardBrand = "amex"
+	}
+
+	billing := req.BillingAddress
+	if strings.TrimSpace(billing.Email) == "" {
+		billing.Email = strings.TrimSpace(req.UserEmail)
+	}
+	billing.Country = strings.ToUpper(strings.TrimSpace(billing.Country))
 
 	now := time.Now().Unix()
 	return &Payment{
@@ -122,30 +190,17 @@ func buildPayment(ctx context.Context, db *mongo.Database, userID string, req Pa
 		Amount:         req.Amount,
 		OriginalAmount: req.Amount,
 		DiscountAmount: discount,
-		FinalAmount:    positive(req.Amount - discount),
+		FinalAmount:    finalAmount,
 		CouponCode:     couponCode,
 		CouponDiscount: discount,
 		Method:         methodStripe,
-		CardLast4:      normalizeCardLast4(req.CardLast4),
-		CardBrand:      normalizeCardBrand(req.CardBrand),
+		CardLast4:      cardLast4,
+		CardBrand:      cardBrand,
 		Status:         statusComplete,
-		BillingAddress: normalizeBillingAddress(req.BillingAddress, req.UserEmail),
+		BillingAddress: billing,
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}, nil
-}
-
-func couponDiscount(ctx context.Context, db *mongo.Database, code string, amount int64) (int64, string, error) {
-	code = coupon.NormalizeCode(code)
-	if code == "" {
-		return 0, "", nil
-	}
-
-	discount, ok := coupon.Discount(ctx, db, code, amount)
-	if !ok {
-		return 0, "", errors.New("coupon is invalid")
-	}
-	return discount, code, nil
 }
 
 func getPayment(ctx context.Context, col *mongo.Collection, id string) (*Payment, error) {
@@ -157,6 +212,67 @@ func getPayment(ctx context.Context, col *mongo.Collection, id string) (*Payment
 	var payment Payment
 	err = col.FindOne(ctx, bson.M{"_id": objectID}).Decode(&payment)
 	return &payment, err
+}
+
+func completePaymentByStripeID(ctx context.Context, db *mongo.Database, col *mongo.Collection, stripePaymentID string, card cardSummary, redisClient *redis.Client) error {
+	set := bson.M{"status": statusComplete, "updated_at": time.Now().Unix()}
+	if card.Last4 != "" {
+		set["card_last4"] = card.Last4
+	}
+	if card.Brand != "" {
+		set["card_brand"] = card.Brand
+	}
+
+	result, err := col.UpdateOne(
+		ctx,
+		bson.M{"stripe_payment_id": stripePaymentID, "status": bson.M{"$ne": statusComplete}},
+		bson.M{"$set": set},
+	)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return nil
+	}
+
+	var payment Payment
+	if err := col.FindOne(ctx, bson.M{"stripe_payment_id": stripePaymentID}).Decode(&payment); err != nil {
+		return err
+	}
+	return afterPaymentCompleted(ctx, db, &payment, redisClient)
+}
+
+func markPaymentByStripeID(ctx context.Context, col *mongo.Collection, stripePaymentID string, status string) error {
+	_, err := col.UpdateOne(
+		ctx,
+		bson.M{"stripe_payment_id": stripePaymentID, "status": bson.M{"$ne": statusComplete}},
+		bson.M{"$set": bson.M{"status": status, "updated_at": time.Now().Unix()}},
+	)
+	return err
+}
+
+func afterPaymentCompleted(ctx context.Context, db *mongo.Database, payment *Payment, redisClient *redis.Client) error {
+	if payment.CouponCode != "" {
+		if err := coupon.MarkUsed(ctx, db, payment.CouponCode); err != nil {
+			return err
+		}
+	}
+	return publishPaymentSuccess(ctx, redisClient, payment)
+}
+
+func publishPaymentSuccess(ctx context.Context, redisClient *redis.Client, payment *Payment) error {
+	if redisClient == nil {
+		return nil
+	}
+	payload, err := json.Marshal(map[string]any{
+		"user_id":    payment.UserID,
+		"course_ids": payment.CourseIDs,
+		"payment_id": payment.ID.Hex(),
+	})
+	if err != nil {
+		return err
+	}
+	return redisClient.Publish(ctx, paymentSuccessChannel, payload).Err()
 }
 
 func listPayments(ctx context.Context, col *mongo.Collection, filter bson.M) ([]*Payment, error) {
@@ -171,16 +287,6 @@ func listPayments(ctx context.Context, col *mongo.Collection, filter bson.M) ([]
 		return nil, err
 	}
 	return payments, nil
-}
-
-func paymentResponse(payment *Payment, clientSecret string) *PaymentResponse {
-	return &PaymentResponse{
-		ClientSecret:    clientSecret,
-		PaymentID:       payment.ID.Hex(),
-		StripePaymentID: payment.StripePaymentID,
-		Amount:          payment.FinalAmount,
-		Status:          payment.Status,
-	}
 }
 
 func jsonError(c *gin.Context, status int, err error) {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FiCreditCard } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
-import { createPaymentAPI, enrollCourseAPI, removeCartAPI } from "../services/api";
+import { createPaymentAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 function onlyNumbers(value) {
@@ -68,19 +68,11 @@ export default function Payment() {
       });
 
       if (payment.status !== "completed") {
-        setMessage("Da tao Stripe PaymentIntent. Can Stripe Elements de hoan tat thanh toan.");
+        setMessage("Da tao Stripe PaymentIntent. Hoan tat thanh toan bang Stripe Elements de webhook mo khoa hoc.");
         return;
       }
 
-      sessionStorage.setItem("pendingPaymentEnrollment", JSON.stringify({ paymentId: payment.payment_id, courseIds }));
-      try {
-        await enrollCourseAPI(courseIds, payment.payment_id);
-        await Promise.allSettled(courseIds.map((courseId) => removeCartAPI(courseId)));
-        await refreshCartCount?.();
-        sessionStorage.removeItem("pendingPaymentEnrollment");
-      } catch {
-        // Keep pendingPaymentEnrollment so the success page can retry enrollment.
-      }
+      await refreshCartCount?.();
 
       navigate("/thanh-toan-thanh-cong", { state: { paymentId: payment.payment_id, courseIds } });
     } catch (err) {

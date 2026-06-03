@@ -8,6 +8,7 @@ Go/Gin payment service for learning and classroom demo with Stripe PaymentIntent
 
 ```text
 POST /api/payments          Create Stripe PaymentIntent
+POST /api/payments/webhook  Stripe webhook for PaymentIntent status updates
 GET  /api/payments/:id      Get payment detail
 GET  /api/payments/history  Current user's payment history
 GET  /api/payments          Admin/operator list
@@ -26,6 +27,8 @@ Payment Service validates coupon from database
 Payment Service creates Stripe PaymentIntent
 Payment Service saves payment to MongoDB with status=pending
 Payment Service returns client_secret for Stripe Elements
+Stripe calls Payment Service webhook after confirmation
+Payment Service updates status=completed|failed and publishes payment.success to Redis
 ```
 
 If `final_amount` is `0`, the service saves `status=completed` because no card payment is needed.
@@ -46,6 +49,8 @@ created_at, updated_at
 ```text
 MONGODB_URI             required
 STRIPE_SECRET_KEY       required
+STRIPE_WEBHOOK_SECRET   optional in local dev, recommended in deploy
+REDIS_URL               required for payment.success events
 PAYMENT_MONGODB_DB      default codecamp_payment
 JWT_SECRET              default dev-secret
 PAYMENT_INTERNAL_TOKEN  default dev-internal-token

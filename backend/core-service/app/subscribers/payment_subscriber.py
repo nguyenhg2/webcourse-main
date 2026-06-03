@@ -27,11 +27,16 @@ async def listen_payment_success():
 
                 try:
                     event = PaymentSuccessEvent.model_validate_json(message["data"])
+                    db = get_db()
                     result = await create_enrollments(
-                        get_db(),
+                        db,
                         event.user_id,
                         event.course_ids,
                         event.payment_id,
+                    )
+                    await db["carts"].update_one(
+                        {"user_id": event.user_id},
+                        {"$pull": {"items": {"$in": event.course_ids}}},
                     )
                     logger.info(
                         "Processed payment.success payment_id=%s enrolled=%s skipped=%s",

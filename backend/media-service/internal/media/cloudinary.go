@@ -73,7 +73,7 @@ func destroyForm(cfg *config.Config, publicID string) url.Values {
 	return form
 }
 
-func postCloudinaryForm(endpoint string, form url.Values) ([]byte, error) {
+func cloudinaryPostForm(endpoint string, form url.Values) ([]byte, error) {
 	resp, err := cloudinaryClient.PostForm(endpoint, form)
 	if err != nil {
 		return nil, apiError{Status: http.StatusBadGateway, Message: err.Error()}
@@ -81,14 +81,8 @@ func postCloudinaryForm(endpoint string, form url.Values) ([]byte, error) {
 	return readCloudinaryResponse(resp)
 }
 
-func postCloudinaryMultipart(endpoint string, body io.Reader, contentType string) ([]byte, error) {
-	req, err := http.NewRequest(http.MethodPost, endpoint, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", contentType)
-
-	resp, err := cloudinaryClient.Do(req)
+func cloudinaryPostMultipart(endpoint string, body io.Reader, contentType string) ([]byte, error) {
+	resp, err := cloudinaryClient.Post(endpoint, contentType, body)
 	if err != nil {
 		return nil, apiError{Status: http.StatusBadGateway, Message: err.Error()}
 	}
