@@ -1,16 +1,14 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
-import os
 
 
 class Settings(BaseSettings):
-    mongo_url: str = Field(
-        default=os.getenv("MONGODB_URI"),
-        alias="MONGODB_URI",
-    )
+    mongo_url: str = Field(alias="MONGODB_URI")
     mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
     payment_db: str = Field(default="codecamp_payment", alias="PAYMENT_MONGODB_DB")
-    redis_url: str | None = Field(default=os.getenv("REDIS_URL"), alias="REDIS_URL")
+    payment_service_url: str = Field(default="http://localhost:8002", alias="PAYMENT_SERVICE_URL")
+    payment_internal_token: str = Field(default="dev-internal-token", alias="PAYMENT_INTERNAL_TOKEN")
+    redis_url: str | None = Field(default="redis://localhost:6379", alias="REDIS_URL")
     jwt_secret: str = Field(default="dev-secret", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(
@@ -19,7 +17,7 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", "../../.env")
         populate_by_name = True
 
     @property

@@ -15,11 +15,12 @@ COPY . .
 RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs \
     && chmod -R 775 bootstrap/cache storage
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN MONGODB_URI=mongodb+srv://build-placeholder.mongodb.net \
+    composer install --no-dev --optimize-autoloader --no-interaction
 
 RUN cp .env.example .env \
-    && php artisan key:generate --force \
-    && sed -i '/^MONGODB_URI=/d;/^MONGODB_DB=/d;/^BLOG_MONGODB_DB=/d;/^JWT_SECRET=/d' .env
+    && sed -i '/^MONGODB_URI=/d' .env \
+    && MONGODB_URI=mongodb+srv://build-placeholder.mongodb.net php artisan key:generate --force
 
 EXPOSE 8003
 

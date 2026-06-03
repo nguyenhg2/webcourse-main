@@ -8,6 +8,16 @@ const STATUS_COLORS = {
   failed: "bg-red-100 text-red-700",
 };
 
+const STATUS_LABELS = {
+  completed: "Hoàn tất",
+  pending: "Đang chờ",
+  failed: "Thất bại",
+};
+
+function statusLabel(status) {
+  return STATUS_LABELS[status] || status || "Không rõ";
+}
+
 export default function OrderManager() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +93,7 @@ export default function OrderManager() {
                     <td className="p-4 font-semibold text-gray-900">{fmt(o.final_amount)}đ</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[o.status] || "bg-gray-100 text-gray-600"}`}>
-                        {o.status}
+                        {statusLabel(o.status)}
                       </span>
                     </td>
                   </tr>
@@ -134,7 +144,7 @@ export default function OrderManager() {
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
                   <span className="text-gray-500">Trạng thái</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] || "bg-gray-100 text-gray-600"}`}>
-                    {selected.status}
+                    {statusLabel(selected.status)}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5">

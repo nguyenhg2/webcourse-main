@@ -5,6 +5,17 @@ import { getAdminOrdersAPI, getPaymentHistoryAPI } from "../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
 
+const STATUS_LABELS = {
+  all: "Tất cả",
+  completed: "Hoàn tất",
+  pending: "Đang chờ",
+  failed: "Thất bại",
+};
+
+function statusLabel(status) {
+  return STATUS_LABELS[status] || status || "Không rõ";
+}
+
 export default function PaymentManager() {
   const { user } = useAuth();
   const [payments, setPayments] = useState([]);
@@ -57,7 +68,7 @@ export default function PaymentManager() {
       <div className="bg-white border border-gray-100 rounded-lg p-4 flex flex-wrap gap-2">
         {["all", "completed", "pending"].map((item) => (
           <button key={item} onClick={() => setStatus(item)} className={`px-4 py-2 rounded-lg text-sm font-medium ${status === item ? "bg-primary text-white" : "bg-gray-50 text-gray-600"}`}>
-            {item === "all" ? "Tất cả" : item}
+            {statusLabel(item)}
           </button>
         ))}
       </div>
@@ -70,7 +81,7 @@ export default function PaymentManager() {
               <th className="text-left p-4">Người dùng</th>
               <th className="text-left p-4">Khóa học</th>
               <th className="text-left p-4">Số tiền</th>
-              <th className="text-left p-4">Coupon</th>
+              <th className="text-left p-4">Mã giảm giá</th>
               <th className="text-left p-4">Thẻ</th>
               <th className="text-left p-4">Trạng thái</th>
             </tr>
@@ -95,7 +106,7 @@ export default function PaymentManager() {
                 <td className="p-4">{payment.card_brand ? `${payment.card_brand} ${payment.card_last4 ? "****" + payment.card_last4 : ""}` : "Chưa xác nhận"}</td>
                 <td className="p-4">
                   <span className={`px-2 py-1 rounded-full text-xs ${payment.status === "completed" ? "bg-success-light text-success" : "bg-orange-50 text-orange-600"}`}>
-                    {payment.status}
+                    {statusLabel(payment.status)}
                   </span>
                 </td>
               </tr>

@@ -124,8 +124,8 @@ async def my_courses(db=Depends(get_db), user=Depends(get_current_user)):
         course["progress"] = progress
         course["totalLessons"] = total
         course["completedLessons"] = completed
-        course["lastLesson"] = first_lesson["title"] if first_lesson else "Bai hoc dau tien"
-        course["lastLessonId"] = str(first_lesson["_id"]) if first_lesson else "preview"
+        course["lastLesson"] = first_lesson["title"] if first_lesson else "Chua co bai hoc"
+        course["lastLessonId"] = str(first_lesson["_id"]) if first_lesson else None
         course["paymentId"] = enrollment.get("payment_id")
         course["enrolledAt"] = enrollment.get("enrolled_at")
         items.append(course)

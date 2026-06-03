@@ -5,6 +5,20 @@ import { getAdminDashboardAPI, getAdminOrdersAPI, getCoursesAPI, getDashboardOve
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
 
+const STATUS_LABELS = {
+  completed: "Hoàn tất",
+  pending: "Đang chờ",
+  failed: "Thất bại",
+  draft: "Nháp",
+  pending_review: "Chờ duyệt",
+  published: "Đã xuất bản",
+  rejected: "Cần sửa",
+};
+
+function statusLabel(status) {
+  return STATUS_LABELS[status] || status || "";
+}
+
 function buildTopPurchasedCourses(orders = []) {
   const byCourse = new Map();
 
@@ -199,7 +213,7 @@ export default function DashboardOverview() {
                   <div>
                     <p className="font-medium text-gray-900">{order.user?.name || order.user?.email || order.id || order._id}</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      {order.created_at ? new Date(order.created_at * 1000).toLocaleDateString("vi-VN") : "Chưa có ngày"} · {order.status}
+                      {order.created_at ? new Date(order.created_at * 1000).toLocaleDateString("vi-VN") : "Chưa có ngày"} · {statusLabel(order.status)}
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-primary">{currency(order.final_amount ?? order.amount)}</span>
@@ -225,8 +239,8 @@ export default function DashboardOverview() {
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
                     {role === "operator"
-                      ? `${(item.courses || []).map((course) => course.title).join(", ") || "Chưa có tên khóa học"} · ${item.status || ""}`
-                      : item.status || (item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`)}
+                      ? `${(item.courses || []).map((course) => course.title).join(", ") || "Chưa có tên khóa học"} · ${statusLabel(item.status)}`
+                      : item.status ? statusLabel(item.status) : (item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`)}
                   </p>
                 </div>
                 <span className="text-sm font-semibold text-primary">

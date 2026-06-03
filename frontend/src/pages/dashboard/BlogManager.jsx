@@ -64,7 +64,7 @@ export default function BlogManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý Blog</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Quản lý bài viết</h1>
           <p className="text-gray-500 mt-1">Đăng và chỉnh sửa bài viết.</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-semibold text-sm">

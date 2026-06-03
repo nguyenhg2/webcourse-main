@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	"strings"
+	"time"
 
-	"github.com/redis/go-redis/v9"
-	"github.com/stripe/stripe-go/v81"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -17,25 +15,19 @@ import (
 func main() {
 	cfg := config.Load()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	clientOptions := options.Client().ApplyURI(cfg.MongoURI)
-	mongoClient, err := mongo.Connect(ctx, clientOptions)
+	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.MongoURI))
 	if err != nil {
 		log.Fatal("Mongo connect error:", err)
 	}
-	db := mongoClient.Database("codecamp_payment")
+	defer mongoClient.Disconnect(context.Background())
 
-	redisAddr := strings.TrimPrefix(cfg.RedisURL, "redis://")
-	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})
-	if _, err := rdb.Ping(ctx).Result(); err != nil {
-		log.Println("Redis is not ready, payment events will be skipped:", err)
-		rdb = nil
-	}
+	db := mongoClient.Database(cfg.PaymentDB)
 
-	stripe.Key = cfg.StripeKey
-
-	r := router.SetupRouter(db, rdb, cfg)
+	r := router.SetupRouter(db, cfg)
+	log.Printf("payment service running on port %s", cfg.Port)
 
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatal(err)

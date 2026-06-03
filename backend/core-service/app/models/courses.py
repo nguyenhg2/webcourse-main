@@ -15,6 +15,7 @@ class CourseBase(BaseModel):
     total_students: int = 0
     status: str = "draft"
     create_at: Optional[str] = None
+    cloudinary_folder: Optional[str] = None
 
 class CourseCreate(CourseBase):
     pass
@@ -31,6 +32,7 @@ class CourseUpdate(BaseModel):
     total_students: Optional[int] = None
     status: Optional[str] = None
     create_at: Optional[str] = None
+    cloudinary_folder: Optional[str] = None
 
 class CourseResponse(CourseBase):
     id: str = Field(..., alias="_id")

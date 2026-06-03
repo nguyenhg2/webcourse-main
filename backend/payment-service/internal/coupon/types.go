@@ -1,32 +1,38 @@
-package model
+package coupon
 
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Coupon struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Code     string             `bson:"code" json:"code"`
+	Type     string             `bson:"type" json:"type"`
 	Discount int64              `bson:"discount" json:"discount"`
-	Type     string             `bson:"type" json:"type"` // "percentage" or "fixed"
-	MaxUses  int64              `bson:"max_uses" json:"max_uses"`
-	Used     int64              `bson:"used" json:"used"`
-	Expiry   int64              `bson:"expiry" json:"expiry"`
 	Active   bool               `bson:"active" json:"active"`
+	Expiry   int64              `bson:"expiry" json:"expiry"`
 }
 
-type ValidateCouponRequest struct {
+type ValidateRequest struct {
 	Code   string `json:"code"`
 	Amount int64  `json:"amount"`
 }
 
-type CreateCouponRequest struct {
+type CreateRequest struct {
 	Code     string `json:"code"`
-	Discount int64  `json:"discount"`
 	Type     string `json:"type"`
-	MaxUses  int64  `json:"max_uses"`
-	Expiry   int64  `json:"expiry"`
+	Discount int64  `json:"discount"`
 	Active   bool   `json:"active"`
+	Expiry   int64  `json:"expiry"`
 }
 
-type UpdateCouponStatusRequest struct {
+type ActiveRequest struct {
 	Active bool `json:"active"`
+}
+
+type CouponResponse struct {
+	ID       string `json:"id"`
+	Code     string `json:"code"`
+	Type     string `json:"type"`
+	Discount int64  `json:"discount"`
+	Active   bool   `json:"active"`
+	Expiry   int64  `json:"expiry"`
 }

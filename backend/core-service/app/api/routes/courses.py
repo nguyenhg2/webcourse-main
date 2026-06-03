@@ -5,6 +5,8 @@ from app.db.mongo import get_db, serialize_doc, serialize_docs
 from app.models.courses import CourseCreate, CourseResponse
 from typing import List, Optional
 from bson import ObjectId
+import re
+import unicodedata
 
 router = APIRouter()
 
@@ -20,12 +22,12 @@ def _can_view_unpublished(course: dict, user: dict | None) -> bool:
 def _course_list_query(user: dict | None, review_status: Optional[str] = None, manage: bool = False) -> dict:
     if review_status:
         if not user or user.get("role") not in {"admin", "operator"}:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không đủ quyền thực hiện")
         return {"status": review_status}
     if not manage:
         return {"status": "published"}
     if not user or user.get("role") == "student":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không đủ quyền thực hiện")
     if user.get("role") in {"admin", "operator"}:
         return {}
     if user.get("role") == "instructor":
@@ -52,10 +54,17 @@ def _ensure_course_owner(course: dict | None, user: dict):
     if not course:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khong tim thay khoa hoc",
+            detail="Không tìm thấy khóa học",
         )
     if user.get("role") != "admin" and course.get("instructor_id") != user["_id"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không đủ quyền thực hiện")
+
+def _cloudinary_folder_for_course(payload: dict) -> str:
+    slug = str(payload.get("slug") or payload.get("title") or "course").strip()
+    slug = unicodedata.normalize("NFD", slug).encode("ascii", "ignore").decode("ascii").lower()
+    slug = re.sub(r"[^a-z0-9-]+", "-", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-") or "course"
+    return f"codecamp/courses/{slug}"
 
 
 @router.get("/api/courses", response_model=List[CourseResponse])
@@ -87,7 +96,7 @@ async def get_course_by_slug(slug: str, db=Depends(get_db), user=Depends(get_opt
     if course.get("status") != "published" and not _can_view_unpublished(course, user):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Khong tim thay khoa hoc",
+            detail="Không tìm thấy khóa học",
         )
     course = serialize_doc(course)
 
@@ -121,7 +130,7 @@ async def get_course(course_id: str, db=Depends(get_db), user=Depends(get_option
             detail="Không tìm thấy khóa học",
         )
     if course.get("status") != "published" and not _can_view_unpublished(course, user):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay khoa hoc")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy khóa học")
     return serialize_doc(course)
 
 
@@ -132,6 +141,8 @@ async def create_course(
     user=Depends(require_role("admin", "instructor")),
 ):
     new_course = payload.model_dump()
+    if not new_course.get("cloudinary_folder"):
+        new_course["cloudinary_folder"] = _cloudinary_folder_for_course(new_course)
     if user.get("role") == "instructor":
         new_course["instructor_id"] = user["_id"]
     new_course = _normalize_course_status(new_course, user)
@@ -178,15 +189,15 @@ async def review_course(
     user=Depends(require_role("operator", "admin")),
 ):
     if not ObjectId.is_valid(course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     existing = await db["courses"].find_one({"_id": ObjectId(course_id)})
     if not existing:
-        raise HTTPException(status_code=404, detail="Khong tim thay khoa hoc")
+        raise HTTPException(status_code=404, detail="Không tìm thấy khóa học")
 
     decision = payload.get("status")
     if decision not in {"published", "rejected"}:
-        raise HTTPException(status_code=400, detail="Trang thai duyet khong hop le")
+        raise HTTPException(status_code=400, detail="Trạng thái duyệt không hợp lệ")
 
     update_data = {
         "status": decision,
@@ -205,7 +216,7 @@ async def submit_course_for_review(
     user=Depends(require_role("instructor")),
 ):
     if not ObjectId.is_valid(course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     course = await db["courses"].find_one({"_id": ObjectId(course_id)})
     _ensure_course_owner(course, user)
@@ -215,7 +226,7 @@ async def submit_course_for_review(
 
     sections = await db["sections"].find({"course_id": course_id}).to_list(length=100)
     if not sections:
-        raise HTTPException(status_code=400, detail="Cần thêm ít nhất một section trước khi gửi duyệt")
+        raise HTTPException(status_code=400, detail="Cần thêm ít nhất một phần trước khi gửi duyệt")
 
     section_ids = [str(section["_id"]) for section in sections]
     lesson_counts = await db["lessons"].aggregate([
@@ -225,7 +236,7 @@ async def submit_course_for_review(
     counts_by_section = {item["_id"]: item["count"] for item in lesson_counts}
     empty_sections = [section for section in sections if counts_by_section.get(str(section["_id"]), 0) == 0]
     if empty_sections:
-        raise HTTPException(status_code=400, detail="Mỗi section cần có ít nhất một lesson trước khi gửi duyệt")
+        raise HTTPException(status_code=400, detail="Mỗi phần cần có ít nhất một bài học trước khi gửi duyệt")
 
     await db["courses"].update_one(
         {"_id": ObjectId(course_id)},
