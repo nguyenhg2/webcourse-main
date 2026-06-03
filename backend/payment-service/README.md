@@ -11,6 +11,9 @@ POST /api/payments          Create Stripe PaymentIntent
 GET  /api/payments/:id      Get payment detail
 GET  /api/payments/history  Current user's payment history
 GET  /api/payments          Admin/operator list
+GET  /api/coupons           Admin list coupons
+POST /api/coupons           Admin create coupon
+PATCH /api/coupons/:id/active Admin enable/disable coupon
 POST /api/coupons/validate  Validate coupon and return discount_amount
 ```
 
@@ -47,10 +50,4 @@ PAYMENT_MONGODB_DB      default codecamp_payment
 JWT_SECRET              default dev-secret
 PAYMENT_INTERNAL_TOKEN  default dev-internal-token
 PORT                    default 8002
-```
-
-## Check
-
-```bash
-go test ./...
 ```

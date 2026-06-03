@@ -17,9 +17,9 @@ func SetupRouter(db *mongo.Database, cfg *config.Config) *gin.Engine {
 	api := r.Group("/api")
 	api.Use(middleware.JWTAuth(cfg.JWTSecret))
 
-	couponStore := coupon.NewStore(db)
-	coupon.RegisterRoutes(api.Group("/coupons"), couponStore)
-	payment.RegisterRoutes(api.Group("/payments"), db, couponStore, cfg.StripeSecretKey, middleware.RequireInternalToken(cfg.InternalToken))
+	coupons := coupon.NewStore(db)
+	coupon.RegisterRoutes(api.Group("/coupons"), coupons, middleware.RequireRole("admin"))
+	payment.RegisterRoutes(api.Group("/payments"), db, coupons, cfg.StripeSecretKey, middleware.RequireInternalToken(cfg.InternalToken))
 
 	return r
 }

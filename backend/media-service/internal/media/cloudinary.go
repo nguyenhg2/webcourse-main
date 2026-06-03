@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+var cloudinaryClient = &http.Client{Timeout: 30 * time.Second}
+
 func (h *Handler) uploadBody(file multipart.File, fileName string, folder string) (*bytes.Buffer, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -70,7 +72,7 @@ func (h *Handler) destroyForm(publicID string) url.Values {
 }
 
 func postCloudinaryForm(endpoint string, form url.Values) ([]byte, error) {
-	resp, err := http.PostForm(endpoint, form)
+	resp, err := cloudinaryClient.PostForm(endpoint, form)
 	if err != nil {
 		return nil, apiError{Status: http.StatusBadGateway, Message: err.Error()}
 	}
@@ -84,7 +86,7 @@ func postCloudinaryMultipart(endpoint string, body io.Reader, contentType string
 	}
 	req.Header.Set("Content-Type", contentType)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := cloudinaryClient.Do(req)
 	if err != nil {
 		return nil, apiError{Status: http.StatusBadGateway, Message: err.Error()}
 	}

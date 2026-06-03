@@ -23,9 +23,3 @@ POST   /api/files/upload   Upload attachment, form field: file
 ## Data
 
 This service is stateless and does not own a database. Course and lesson media metadata stays in the core database, for example `video_url`, `video_public_id`, `video_asset_folder`, and `attachments` on lesson documents.
-
-## Check
-
-```bash
-go test ./...
-```

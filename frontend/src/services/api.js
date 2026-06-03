@@ -19,325 +19,285 @@ function createClient(baseURL) {
   return client;
 }
 
+function responseData(request) {
+  return request.then((res) => res.data);
+}
+
+const get = (client, url, config) => responseData(client.get(url, config));
+const post = (client, url, data, config) => responseData(client.post(url, data, config));
+const put = (client, url, data, config) => responseData(client.put(url, data, config));
+const patch = (client, url, data, config) => responseData(client.patch(url, data, config));
+const remove = (client, url, config) => responseData(client.delete(url, config));
+
+function makeFormData(fields) {
+  const formData = new FormData();
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, value);
+    }
+  });
+  return formData;
+}
+
 const api = createClient(API_BASE);
 const paymentApi = createClient(PAYMENT_API_BASE);
 const mediaApi = createClient(MEDIA_API_BASE);
 const blogApi = createClient(BLOG_API_BASE);
 
 // Auth
-export async function loginAPI(email, password, expectedRole) {
+export function loginAPI(email, password, expectedRole) {
   const payload = { email, password };
   if (expectedRole) {
     payload.expected_role = expectedRole;
   }
-  const res = await api.post("/api/auth/login", payload);
-  return res.data;
+  return post(api, "/api/auth/login", payload);
 }
 
-export async function registerAPI(name, email, password) {
-  const res = await api.post("/api/auth/register", { name, email, password });
-  return res.data;
+export function registerAPI(name, email, password) {
+  return post(api, "/api/auth/register", { name, email, password });
 }
 
-export async function getMeAPI() {
-  const res = await api.get("/api/auth/me");
-  return res.data;
+export function getMeAPI() {
+  return get(api, "/api/auth/me");
 }
 
-export async function getProfileAPI() {
-  const res = await api.get("/api/auth/profile");
-  return res.data;
+export function getProfileAPI() {
+  return get(api, "/api/auth/profile");
 }
 
 // Courses
-export async function getCoursesAPI(params) {
-  const res = await api.get("/api/courses", { params });
-  return res.data;
+export function getCoursesAPI(params) {
+  return get(api, "/api/courses", { params });
 }
 
-export async function getCourseBySlugAPI(slug) {
-  const res = await api.get("/api/courses/slug/" + slug);
-  return res.data;
+export function getCourseBySlugAPI(slug) {
+  return get(api, "/api/courses/slug/" + slug);
 }
 
-export async function getCourseByIdAPI(id) {
-  const res = await api.get("/api/courses/" + id);
-  return res.data;
+export function getCourseByIdAPI(id) {
+  return get(api, "/api/courses/" + id);
 }
 
-export async function createCourseAPI(payload) {
-  const res = await api.post("/api/courses", payload);
-  return res.data;
+export function createCourseAPI(payload) {
+  return post(api, "/api/courses", payload);
 }
 
-export async function updateCourseAPI(id, payload) {
-  const res = await api.put(`/api/courses/${id}`, payload);
-  return res.data;
+export function updateCourseAPI(id, payload) {
+  return put(api, `/api/courses/${id}`, payload);
 }
 
-export async function submitCourseAPI(id) {
-  const res = await api.patch(`/api/courses/${id}/submit`);
-  return res.data;
+export function submitCourseAPI(id) {
+  return patch(api, `/api/courses/${id}/submit`);
 }
 
-export async function reviewCourseAPI(id, payload) {
-  const res = await api.patch(`/api/courses/${id}/review`, payload);
-  return res.data;
+export function reviewCourseAPI(id, payload) {
+  return patch(api, `/api/courses/${id}/review`, payload);
 }
 
-export async function deleteCourseAPI(id) {
-  const res = await api.delete(`/api/courses/${id}`);
-  return res.data;
+export function deleteCourseAPI(id) {
+  return remove(api, `/api/courses/${id}`);
 }
 
-export async function createSectionAPI(courseId, payload) {
-  const res = await api.post(`/api/courses/${courseId}/sections`, payload);
-  return res.data;
+export function createSectionAPI(courseId, payload) {
+  return post(api, `/api/courses/${courseId}/sections`, payload);
 }
 
-export async function updateSectionAPI(sectionId, payload) {
-  const res = await api.put(`/api/sections/${sectionId}`, payload);
-  return res.data;
+export function updateSectionAPI(sectionId, payload) {
+  return put(api, `/api/sections/${sectionId}`, payload);
 }
 
-export async function createLessonAPI(sectionId, payload) {
-  const res = await api.post(`/api/sections/${sectionId}/lessons`, payload);
-  return res.data;
+export function createLessonAPI(sectionId, payload) {
+  return post(api, `/api/sections/${sectionId}/lessons`, payload);
 }
 
 // Categories
-export async function getCategoriesAPI() {
-  const res = await api.get("/api/categories");
-  return res.data;
+export function getCategoriesAPI() {
+  return get(api, "/api/categories");
 }
 
-export async function createCategoryAPI(payload) {
-  const res = await api.post("/api/categories", payload);
-  return res.data;
+export function createCategoryAPI(payload) {
+  return post(api, "/api/categories", payload);
 }
 
-export async function updateCategoryAPI(id, payload) {
-  const res = await api.put(`/api/categories/${id}`, payload);
-  return res.data;
+export function updateCategoryAPI(id, payload) {
+  return put(api, `/api/categories/${id}`, payload);
 }
 
-export async function deleteCategoryAPI(id) {
-  const res = await api.delete(`/api/categories/${id}`);
-  return res.data;
+export function deleteCategoryAPI(id) {
+  return remove(api, `/api/categories/${id}`);
 }
 
 // Enroll & Lessons
-export async function enrollCourseAPI(courseId, paymentId) {
+export function enrollCourseAPI(courseId, paymentId) {
   const payload = Array.isArray(courseId)
     ? { course_ids: courseId, payment_id: paymentId }
     : { course_id: courseId, payment_id: paymentId };
-  const res = await api.post("/api/enroll", payload);
-  return res.data;
+  return post(api, "/api/enroll", payload);
 }
 
-export async function getLessonAPI(lessonId) {
-  const res = await api.get("/api/lessons/" + lessonId);
-  return res.data;
+export function getLessonAPI(lessonId) {
+  return get(api, "/api/lessons/" + lessonId);
 }
 
-export async function updateLessonAPI(lessonId, payload) {
-  const res = await api.put("/api/lessons/" + lessonId, payload);
-  return res.data;
+export function updateLessonAPI(lessonId, payload) {
+  return put(api, "/api/lessons/" + lessonId, payload);
 }
 
 // Blog & Contact
-export async function getBlogsAPI(params) {
-  const res = await blogApi.get("/api/blogs", { params });
-  return res.data;
+export function getBlogsAPI(params) {
+  return get(blogApi, "/api/blogs", { params });
 }
 
-export async function getBlogBySlugAPI(slug) {
-  const res = await blogApi.get("/api/blogs/" + slug);
-  return res.data;
+export function getBlogBySlugAPI(slug) {
+  return get(blogApi, "/api/blogs/" + slug);
 }
 
-export async function sendContactAPI(payload) {
-  const res = await blogApi.post("/api/contact", payload);
-  return res.data;
+export function sendContactAPI(payload) {
+  return post(blogApi, "/api/contact", payload);
 }
 
 // Roadmaps
-export async function getRoadmapsAPI() {
-  const res = await api.get("/api/roadmaps");
-  return res.data;
+export function getRoadmapsAPI() {
+  return get(api, "/api/roadmaps");
 }
 
-export async function getRoadmapAPI(id) {
-  const res = await api.get("/api/roadmaps/" + id);
-  return res.data;
+export function getRoadmapAPI(id) {
+  return get(api, "/api/roadmaps/" + id);
 }
 
 // My courses & cart
-export async function getMyCoursesAPI() {
-  const res = await api.get("/api/my-courses");
-  return res.data;
+export function getMyCoursesAPI() {
+  return get(api, "/api/my-courses");
 }
 
-export async function getCartAPI() {
-  const res = await api.get("/api/cart");
-  return res.data;
+export function getCartAPI() {
+  return get(api, "/api/cart");
 }
 
-export async function addCartAPI(courseId) {
-  const res = await api.post("/api/cart", { course_id: courseId });
-  return res.data;
+export function addCartAPI(courseId) {
+  return post(api, "/api/cart", { course_id: courseId });
 }
 
-export async function removeCartAPI(courseId) {
-  const res = await api.delete("/api/cart/" + courseId);
-  return res.data;
+export function removeCartAPI(courseId) {
+  return remove(api, "/api/cart/" + courseId);
 }
 
-export async function saveProgressAPI(payload) {
-  const res = await api.post("/api/progress", payload);
-  return res.data;
+export function saveProgressAPI(payload) {
+  return post(api, "/api/progress", payload);
 }
 
 // Reviews
-export async function getCourseReviewsAPI(courseId) {
-  const res = await api.get("/api/courses/" + courseId + "/reviews");
-  return res.data;
+export function getCourseReviewsAPI(courseId) {
+  return get(api, "/api/courses/" + courseId + "/reviews");
 }
 
-export async function getReviewsByCourseAPI(courseId) {
-  const res = await api.get(`/api/courses/${courseId}/reviews`);
-  return res.data;
+export function getReviewsByCourseAPI(courseId) {
+  return get(api, `/api/courses/${courseId}/reviews`);
 }
 
-export async function deleteReviewAPI(reviewId) {
-  const res = await api.delete(`/api/reviews/${reviewId}`);
-  return res.data;
+export function deleteReviewAPI(reviewId) {
+  return remove(api, `/api/reviews/${reviewId}`);
 }
 
 // Payment
-export async function createPaymentAPI(payload) {
-  const res = await api.post("/api/checkout/pay", payload);
-  return res.data;
+export function createPaymentAPI(payload) {
+  return post(api, "/api/checkout/pay", payload);
 }
 
-export async function getAllPaymentsAPI() {
-  const res = await paymentApi.get("/api/payments");
-  return res.data;
+export function getAllPaymentsAPI() {
+  return get(paymentApi, "/api/payments");
 }
 
-export async function getPaymentHistoryAPI() {
-  const res = await paymentApi.get("/api/payments/history");
-  return res.data;
+export function getPaymentHistoryAPI() {
+  return get(paymentApi, "/api/payments/history");
 }
 
-export async function validateCouponAPI(code, amount) {
-  const res = await paymentApi.post("/api/coupons/validate", { code, amount });
-  return res.data;
+export function validateCouponAPI(code, amount) {
+  return post(paymentApi, "/api/coupons/validate", { code, amount });
 }
 
-export async function getCouponsAPI() {
-  const res = await api.get("/api/coupons");
-  return res.data;
+export function getCouponsAPI() {
+  return get(paymentApi, "/api/coupons");
 }
 
-export async function createCouponAPI(payload) {
-  const res = await api.post("/api/coupons", payload);
-  return res.data;
+export function createCouponAPI(payload) {
+  return post(paymentApi, "/api/coupons", payload);
 }
 
-export async function updateCouponStatusAPI(couponId, active) {
-  const res = await api.patch(`/api/coupons/${couponId}/active`, { active });
-  return res.data;
+export function updateCouponStatusAPI(couponId, active) {
+  return patch(paymentApi, `/api/coupons/${couponId}/active`, { active });
 }
 
-export async function uploadVideoAPI(file, folder) {
+export function uploadVideoAPI(file, folder) {
   if (!folder) {
-    throw new Error("Vui lòng nhập thư mục Cloudinary");
+    throw new Error("Vui long nhap thu muc Cloudinary");
   }
 
-  const formData = new FormData();
-  formData.append("video", file);
-  formData.append("folder", folder);
-  const res = await mediaApi.post("/api/videos/upload", formData);
-  return res.data;
+  const formData = makeFormData({ video: file, folder });
+  return post(mediaApi, "/api/videos/upload", formData);
 }
 
-export async function deleteVideoAPI(payload) {
-  const res = await mediaApi.delete("/api/videos/delete", { data: payload });
-  return res.data;
+export function deleteVideoAPI(payload) {
+  return remove(mediaApi, "/api/videos/delete", { data: payload });
 }
 
-export async function uploadLessonVideoAPI(file, folder) {
+export function uploadLessonVideoAPI(file, folder) {
   return uploadVideoAPI(file, folder);
 }
 
-export async function uploadAttachmentAPI(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await mediaApi.post("/api/files/upload", formData);
-  return res.data;
+export function uploadAttachmentAPI(file) {
+  const formData = makeFormData({ file });
+  return post(mediaApi, "/api/files/upload", formData);
 }
 
 // Admin APIs
-export async function getAdminDashboardAPI() {
-  const res = await api.get("/api/admin/dashboard");
-  return res.data;
+export function getAdminDashboardAPI() {
+  return get(api, "/api/admin/dashboard");
 }
 
-export async function getDashboardOverviewAPI() {
-  const res = await api.get("/api/dashboard");
-  return res.data;
+export function getDashboardOverviewAPI() {
+  return get(api, "/api/dashboard");
 }
 
-export async function getAdminUsersAPI() {
-  const res = await api.get("/api/admin/users");
-  return res.data;
+export function getAdminUsersAPI() {
+  return get(api, "/api/admin/users");
 }
 
-export async function updateAdminUserRoleAPI(userId, role) {
-  const res = await api.put(`/api/admin/users/${userId}/role`, { role });
-  return res.data;
+export function updateAdminUserRoleAPI(userId, role) {
+  return put(api, `/api/admin/users/${userId}/role`, { role });
 }
 
-export async function getAdminOrdersAPI() {
-  const res = await api.get("/api/admin/orders");
-  return res.data;
+export function getAdminOrdersAPI() {
+  return get(api, "/api/admin/orders");
 }
 
-export async function getAdminRevenueAPI() {
-  const res = await api.get("/api/admin/revenue");
-  return res.data;
+export function getAdminRevenueAPI() {
+  return get(api, "/api/admin/revenue");
 }
 
 // Admin Blog & Contact
-export async function getAdminBlogsAPI() {
-  const res = await blogApi.get("/api/admin/blogs");
-  return res.data;
+export function getAdminBlogsAPI() {
+  return get(blogApi, "/api/admin/blogs");
 }
 
-export async function createBlogAPI(payload) {
-  const res = await blogApi.post("/api/admin/blogs", payload);
-  return res.data;
+export function createBlogAPI(payload) {
+  return post(blogApi, "/api/admin/blogs", payload);
 }
 
-export async function updateBlogAPI(id, payload) {
-  const res = await blogApi.put(`/api/admin/blogs/${id}`, payload);
-  return res.data;
+export function updateBlogAPI(id, payload) {
+  return put(blogApi, `/api/admin/blogs/${id}`, payload);
 }
 
-export async function deleteBlogAPI(id) {
-  const res = await blogApi.delete(`/api/admin/blogs/${id}`);
-  return res.data;
+export function deleteBlogAPI(id) {
+  return remove(blogApi, `/api/admin/blogs/${id}`);
 }
 
-export async function getAdminContactsAPI() {
-  const res = await blogApi.get("/api/admin/contacts");
-  return res.data;
+export function getAdminContactsAPI() {
+  return get(blogApi, "/api/admin/contacts");
 }
 
-export async function markContactReadAPI(id) {
-  const res = await blogApi.patch(`/api/admin/contacts/${id}/read`, {});
-  return res.data;
+export function markContactReadAPI(id) {
+  return patch(blogApi, `/api/admin/contacts/${id}/read`, {});
 }
 
 export default api;

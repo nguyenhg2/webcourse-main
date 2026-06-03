@@ -49,10 +49,8 @@ http://localhost:8000/media
 http://localhost:8000/blog
 ```
 
-## Check
+## Build Frontend
 
 ```bash
-cd backend/payment-service && go test ./...
-cd backend/media-service && go test ./...
 cd frontend && npm run build
 ```
