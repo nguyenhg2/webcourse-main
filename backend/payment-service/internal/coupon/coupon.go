@@ -121,7 +121,7 @@ func createCoupon(ctx context.Context, col *mongo.Collection, req CreateRequest)
 	if count, err := col.CountDocuments(ctx, bson.M{"code": coupon.Code}); err != nil {
 		return nil, err
 	} else if count > 0 {
-        return nil, errors.New("Mã giảm giá đã tồn tại")
+		return nil, errors.New("Mã giảm giá đã tồn tại")
 	}
 
 	result, err := col.InsertOne(ctx, coupon)
@@ -137,7 +137,7 @@ func createCoupon(ctx context.Context, col *mongo.Collection, req CreateRequest)
 func setActive(ctx context.Context, col *mongo.Collection, id string, active bool) (*Coupon, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-        return nil, errors.New("ID mã giảm giá không hợp lệ")
+		return nil, errors.New("ID mã giảm giá không hợp lệ")
 	}
 
 	var coupon Coupon
@@ -158,19 +158,19 @@ func newCoupon(req CreateRequest) (*Coupon, error) {
 	code := NormalizeCode(req.Code)
 
 	if code == "" {
-        return nil, errors.New("Vui lòng nhập mã giảm giá")
+		return nil, errors.New("Vui lòng nhập mã giảm giá")
 	}
 	if couponType == "" {
-        return nil, errors.New("Loại mã giảm giá phải là percentage hoặc fixed")
+		return nil, errors.New("Loại mã giảm giá phải là percentage hoặc fixed")
 	}
 	if req.Discount <= 0 {
-        return nil, errors.New("Giá trị giảm giá phải lớn hơn 0")
+		return nil, errors.New("Giá trị giảm giá phải lớn hơn 0")
 	}
 	if couponType == couponTypePercentage && req.Discount > 100 {
-        return nil, errors.New("Giảm giá theo phần trăm không được lớn hơn 100")
+		return nil, errors.New("Giảm giá theo phần trăm không được lớn hơn 100")
 	}
 	if req.MaxUses < 0 {
-        return nil, errors.New("max_uses phải lớn hơn hoặc bằng 0")
+		return nil, errors.New("max_uses phải lớn hơn hoặc bằng 0")
 	}
 	if req.Expiry <= 0 {
 		req.Expiry = time.Now().Add(365 * 24 * time.Hour).Unix()

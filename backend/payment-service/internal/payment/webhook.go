@@ -71,7 +71,7 @@ func RegisterWebhookRoute(g *gin.RouterGroup, db *mongo.Database, webhookSecret 
 
 func paymentIntentFromEvent(event stripe.Event) (*stripe.PaymentIntent, error) {
 	if event.Data == nil || len(event.Data.Raw) == 0 {
-        return nil, errors.New("Thiếu payload PaymentIntent")
+		return nil, errors.New("Thiếu payload PaymentIntent")
 	}
 
 	var intent stripe.PaymentIntent
@@ -79,7 +79,7 @@ func paymentIntentFromEvent(event stripe.Event) (*stripe.PaymentIntent, error) {
 		return nil, err
 	}
 	if strings.TrimSpace(intent.ID) == "" {
-        return nil, errors.New("Thiếu ID PaymentIntent")
+		return nil, errors.New("Thiếu ID PaymentIntent")
 	}
 	return &intent, nil
 }

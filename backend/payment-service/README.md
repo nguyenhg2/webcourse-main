@@ -8,6 +8,7 @@ Go/Gin payment service for learning and classroom demo with Stripe PaymentIntent
 
 ```text
 POST /api/payments          Create Stripe PaymentIntent
+POST /api/payments/:id/sync Sync a confirmed PaymentIntent from Stripe
 POST /api/payments/webhook  Stripe webhook for PaymentIntent status updates
 GET  /api/payments/:id      Get payment detail
 GET  /api/payments/history  Current user's payment history
@@ -30,6 +31,8 @@ Payment Service returns client_secret for Stripe Elements
 Stripe calls Payment Service webhook after confirmation
 Payment Service updates status=completed|failed and publishes payment.success to Redis
 ```
+
+For local demos where Stripe cannot reach `localhost`, Core can call `POST /api/payments/:id/sync` after Stripe Elements confirms the PaymentIntent. Payment Service still verifies the PaymentIntent status with Stripe before marking the payment completed.
 
 If `final_amount` is `0`, the service saves `status=completed` because no card payment is needed.
 

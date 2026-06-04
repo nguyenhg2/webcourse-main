@@ -57,6 +57,7 @@ services:
       - VITE_PAYMENT_API_URL=http://localhost:8000/payment
       - VITE_MEDIA_API_URL=http://localhost:8000/media
       - VITE_BLOG_API_URL=http://localhost:8000/blog
+      - VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY:-}
     command: npm run dev -- --host 0.0.0.0
     stdin_open: true
     tty: true

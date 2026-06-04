@@ -216,6 +216,10 @@ export function createPaymentAPI(payload) {
   return post(api, "/api/checkout/pay", payload);
 }
 
+export function syncPaymentAPI(paymentId) {
+  return post(api, `/api/checkout/payments/${paymentId}/sync`, {});
+}
+
 export function getAllPaymentsAPI() {
   return get(paymentApi, "/api/payments");
 }
