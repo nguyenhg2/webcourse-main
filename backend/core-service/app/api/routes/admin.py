@@ -270,13 +270,13 @@ async def update_user_role(
     user=Depends(require_role("admin")),
 ):
     if not ObjectId.is_valid(user_id):
-        raise HTTPException(status_code=400, detail="user_id khong hop le")
+        raise HTTPException(status_code=400, detail="user_id không hợp lệ")
 
     target_user = await db["users"].find_one({"_id": oid(user_id)})
     if not target_user:
-        raise HTTPException(status_code=404, detail="Khong tim thay nguoi dung")
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
     if target_user.get("role") == "admin":
-        raise HTTPException(status_code=403, detail="Khong duoc doi vai tro cua admin")
+        raise HTTPException(status_code=403, detail="Không được đổi vai trò của quản trị viên")
 
     result = await db["users"].update_one(
         {"_id": oid(user_id)},

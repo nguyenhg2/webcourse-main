@@ -24,7 +24,7 @@ class ContactController extends Controller
         $contact = Contact::create($data);
 
         return response()->json([
-            'message' => 'Contact submitted',
+            'message' => 'Đã gửi liên hệ',
             'contact' => $contact->toApiArray(),
         ], 201);
     }
@@ -42,13 +42,13 @@ class ContactController extends Controller
     public function markRead(string $id): JsonResponse
     {
         if (!$this->isValidObjectId($id)) {
-            return response()->json(['error' => 'Invalid contact id'], 400);
+            return response()->json(['error' => 'ID liên hệ không hợp lệ'], 400);
         }
 
         $contact = Contact::find($id);
 
         if (!$contact) {
-            return response()->json(['error' => 'Contact not found'], 404);
+            return response()->json(['error' => 'Không tìm thấy liên hệ'], 404);
         }
 
         $contact->is_read = true;

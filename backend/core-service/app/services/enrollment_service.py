@@ -11,12 +11,12 @@ async def create_enrollments(db, user_id: str, course_ids: list[str], payment_id
 
     for course_id in course_ids:
         if not ObjectId.is_valid(course_id):
-            skipped.append({"course_id": course_id, "reason": "course_id khong hop le"})
+            skipped.append({"course_id": course_id, "reason": "course_id không hợp lệ"})
             continue
 
         course = await db["courses"].find_one({"_id": oid(course_id)})
         if not course:
-            skipped.append({"course_id": course_id, "reason": "Khoa hoc khong ton tai"})
+            skipped.append({"course_id": course_id, "reason": "Khóa học không tồn tại"})
             continue
 
         existing = await db["enrollments"].find_one(
@@ -27,7 +27,7 @@ async def create_enrollments(db, user_id: str, course_ids: list[str], payment_id
             }
         )
         if existing:
-            skipped.append({"course_id": course_id, "reason": "Da so huu khoa hoc"})
+            skipped.append({"course_id": course_id, "reason": "Đã sở hữu khóa học"})
             continue
 
         enrollment_doc = {

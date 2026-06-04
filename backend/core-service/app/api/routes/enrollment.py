@@ -70,13 +70,13 @@ async def enroll(
         target_course_ids = [course_id]
 
     if not target_course_ids:
-        raise HTTPException(status_code=400, detail="course_id khong duoc de trong")
+        raise HTTPException(status_code=400, detail="course_id không được để trống")
     if not payment_id:
-        raise HTTPException(status_code=400, detail="payment_id khong duoc de trong")
+        raise HTTPException(status_code=400, detail="payment_id không được để trống")
 
     target_course_ids = list(dict.fromkeys(target_course_ids))
     if not await _validate_completed_payment(db, user["_id"], target_course_ids, payment_id):
-        raise HTTPException(status_code=403, detail="Thanh toan chua hoan tat")
+        raise HTTPException(status_code=403, detail="Thanh toán chưa hoàn tất")
 
     result = await create_enrollments(db, user["_id"], target_course_ids, payment_id)
     await db["carts"].update_one(
@@ -84,8 +84,8 @@ async def enroll(
         {"$pull": {"items": {"$in": target_course_ids}}},
     )
     if not result["enrolled"] and result["skipped"]:
-        return {"message": "Khong co khoa hoc moi duoc dang ky", **result}
-    return {"message": "Dang ky khoa hoc thanh cong", **result}
+        return {"message": "Không có khóa học mới được đăng ký", **result}
+    return {"message": "Đăng ký khóa học thành công", **result}
 
 
 @router.get("/api/my-courses")
@@ -124,7 +124,7 @@ async def my_courses(db=Depends(get_db), user=Depends(get_current_user)):
         course["progress"] = progress
         course["totalLessons"] = total
         course["completedLessons"] = completed
-        course["lastLesson"] = first_lesson["title"] if first_lesson else "Chua co bai hoc"
+        course["lastLesson"] = first_lesson["title"] if first_lesson else "Chưa có bài học"
         course["lastLessonId"] = str(first_lesson["_id"]) if first_lesson else None
         course["paymentId"] = enrollment.get("payment_id")
         course["enrolledAt"] = enrollment.get("enrolled_at")

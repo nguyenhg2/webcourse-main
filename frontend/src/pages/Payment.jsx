@@ -51,7 +51,7 @@ export default function Payment() {
 
     try {
       const courseIds = courseIdsFromState(course);
-      if (!courseIds.length) throw new Error("Khong tim thay khoa hoc can thanh toan");
+      if (!courseIds.length) throw new Error("Không tìm thấy khóa học cần thanh toán");
 
       const payment = await createPaymentAPI({
         course_ids: courseIds,
@@ -68,7 +68,7 @@ export default function Payment() {
       });
 
       if (payment.status !== "completed") {
-        setMessage("Da tao Stripe PaymentIntent. Hoan tat thanh toan bang Stripe Elements de webhook mo khoa hoc.");
+        setMessage("Đã tạo Stripe PaymentIntent. Hoàn tất thanh toán bằng Stripe Elements để webhook mở khóa học.");
         return;
       }
 
@@ -76,7 +76,7 @@ export default function Payment() {
 
       navigate("/thanh-toan-thanh-cong", { state: { paymentId: payment.payment_id, courseIds } });
     } catch (err) {
-      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Thanh toan that bai");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Thanh toán thất bại");
     } finally {
       setLoading(false);
     }
@@ -85,55 +85,55 @@ export default function Payment() {
   const price = Number(course.price || 0);
   const discount = Number(course.discount || 0);
   const finalPrice = course.finalTotal ?? Math.max(price - discount, 0);
-  const title = course.title || "Khoa hoc";
+  const title = course.title || "Khóa học";
 
   return (
     <>
-      <Breadcrumb items={[{ label: "Trang chu", to: "/" }, { label: "Thanh toan" }]} />
+      <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Thanh toán" }]} />
       <div className="max-w-[1290px] mx-auto px-5 py-10">
         <div className="flex flex-col lg:flex-row gap-10">
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-8">
             <div>
-              <h2 className="text-xl font-heading font-semibold text-secondary mb-5">Dia chi thanh toan</h2>
+              <h2 className="text-xl font-heading font-semibold text-secondary mb-5">Địa chỉ thanh toán</h2>
               <div className="flex flex-col gap-5">
                 <select value={billing.country} onChange={(e) => setBilling({ ...billing, country: e.target.value })} className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none">
-                  <option value="VN">Viet Nam</option>
-                  <option value="US">United States</option>
-                  <option value="JP">Japan</option>
+                  <option value="VN">Việt Nam</option>
+                  <option value="US">Hoa Kỳ</option>
+                  <option value="JP">Nhật Bản</option>
                 </select>
-                <input value={billing.address} onChange={(e) => setBilling({ ...billing, address: e.target.value })} placeholder="Dia chi *" required className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
+                <input value={billing.address} onChange={(e) => setBilling({ ...billing, address: e.target.value })} placeholder="Địa chỉ *" required className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <input value={billing.city} onChange={(e) => setBilling({ ...billing, city: e.target.value })} placeholder="Thanh pho *" required className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
-                  <input value={billing.zip} onChange={(e) => setBilling({ ...billing, zip: onlyNumbers(e.target.value).slice(0, 8) })} placeholder="Ma buu chinh" className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
+                  <input value={billing.city} onChange={(e) => setBilling({ ...billing, city: e.target.value })} placeholder="Thành phố *" required className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
+                  <input value={billing.zip} onChange={(e) => setBilling({ ...billing, zip: onlyNumbers(e.target.value).slice(0, 8) })} placeholder="Mã bưu chính" className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
                 </div>
               </div>
             </div>
 
             <div>
-              <h2 className="text-xl font-heading font-semibold text-secondary mb-5">Thong tin the</h2>
+              <h2 className="text-xl font-heading font-semibold text-secondary mb-5">Thông tin thẻ</h2>
               <div className="flex flex-col gap-5">
-                <input value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value.toUpperCase() })} placeholder="Ten tren the *" required className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
-                <input value={card.number} onChange={(e) => setCard({ ...card, number: formatCardNumber(e.target.value) })} inputMode="numeric" placeholder="So the *" required minLength={19} className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
+                <input value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value.toUpperCase() })} placeholder="Tên trên thẻ *" required className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
+                <input value={card.number} onChange={(e) => setCard({ ...card, number: formatCardNumber(e.target.value) })} inputMode="numeric" placeholder="Số thẻ *" required minLength={19} className="px-5 py-3 rounded-lg border border-gray-200 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <button disabled={loading} type="submit" className="w-full py-3.5 bg-primary text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
-              <FiCreditCard size={18} /> {loading ? "Dang xu ly..." : "Tao thanh toan Stripe"}
+              <FiCreditCard size={18} /> {loading ? "Đang xử lý..." : "Tạo thanh toán Stripe"}
             </button>
             {message && <p className="text-sm text-red-500">{message}</p>}
           </form>
 
           <div className="w-full lg:w-96 shrink-0">
             <div className="sticky top-28 border border-gray-100 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-secondary mb-5">Don hang</h3>
+              <h3 className="text-lg font-semibold text-secondary mb-5">Đơn hàng</h3>
               <div className="flex gap-4 mb-5">
-                {course.thumbnail && <img src={course.thumbnail} alt="Khoa hoc" className="w-24 h-16 rounded-lg object-cover" />}
+                {course.thumbnail && <img src={course.thumbnail} alt="Khóa học" className="w-24 h-16 rounded-lg object-cover" />}
                 <p className="text-sm font-medium text-secondary">{title}</p>
               </div>
               <div className="flex flex-col gap-3 text-sm border-t border-gray-100 pt-5">
-                <div className="flex justify-between"><span className="text-gray-500">Gia goc</span><span>{formatPrice(price)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Giam gia</span><span className="text-success">-{formatPrice(discount)}</span></div>
-                <div className="flex justify-between border-t border-gray-100 pt-3"><span className="font-semibold text-secondary">Tong cong</span><span className="font-bold text-primary text-lg">{formatPrice(finalPrice)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Giá gốc</span><span>{formatPrice(price)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Giảm giá</span><span className="text-success">-{formatPrice(discount)}</span></div>
+                <div className="flex justify-between border-t border-gray-100 pt-3"><span className="font-semibold text-secondary">Tổng cộng</span><span className="font-bold text-primary text-lg">{formatPrice(finalPrice)}</span></div>
               </div>
             </div>
           </div>

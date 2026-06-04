@@ -396,7 +396,7 @@ export default function CourseManager() {
 
     if (!sections.length || !lessonCount) {
       setMessageType("error");
-      setMessage("Cần thêm phần và bài học trước khi gửi operator duyệt.");
+      setMessage("Cần thêm phần và bài học trước khi gửi nhân viên vận hành duyệt.");
       return;
     }
 
@@ -432,7 +432,7 @@ export default function CourseManager() {
       setSelectedCourseId(updated._id || selectedCourseId);
       setEditingCourse(false);
       setMessageType("success");
-      setMessage("Đã gửi khóa học cho operator duyệt xuất bản.");
+      setMessage("Đã gửi khóa học cho nhân viên vận hành duyệt xuất bản.");
       await loadCourseDetail({ ...selectedCourse, ...updated, slug: updated.slug || selectedCourse.slug });
     } catch (err) {
       setMessageType("error");
@@ -816,7 +816,7 @@ export default function CourseManager() {
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             {selectedCourse ? (
               <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
-              <img src={selectedCourse.thumbnail || "https://placehold.co/160x96?text=Khoa+hoc"} alt={selectedCourse.title} className="h-32 w-full rounded-lg object-cover xl:h-24 xl:w-40" />
+              <img src={selectedCourse.thumbnail || "https://placehold.co/160x96?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={selectedCourse.title} className="h-32 w-full rounded-lg object-cover xl:h-24 xl:w-40" />
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-500">{selectedCourse.description}</p>
@@ -842,7 +842,7 @@ export default function CourseManager() {
                         onClick={handleSubmitCourseForReview}
                         disabled={!canSubmitForReview || submittingCourse}
                         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
-                        title="Gửi operator duyệt xuất bản"
+                        title="Gửi nhân viên vận hành duyệt xuất bản"
                       >
                         {submittingCourse ? <FiLoader className="animate-spin" size={16} /> : <FiSend size={16} />}
                         Gửi duyệt

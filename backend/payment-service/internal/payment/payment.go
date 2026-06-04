@@ -71,7 +71,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, stripeSecretKey stri
 	g.GET("/:id", func(c *gin.Context) {
 		payment, err := getPayment(c.Request.Context(), payments, c.Param("id"))
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+            c.JSON(http.StatusNotFound, gin.H{"error": "Không tìm thấy thanh toán"})
 			return
 		}
 		c.JSON(http.StatusOK, payment)
@@ -129,10 +129,10 @@ func createPayment(ctx context.Context, db *mongo.Database, col *mongo.Collectio
 func buildPayment(ctx context.Context, db *mongo.Database, userID string, req PaymentRequest) (*Payment, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
-		return nil, errors.New("user not found")
+        return nil, errors.New("Không tìm thấy người dùng")
 	}
 	if req.Amount < 0 {
-		return nil, errors.New("amount must be greater than or equal to 0")
+        return nil, errors.New("Số tiền phải lớn hơn hoặc bằng 0")
 	}
 
 	seen := map[string]bool{}
@@ -145,14 +145,14 @@ func buildPayment(ctx context.Context, db *mongo.Database, userID string, req Pa
 		}
 	}
 	if len(courseIDs) == 0 {
-		return nil, errors.New("course_ids is required")
+        return nil, errors.New("course_ids là bắt buộc")
 	}
 
 	discount, couponCode := int64(0), coupon.NormalizeCode(req.CouponCode)
 	if couponCode != "" {
 		validDiscount, ok := coupon.Discount(ctx, db, couponCode, req.Amount)
 		if !ok {
-			return nil, errors.New("coupon is invalid")
+            return nil, errors.New("Mã giảm giá không hợp lệ")
 		}
 		discount = validDiscount
 	}

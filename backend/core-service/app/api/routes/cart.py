@@ -31,11 +31,11 @@ async def add_cart(
     user=Depends(require_role("student")),
 ):
     if not ObjectId.is_valid(payload.course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     course = await db["courses"].find_one({"_id": oid(payload.course_id), "status": "published"})
     if not course:
-        raise HTTPException(status_code=404, detail="Khong tim thay khoa hoc")
+        raise HTTPException(status_code=404, detail="Không tìm thấy khóa học")
 
     enrollment = await db["enrollments"].find_one(
         {
@@ -45,26 +45,26 @@ async def add_cart(
         }
     )
     if enrollment:
-        raise HTTPException(status_code=400, detail="Ban da so huu khoa hoc nay")
+        raise HTTPException(status_code=400, detail="Bạn đã sở hữu khóa học này")
 
     await db["carts"].update_one(
         {"user_id": user["_id"]},
         {"$addToSet": {"items": payload.course_id}},
         upsert=True,
     )
-    return {"message": "Da them vao gio hang"}
+    return {"message": "Đã thêm vào giỏ hàng"}
 
 
 @router.delete("/api/cart/{course_id}")
 async def remove_cart(course_id: str, db=Depends(get_db), user=Depends(require_role("student"))):
     if not ObjectId.is_valid(course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     result = await db["carts"].update_one(
         {"user_id": user["_id"]},
         {"$pull": {"items": course_id}},
     )
     if result.matched_count == 0:
-        return {"message": "Gio hang dang trong"}
+        return {"message": "Giỏ hàng đang trống"}
 
-    return {"message": "Da xoa khoi gio hang"}
+    return {"message": "Đã xóa khỏi giỏ hàng"}

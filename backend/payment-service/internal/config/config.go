@@ -44,7 +44,7 @@ func getEnv(key, fallback string) string {
 func requiredEnv(key string) string {
 	value, ok := os.LookupEnv(key)
 	if !ok || strings.TrimSpace(value) == "" {
-		log.Fatalf("%s is required", key)
+        log.Fatalf("%s là bắt buộc", key)
 	}
 	return value
 }

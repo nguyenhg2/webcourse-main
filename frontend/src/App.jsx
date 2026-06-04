@@ -38,6 +38,8 @@ import ReviewManager from "./pages/dashboard/ReviewManager";
 import OrderManager from "./pages/dashboard/OrderManager";
 import CourseReviewManager from "./pages/dashboard/CourseReviewManager";
 import SystemSettings from "./pages/dashboard/SystemSettings";
+import RoadmapManager from "./pages/dashboard/RoadmapManager";
+import InstructorStudents from "./pages/dashboard/InstructorStudents";
 import { useAuth } from "./context/AuthContext";
 
 function MainLayout() {
@@ -142,10 +144,15 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="my-courses" element={<RequireDashboardRole roles={["student"]}><StudentCourses /></RequireDashboardRole>} />
+              <Route path="roadmap-library" element={<RequireDashboardRole roles={["student"]}><RoadmapListing /></RequireDashboardRole>} />
+              <Route path="cart" element={<RequireDashboardRole roles={["student"]}><Cart /></RequireDashboardRole>} />
+              <Route path="profile" element={<RequireDashboardRole roles={["admin", "operator", "instructor", "student"]}><Profile /></RequireDashboardRole>} />
               <Route path="courses" element={<RequireDashboardRole roles={["admin", "instructor"]}><CourseManager /></RequireDashboardRole>} />
+              <Route path="roadmaps" element={<RequireDashboardRole roles={["admin"]}><RoadmapManager /></RequireDashboardRole>} />
               <Route path="students" element={<RequireDashboardRole roles={["admin"]}><StudentManager /></RequireDashboardRole>} />
+              <Route path="instructor-students" element={<RequireDashboardRole roles={["instructor"]}><InstructorStudents /></RequireDashboardRole>} />
               <Route path="qa" element={<RequireDashboardRole roles={["instructor"]}><WorkflowBoard type="qa" /></RequireDashboardRole>} />
-              <Route path="course-reviews" element={<RequireDashboardRole roles={["operator"]}><CourseReviewManager /></RequireDashboardRole>} />
+              <Route path="course-reviews" element={<RequireDashboardRole roles={["admin", "operator"]}><CourseReviewManager /></RequireDashboardRole>} />
               <Route path="reviews" element={<RequireDashboardRole roles={["admin"]}><ReviewManager /></RequireDashboardRole>} />
               <Route path="payments" element={<PaymentsRoute />} />
               <Route path="complaints" element={<RequireDashboardRole roles={["operator"]}><WorkflowBoard type="complaints" /></RequireDashboardRole>} />

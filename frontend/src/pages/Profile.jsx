@@ -67,7 +67,7 @@ export default function Profile() {
       })
       .catch(() => {
         if (mounted) {
-          setError("Không tải được dữ liệu hồ sơ từ database.");
+      setError("Không tải được dữ liệu hồ sơ từ cơ sở dữ liệu.");
         }
       })
       .finally(() => {
@@ -132,7 +132,7 @@ export default function Profile() {
               </button>
               {user.role !== "student" && (
                 <Link to="/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
-                  Vào dashboard
+                  {"V\u00e0o b\u1ea3ng \u0111i\u1ec1u khi\u1ec3n"}
                 </Link>
               )}
             </div>

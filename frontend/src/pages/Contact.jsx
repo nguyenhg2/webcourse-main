@@ -27,7 +27,7 @@ export default function Contact() {
   async function handleSubmit(e) {
     e.preventDefault();
     await sendContactAPI(form);
-    alert("Tin nhắn đã được lưu vào database.");
+    alert("Tin nhắn đã được lưu vào cơ sở dữ liệu.");
     setForm({ name: "", email: "", phone: "", subject: "", message: "" });
   }
 

@@ -65,11 +65,11 @@ def _build_certificate_pdf(student_name: str, course_title: str) -> bytes:
 
 async def _get_course_progress(db, user_id: str, course_id: str):
     if not ObjectId.is_valid(course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     course = await db["courses"].find_one({"_id": oid(course_id)})
     if not course:
-        raise HTTPException(status_code=404, detail="Khong tim thay khoa hoc")
+        raise HTTPException(status_code=404, detail="Không tìm thấy khóa học")
 
     enrollment = await db["enrollments"].find_one(
         {
@@ -79,7 +79,7 @@ async def _get_course_progress(db, user_id: str, course_id: str):
         }
     )
     if not enrollment:
-        raise HTTPException(status_code=403, detail="Ban chua mua khoa hoc nay")
+        raise HTTPException(status_code=403, detail="Bạn chưa mua khóa học này")
 
     lessons = await db["lessons"].find({"course_id": course_id}).to_list(length=500)
     lesson_ids = [str(lesson["_id"]) for lesson in lessons]
@@ -122,9 +122,9 @@ async def save_progress(
     user=Depends(get_current_user),
 ):
     if not ObjectId.is_valid(payload.course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
     if not ObjectId.is_valid(payload.lesson_id):
-        raise HTTPException(status_code=400, detail="lesson_id khong hop le")
+        raise HTTPException(status_code=400, detail="lesson_id không hợp lệ")
 
     enrollment = await db["enrollments"].find_one(
         {
@@ -134,13 +134,13 @@ async def save_progress(
         }
     )
     if not enrollment:
-        raise HTTPException(status_code=403, detail="Ban chua mua khoa hoc nay")
+        raise HTTPException(status_code=403, detail="Bạn chưa mua khóa học này")
 
     lesson = await db["lessons"].find_one(
         {"_id": oid(payload.lesson_id), "course_id": payload.course_id}
     )
     if not lesson:
-        raise HTTPException(status_code=404, detail="Khong tim thay bai hoc")
+        raise HTTPException(status_code=404, detail="Không tìm thấy bài học")
 
     doc = {
         "user_id": user["_id"],
@@ -168,11 +168,11 @@ async def get_progress(course_id: str, db=Depends(get_db), user=Depends(get_curr
 async def download_certificate(course_id: str, db=Depends(get_db), user=Depends(get_current_user)):
     progress = await _get_course_progress(db, user["_id"], course_id)
     if not progress["isCompleted"]:
-        raise HTTPException(status_code=403, detail="Can hoan thanh 100% khoa hoc de tai chung chi")
+        raise HTTPException(status_code=403, detail="Cần hoàn thành 100% khóa học để tải chứng chỉ")
 
     pdf = _build_certificate_pdf(
-        student_name=user.get("name") or "Hoc vien",
-        course_title=progress["course"].get("title") or "Khoa hoc",
+        student_name=user.get("name") or "Học viên",
+        course_title=progress["course"].get("title") or "Khóa học",
     )
     filename = f"certificate-{course_id}.pdf"
     return Response(

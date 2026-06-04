@@ -28,7 +28,7 @@ class BlogController extends Controller
             ->first();
 
         if (!$blog) {
-            return response()->json(['error' => 'Blog not found'], 404);
+            return response()->json(['error' => 'Không tìm thấy bài viết'], 404);
         }
 
         return response()->json($blog->toApiArray());
@@ -59,13 +59,13 @@ class BlogController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         if (!$this->isValidObjectId($id)) {
-            return response()->json(['error' => 'Invalid blog id'], 400);
+            return response()->json(['error' => 'ID bài viết không hợp lệ'], 400);
         }
 
         $blog = Blog::find($id);
 
         if (!$blog) {
-            return response()->json(['error' => 'Blog not found'], 404);
+            return response()->json(['error' => 'Không tìm thấy bài viết'], 404);
         }
 
         $data = $this->validatedData($request, true);
@@ -91,18 +91,18 @@ class BlogController extends Controller
     public function destroy(string $id): JsonResponse
     {
         if (!$this->isValidObjectId($id)) {
-            return response()->json(['error' => 'Invalid blog id'], 400);
+            return response()->json(['error' => 'ID bài viết không hợp lệ'], 400);
         }
 
         $blog = Blog::find($id);
 
         if (!$blog) {
-            return response()->json(['error' => 'Blog not found'], 404);
+            return response()->json(['error' => 'Không tìm thấy bài viết'], 404);
         }
 
         $blog->delete();
 
-        return response()->json(['message' => 'Blog deleted']);
+        return response()->json(['message' => 'Đã xóa bài viết']);
     }
 
     private function validatedData(Request $request, bool $partial = false): array

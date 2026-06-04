@@ -148,7 +148,7 @@ export default function LessonPlayer() {
     setSavingProgress(true);
     try {
       await saveProgressAPI({ lesson_id: lesson._id, course_id: lesson.course_id, completed: true });
-      setMessage("Đã lưu tiến độ vào database");
+      setMessage("Đã lưu tiến độ vào cơ sở dữ liệu");
     } catch (error) {
       const status = error.response?.status;
       const detail = error.response?.data?.detail;
@@ -250,7 +250,7 @@ export default function LessonPlayer() {
             <div className="mt-6">
               {activeTab === "content" && (
                 <p className={`${muted} leading-7 text-sm`}>
-                  Nội dung bài học được lấy từ database. Video được phát từ đường dẫn Cloudinary của bài học hiện tại.
+                      Nội dung bài học được lấy từ cơ sở dữ liệu. Video được phát từ đường dẫn Cloudinary của bài học hiện tại.
                 </p>
               )}
 

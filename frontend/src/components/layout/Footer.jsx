@@ -48,7 +48,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="pt-6 text-center text-sm text-gray-500">
-          &copy; 2026 LearnPress LMS | Powered by Codecamp
+          &copy; 2026 LearnPress LMS | Vận hành bởi CodeCamp
         </div>
       </div>
     </footer>

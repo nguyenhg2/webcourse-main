@@ -165,6 +165,18 @@ export function getRoadmapAPI(id) {
   return get(api, "/api/roadmaps/" + id);
 }
 
+export function createRoadmapAPI(payload) {
+  return post(api, "/api/roadmaps", payload);
+}
+
+export function updateRoadmapAPI(id, payload) {
+  return put(api, `/api/roadmaps/${id}`, payload);
+}
+
+export function deleteRoadmapAPI(id) {
+  return remove(api, `/api/roadmaps/${id}`);
+}
+
 // My courses & cart
 export function getMyCoursesAPI() {
   return get(api, "/api/my-courses");
@@ -230,7 +242,7 @@ export function updateCouponStatusAPI(couponId, active) {
 
 export function uploadVideoAPI(file, folder) {
   if (!folder) {
-    throw new Error("Vui long nhap thu muc Cloudinary");
+    throw new Error("Vui lòng nhập thư mục Cloudinary");
   }
 
   const formData = makeFormData({ video: file, folder });

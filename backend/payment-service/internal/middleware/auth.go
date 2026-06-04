@@ -12,7 +12,7 @@ func JWTAuth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, ok := parseToken(c.GetHeader("Authorization"), secret)
 		if !ok {
-			abort(c, http.StatusUnauthorized, "invalid token")
+            abort(c, http.StatusUnauthorized, "Token không hợp lệ")
 			return
 		}
 
@@ -37,14 +37,14 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 				return
 			}
 		}
-		abort(c, http.StatusForbidden, "forbidden")
+        abort(c, http.StatusForbidden, "Không đủ quyền thực hiện")
 	}
 }
 
 func RequireInternalToken(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if secret != "" && c.GetHeader("X-Internal-Token") != secret {
-			abort(c, http.StatusUnauthorized, "invalid internal token")
+            abort(c, http.StatusUnauthorized, "Internal token không hợp lệ")
 			return
 		}
 		c.Next()

@@ -51,7 +51,7 @@ func uploadBody(cfg *config.Config, file multipart.File, fileName string, folder
 
 func ensureCloudinaryConfig(cfg *config.Config) error {
 	if cfg.CloudinaryCloud == "" || cfg.CloudinaryKey == "" || cfg.CloudinarySecret == "" {
-		return apiError{Status: http.StatusInternalServerError, Message: "Cloudinary config is missing"}
+        return apiError{Status: http.StatusInternalServerError, Message: "Thiếu cấu hình Cloudinary"}
 	}
 	return nil
 }

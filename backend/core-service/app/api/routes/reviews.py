@@ -10,11 +10,11 @@ router = APIRouter()
 @router.get("/api/courses/{course_id}/reviews")
 async def get_course_reviews(course_id: str, db=Depends(get_db)):
     if not ObjectId.is_valid(course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     course = await db["courses"].find_one({"_id": oid(course_id)})
     if not course:
-        raise HTTPException(status_code=404, detail="Khong tim thay khoa hoc")
+        raise HTTPException(status_code=404, detail="Không tìm thấy khóa học")
 
     reviews = (
         await db["reviews"]
@@ -32,11 +32,11 @@ async def create_review(
     user=Depends(get_current_user),
 ):
     if not ObjectId.is_valid(payload.course_id):
-        raise HTTPException(status_code=400, detail="course_id khong hop le")
+        raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     course = await db["courses"].find_one({"_id": oid(payload.course_id)})
     if not course:
-        raise HTTPException(status_code=404, detail="Khong tim thay khoa hoc")
+        raise HTTPException(status_code=404, detail="Không tìm thấy khóa học")
 
     enrollment = await db["enrollments"].find_one(
         {
@@ -48,19 +48,19 @@ async def create_review(
     if not enrollment:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ban can mua khoa hoc nay truoc khi danh gia",
+            detail="Bạn cần mua khóa học này trước khi đánh giá",
         )
 
     existing_review = await db["reviews"].find_one(
         {"user_id": user["_id"], "course_id": payload.course_id}
     )
     if existing_review:
-        raise HTTPException(status_code=400, detail="Ban da danh gia khoa hoc nay")
+        raise HTTPException(status_code=400, detail="Bạn đã đánh giá khóa học này")
 
     review_doc = payload.model_dump()
     comment = review_doc["comment"].strip()
     if not comment:
-        raise HTTPException(status_code=400, detail="comment khong duoc de trong")
+        raise HTTPException(status_code=400, detail="Nội dung nhận xét không được để trống")
 
     review_doc["user_id"] = user["_id"]
     review_doc["user_name"] = user.get("name")
@@ -79,10 +79,10 @@ async def delete_review(
     user=Depends(require_role("admin")),
 ):
     if not ObjectId.is_valid(review_id):
-        raise HTTPException(status_code=400, detail="review_id khong hop le")
+        raise HTTPException(status_code=400, detail="review_id không hợp lệ")
 
     result = await db["reviews"].delete_one({"_id": oid(review_id)})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Khong tim thay danh gia")
+        raise HTTPException(status_code=404, detail="Không tìm thấy đánh giá")
 
-    return {"message": "Da xoa danh gia"}
+    return {"message": "Đã xóa đánh giá"}
