@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAdminContactsAPI, markContactReadAPI } from "../../services/api";
+import { getAdminContactsAPI, markContactReadAPI } from "../../../services/api";
 import { FiMail, FiCheckCircle } from "react-icons/fi";
 
 export default function ContactManager() {

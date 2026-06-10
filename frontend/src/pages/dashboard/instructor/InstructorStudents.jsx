@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiBookOpen, FiRefreshCw, FiSearch, FiStar, FiUsers } from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext";
-import { getCoursesAPI } from "../../services/api";
+import { useAuth } from "../../../context/AuthContext";
+import { getCoursesAPI } from "../../../services/api";
 
 const LEVEL_LABELS = {
   beginner: "Cơ bản",

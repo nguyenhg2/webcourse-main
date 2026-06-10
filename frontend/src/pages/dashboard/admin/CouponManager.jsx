@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createCouponAPI, getCouponsAPI, updateCouponStatusAPI, validateCouponAPI } from "../../services/api";
+import { createCouponAPI, getCouponsAPI, updateCouponStatusAPI, validateCouponAPI } from "../../../services/api";
 
 const DEFAULT_FORM = {
   code: "",

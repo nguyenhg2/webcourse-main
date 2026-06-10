@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAdminUsersAPI, updateAdminUserRoleAPI } from "../../services/api";
+import { getAdminUsersAPI, updateAdminUserRoleAPI } from "../../../services/api";
 
 const ROLES = ["admin", "operator", "instructor", "student"];
 const ROLE_LABELS = {

@@ -139,6 +139,14 @@ export function getLessonAPI(lessonId) {
   return get(api, "/api/lessons/" + lessonId);
 }
 
+export function getLessonCommentsAPI(lessonId) {
+  return get(api, `/api/lessons/${lessonId}/comments`);
+}
+
+export function createLessonCommentAPI(lessonId, content) {
+  return post(api, `/api/lessons/${lessonId}/comments`, { content });
+}
+
 export function updateLessonAPI(lessonId, payload) {
   return put(api, "/api/lessons/" + lessonId, payload);
 }

@@ -10,29 +10,18 @@ import {
   FiLogOut,
   FiMap,
   FiMail,
-  FiMessageCircle,
   FiPenTool,
-  FiSettings,
-  FiShoppingCart,
+  FiPlus,
   FiTag,
   FiUser,
   FiUsers,
 } from "react-icons/fi";
 
 const MENU_ITEMS = {
-  student: [
-    { title: "Tổng quan", path: "/dashboard", icon: <FiHome /> },
-    { title: "Khóa học của tôi", path: "/dashboard/my-courses", icon: <FiBook /> },
-    { title: "Lộ trình học", path: "/dashboard/roadmap-library", icon: <FiMap /> },
-    { title: "Giỏ hàng", path: "/dashboard/cart", icon: <FiShoppingCart /> },
-    { title: "Thanh toán", path: "/dashboard/payments", icon: <FiDollarSign /> },
-    { title: "Hồ sơ", path: "/dashboard/profile", icon: <FiUser /> },
-  ],
   instructor: [
     { title: "Tổng quan", path: "/dashboard", icon: <FiHome /> },
-    { title: "Khóa học của tôi", path: "/dashboard/courses", icon: <FiBook /> },
-    { title: "Học viên", path: "/dashboard/instructor-students", icon: <FiUsers /> },
-    { title: "Giải đáp Q&A", path: "/dashboard/qa", icon: <FiMessageCircle /> },
+    { title: "Tạo khóa học", path: "/dashboard/courses#create-course", icon: <FiPlus /> },
+    { title: "Danh sách học viên", path: "/dashboard/instructor-students", icon: <FiUsers /> },
     { title: "Hồ sơ", path: "/dashboard/profile", icon: <FiUser /> },
   ],
   operator: [
@@ -45,7 +34,6 @@ const MENU_ITEMS = {
   admin: [
     { title: "Báo cáo doanh thu", path: "/dashboard", icon: <FiBarChart2 /> },
     { title: "Quản lý người dùng", path: "/dashboard/users", icon: <FiUsers /> },
-    { title: "Quản lý khóa học", path: "/dashboard/courses", icon: <FiBook /> },
     { title: "Quản lý lộ trình", path: "/dashboard/roadmaps", icon: <FiMap /> },
     { title: "Đơn hàng", path: "/dashboard/payments", icon: <FiDollarSign /> },
     { title: "Duyệt khóa học", path: "/dashboard/course-reviews", icon: <FiCheckSquare /> },
@@ -54,7 +42,6 @@ const MENU_ITEMS = {
     { title: "Mã giảm giá", path: "/dashboard/coupons", icon: <FiAlertCircle /> },
     { title: "Quản lý bài viết", path: "/dashboard/blogs", icon: <FiPenTool /> },
     { title: "Liên hệ", path: "/dashboard/contacts", icon: <FiMail /> },
-    { title: "Cấu hình hệ thống", path: "/dashboard/settings", icon: <FiSettings /> },
     { title: "Hồ sơ", path: "/dashboard/profile", icon: <FiUser /> },
   ],
 };
@@ -63,14 +50,13 @@ const ROLE_LABELS = {
   admin: "Quản trị viên",
   operator: "Vận hành",
   instructor: "Giảng viên",
-  student: "Học viên",
 };
 
 export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const role = user?.role || "student";
-  const menu = MENU_ITEMS[role] || MENU_ITEMS.student;
+  const role = user?.role;
+  const menu = MENU_ITEMS[role] || [];
 
   const handleLogout = () => {
     logout();
@@ -95,7 +81,8 @@ export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {
 
         <div className="flex-1 overflow-y-auto py-4 px-4 flex flex-col gap-1">
           {menu.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== "/dashboard" && location.pathname.startsWith(item.path));
+            const itemPath = item.path.split("#")[0];
+            const isActive = location.pathname === itemPath || (itemPath !== "/dashboard" && location.pathname.startsWith(itemPath));
             return (
               <Link
                 key={item.path}
