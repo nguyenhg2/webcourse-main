@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAdminOrdersAPI } from "../../services/api";
+import { getAdminOrdersAPI } from "../../../services/api";
 import { FiSearch } from "react-icons/fi";
 
 const STATUS_COLORS = {

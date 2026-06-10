@@ -21,6 +21,10 @@ export default function DashboardLayout() {
     return <Navigate to="/dang-nhap" replace />;
   }
 
+  if (user.role === "student") {
+    return <Navigate to="/khoa-hoc-cua-toi" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <DashboardSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />

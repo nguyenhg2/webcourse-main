@@ -14,7 +14,7 @@ import {
   FiUploadCloud,
   FiX,
 } from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import {
   createCourseAPI,
   createLessonAPI,
@@ -29,7 +29,7 @@ import {
   updateSectionAPI,
   uploadAttachmentAPI,
   uploadLessonVideoAPI,
-} from "../../services/api";
+} from "../../../services/api";
 
 const emptyCourseForm = {
   title: "",
@@ -44,6 +44,8 @@ const emptyCourseForm = {
 };
 
 const COURSE_VIDEO_ROOT = "codecamp/courses";
+const ATTACHMENT_ACCEPT =
+  ".pdf,.zip,.rar,.7z,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.json,.js,.jsx,.ts,.tsx,.html,.css,.py,.java,.c,.cpp,.cs";
 
 const LEVEL_LABELS = {
   beginner: "Cơ bản",
@@ -733,7 +735,7 @@ export default function CourseManager() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý khóa học</h1>
-          <p className="text-gray-500 mt-1">Tạo khóa học, chia phần, thêm bài học và tải video bài học lên Cloudinary.</p>
+          <p className="text-gray-500 mt-1">Tạo khóa học, quản lý curriculum, tải video/PDF và đính kèm mã nguồn hoặc tệp thực hành dưới từng bài học.</p>
         </div>
 
         <button
@@ -753,7 +755,7 @@ export default function CourseManager() {
         </div>
       )}
 
-      <form onSubmit={handleCreateCourse} className="rounded-lg border border-gray-100 bg-white p-5">
+      <form id="create-course" onSubmit={handleCreateCourse} className="scroll-mt-24 rounded-lg border border-gray-100 bg-white p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-gray-900">Thêm khóa học</h2>
@@ -920,7 +922,7 @@ export default function CourseManager() {
           )}
 
           {selectedCourse && (
-            <form onSubmit={handleCreateSection} className="rounded-lg border border-gray-100 bg-white p-5">
+            <form id="curriculum" onSubmit={handleCreateSection} className="scroll-mt-24 rounded-lg border border-gray-100 bg-white p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-900">Thêm phần</h3>
@@ -938,11 +940,11 @@ export default function CourseManager() {
             </form>
           )}
 
-          <div className="rounded-lg border border-gray-100 bg-white">
+          <div id="lecture-upload" className="scroll-mt-24 rounded-lg border border-gray-100 bg-white">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <div>
-                <p className="font-semibold text-gray-900">Phần và bài học</p>
-                <p className="mt-1 text-xs text-gray-500">Thêm bài học trong từng phần, sau đó tải video lên Cloudinary.</p>
+                <p className="font-semibold text-gray-900">Phần, bài học và học liệu</p>
+                <p className="mt-1 text-xs text-gray-500">Thêm bài học trong từng phần, tải video bài giảng và đính kèm PDF, mã nguồn hoặc tệp thực hành.</p>
               </div>
               {loadingDetail && <span className="inline-flex items-center gap-2 text-sm text-gray-500"><FiLoader className="animate-spin" /> Đang tải</span>}
             </div>
@@ -989,7 +991,7 @@ export default function CourseManager() {
                       <textarea
                         value={lessonForm.attachmentsText}
                         onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, attachmentsText: e.target.value } })}
-                        placeholder="Tài liệu đính kèm, mỗi dòng: Tên tài liệu | URL"
+                        placeholder="PDF / mã nguồn / tệp thực hành, mỗi dòng: Tên tài liệu | URL"
                         className="min-h-20 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary lg:col-span-3"
                       />
                       <label className={`inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold ${uploadingAttachmentKey === `new-${section._id}` ? "cursor-wait text-gray-400" : "cursor-pointer text-gray-700 hover:border-primary hover:text-primary"}`}>
@@ -997,6 +999,7 @@ export default function CourseManager() {
                         {uploadingAttachmentKey === `new-${section._id}` ? "Đang tải lên..." : "Chọn tệp"}
                         <input
                           type="file"
+                          accept={ATTACHMENT_ACCEPT}
                           disabled={uploadingAttachmentKey === `new-${section._id}` || !canManage}
                           onChange={(event) => {
                             const file = event.target.files?.[0];
@@ -1033,7 +1036,7 @@ export default function CourseManager() {
                                 <textarea
                                   value={editingLessonForm.attachmentsText}
                                   onChange={(e) => setEditingLessonForm({ ...editingLessonForm, attachmentsText: e.target.value })}
-                                  placeholder="Tài liệu đính kèm, mỗi dòng: Tên tài liệu | URL"
+                                  placeholder="PDF / mã nguồn / tệp thực hành, mỗi dòng: Tên tài liệu | URL"
                                   className="min-h-24 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
                                 />
                                 <label className={`inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold ${uploadingAttachmentKey === `edit-${lesson._id}` ? "cursor-wait text-gray-400" : "cursor-pointer text-gray-700 hover:border-primary hover:text-primary"}`}>
@@ -1041,6 +1044,7 @@ export default function CourseManager() {
                                   {uploadingAttachmentKey === `edit-${lesson._id}` ? "Đang tải lên..." : "Chọn tệp từ máy"}
                                   <input
                                     type="file"
+                                    accept={ATTACHMENT_ACCEPT}
                                     disabled={uploadingAttachmentKey === `edit-${lesson._id}` || !canManage}
                                     onChange={(event) => {
                                       const file = event.target.files?.[0];

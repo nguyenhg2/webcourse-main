@@ -25,6 +25,8 @@ async def ensure_indexes():
     await db["enrollments"].create_index([("user_id", 1), ("payment_id", 1)])
     await db["enrollments"].create_index([("user_id", 1), ("course_id", 1), ("payment_id", 1)])
     await db["lessons"].create_index([("course_id", 1), ("order", 1)])
+    await db["lesson_comments"].create_index([("lesson_id", 1), ("created_at", -1)])
+    await db["lesson_comments"].create_index([("course_id", 1), ("created_at", -1)])
     await db["progress"].create_index([("user_id", 1), ("course_id", 1), ("lesson_id", 1), ("completed", 1)])
 
 

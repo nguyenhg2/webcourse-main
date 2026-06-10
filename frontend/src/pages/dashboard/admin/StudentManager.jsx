@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAdminUsersAPI } from "../../services/api";
+import { getAdminUsersAPI } from "../../../services/api";
 
 const LEVEL_COLORS = {
   beginner: "bg-green-100 text-green-700",

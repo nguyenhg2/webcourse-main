@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiLoader, FiRefreshCw, FiXCircle } from "react-icons/fi";
-import { getCourseBySlugAPI, getCoursesAPI, reviewCourseAPI } from "../../services/api";
+import { getCourseBySlugAPI, getCoursesAPI, reviewCourseAPI } from "../../../services/api";
 
 const FILTERS = [
   { value: "pending_review", label: "Chờ duyệt" },

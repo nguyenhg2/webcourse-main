@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCategoriesAPI, createCategoryAPI, updateCategoryAPI, deleteCategoryAPI } from "../../services/api";
+import { getCategoriesAPI, createCategoryAPI, updateCategoryAPI, deleteCategoryAPI } from "../../../services/api";
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiCheck } from "react-icons/fi";
 
 const EMPTY = { name: "", icon: "" };
