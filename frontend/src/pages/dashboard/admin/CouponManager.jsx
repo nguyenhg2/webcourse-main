@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { createCouponAPI, getCouponsAPI, updateCouponStatusAPI, validateCouponAPI } from "../../services/api";
+import { createCouponAPI, getCouponsAPI, updateCouponStatusAPI, validateCouponAPI } from "../../../services/api";
 
 const DEFAULT_FORM = {
   code: "",
   type: "percentage",
   discount: "",
+  maxUses: "",
   expiry: "",
   active: true,
 };
@@ -101,6 +102,7 @@ export default function CouponManager() {
         code: form.code.trim().toUpperCase(),
         type: form.type,
         discount: Number(form.discount),
+        max_uses: Number(form.maxUses || 0),
         expiry,
         active: form.active,
       };
@@ -174,6 +176,7 @@ export default function CouponManager() {
                   <option value="fixed">Số tiền cố định</option>
                 </select>
                 <input name="discount" value={form.discount} onChange={handleFormChange} type="number" min="1" placeholder={form.type === "percentage" ? "Giá trị (%)" : "Giá trị (VNĐ)"} required className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
+                <input name="maxUses" value={form.maxUses} onChange={handleFormChange} type="number" min="0" placeholder="Gioi han luot dung" className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-medium text-gray-600">Ngày hết hạn</span>
                   <input name="expiry" value={form.expiry} onChange={handleFormChange} type="text" inputMode="numeric" placeholder="dd/mm/yyyy" className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
@@ -219,6 +222,7 @@ export default function CouponManager() {
               <th className="text-left p-4">Mã</th>
               <th className="text-left p-4">Loại</th>
               <th className="text-left p-4">Giá trị</th>
+              <th className="text-left p-4">Luot dung</th>
               <th className="text-left p-4">Hết hạn</th>
               <th className="text-left p-4">Trạng thái</th>
               <th className="text-left p-4">Thao tác</th>
@@ -227,7 +231,7 @@ export default function CouponManager() {
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td colSpan="6" className="p-8 text-center text-gray-500">Đang tải...</td>
+                <td colSpan="7" className="p-8 text-center text-gray-500">Đang tải...</td>
               </tr>
             ) : (
               coupons.map((coupon) => (
@@ -235,6 +239,7 @@ export default function CouponManager() {
                   <td className="p-4 font-semibold text-primary">{coupon.code}</td>
                   <td className="p-4">{coupon.type === "percentage" ? "Phần trăm" : "Cố định"}</td>
                   <td className="p-4">{coupon.type === "percentage" ? coupon.discount + "%" : formatCurrency(coupon.discount)}</td>
+                  <td className="p-4">{Number(coupon.used_count || 0)} / {coupon.max_uses ? coupon.max_uses : "unlimited"}</td>
                   <td className="p-4">{formatExpiry(coupon.expiry)}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${coupon.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
@@ -258,7 +263,7 @@ export default function CouponManager() {
             )}
             {!loading && coupons.length === 0 && (
               <tr>
-                <td colSpan="6" className="p-8 text-center text-gray-500">Chưa có mã giảm giá.</td>
+                <td colSpan="7" className="p-8 text-center text-gray-500">Chưa có mã giảm giá.</td>
               </tr>
             )}
           </tbody>

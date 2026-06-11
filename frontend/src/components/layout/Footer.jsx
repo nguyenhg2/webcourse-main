@@ -35,8 +35,8 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-5">LIÊN HỆ</h4>
             <ul className="flex flex-col gap-3 text-sm">
               <li>236 Hoàng Quốc Việt, Phường Nghĩa Đô, Hà Nội</li>
-              <li>+(123) 2500-567-8988</li>
-              <li>supportlms@gmail.com</li>
+              <li>+(84) 0914 132 630</li>
+              <li>phamputinl@gmail.com</li>
             </ul>
             <div className="flex items-center gap-3 mt-5">
               <a href="#" className="w-9 h-9 rounded-full border border-gray-600 flex items-center justify-center hover:border-primary hover:text-primary transition-colors"><FaFacebookF size={14} /></a>
@@ -48,7 +48,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="pt-6 text-center text-sm text-gray-500">
-          &copy; 2026 LearnPress LMS | Powered by Codecamp
+          &copy; 2026 LearnPress LMS | Vận hành bởi CodeCamp
         </div>
       </div>
     </footer>

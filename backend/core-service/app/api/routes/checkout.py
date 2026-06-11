@@ -38,6 +38,15 @@ async def create_payment(
 
     return await call_payment(request, "/api/payments", payment_payload)
 
+@router.post("/api/checkout/payments/{payment_id}/sync")
+async def sync_payment(
+    payment_id: str,
+    request: Request,
+    user=Depends(require_role("student")),
+):
+    if not ObjectId.is_valid(payment_id):
+        raise HTTPException(status_code=400, detail="payment_id không hợp lệ")
+    return await call_payment(request, f"/api/payments/{payment_id}/sync", {})
 
 async def checkout_total(db, user_id: str, raw_course_ids: list[str]) -> tuple[list[str], int]:
     course_ids = parse_course_ids(raw_course_ids)

@@ -5,8 +5,8 @@ import { sendContactAPI } from "../services/api";
 
 const contactInfo = [
   { icon: <FiMapPin size={24} />, title: "Địa chỉ", detail: "236 Hoàng Quốc Việt, Phường Nghĩa Đô, Hà Nội" },
-  { icon: <FiPhone size={24} />, title: "Điện thoại", detail: "+(123) 2500-567-8988" },
-  { icon: <FiMail size={24} />, title: "Email", detail: "supportlms@gmail.com" },
+  { icon: <FiPhone size={24} />, title: "Điện thoại", detail: "+(84) 0914 132 630" },
+  { icon: <FiMail size={24} />, title: "Email", detail: "phamputinl@gmail.com" },
   { icon: <FiClock size={24} />, title: "Giờ làm việc", detail: "Thứ 2 - Thứ 6: 8:00 - 17:30" },
 ];
 
@@ -27,7 +27,7 @@ export default function Contact() {
   async function handleSubmit(e) {
     e.preventDefault();
     await sendContactAPI(form);
-    alert("Tin nhắn đã được lưu vào database.");
+    alert("Tin nhắn đã được lưu vào cơ sở dữ liệu.");
     setForm({ name: "", email: "", phone: "", subject: "", message: "" });
   }
 

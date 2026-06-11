@@ -15,8 +15,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	api := r.Group("/api")
 	api.Use(middleware.JWTAuth(cfg.JWTSecret))
 
-	media.RegisterRoutes(api.Group("/videos", middleware.RequireRole("admin", "instructor")), cfg)
-	media.RegisterFileRoutes(api.Group("/files", middleware.RequireRole("admin", "instructor")), cfg)
+	media.RegisterRoutes(api.Group("", middleware.RequireRole("admin", "instructor")), cfg)
 
 	return r
 }

@@ -15,7 +15,7 @@ class JwtAuthMiddleware
         $header = $request->header('Authorization', '');
 
         if (!str_starts_with($header, 'Bearer ')) {
-            return response()->json(['error' => 'Authorization header required'], 401);
+            return response()->json(['error' => 'Cần header Authorization'], 401);
         }
 
         $token = substr($header, 7);
@@ -24,14 +24,14 @@ class JwtAuthMiddleware
             $secret = getenv('JWT_SECRET') ?: env('JWT_SECRET', 'dev-secret');
             $decoded = JWT::decode($token, new Key($secret, 'HS256'));
         } catch (\Throwable $e) {
-            Log::warning('Blog JWT decode failed: ' . $e->getMessage());
-            return response()->json(['error' => 'Invalid token'], 401);
+            Log::warning('Giải mã JWT blog thất bại: ' . $e->getMessage());
+            return response()->json(['error' => 'Token không hợp lệ'], 401);
         }
 
         $role = $decoded->role ?? '';
 
         if ($requiredRole === 'admin' && !in_array($role, ['admin', 'operator', 'instructor'], true)) {
-            return response()->json(['error' => 'Forbidden'], 403);
+            return response()->json(['error' => 'Không đủ quyền thực hiện'], 403);
         }
 
         $request->attributes->set('jwt_user_id', $decoded->user_id ?? '');

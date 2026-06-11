@@ -139,6 +139,14 @@ export function getLessonAPI(lessonId) {
   return get(api, "/api/lessons/" + lessonId);
 }
 
+export function getLessonCommentsAPI(lessonId) {
+  return get(api, `/api/lessons/${lessonId}/comments`);
+}
+
+export function createLessonCommentAPI(lessonId, content) {
+  return post(api, `/api/lessons/${lessonId}/comments`, { content });
+}
+
 export function updateLessonAPI(lessonId, payload) {
   return put(api, "/api/lessons/" + lessonId, payload);
 }
@@ -163,6 +171,18 @@ export function getRoadmapsAPI() {
 
 export function getRoadmapAPI(id) {
   return get(api, "/api/roadmaps/" + id);
+}
+
+export function createRoadmapAPI(payload) {
+  return post(api, "/api/roadmaps", payload);
+}
+
+export function updateRoadmapAPI(id, payload) {
+  return put(api, `/api/roadmaps/${id}`, payload);
+}
+
+export function deleteRoadmapAPI(id) {
+  return remove(api, `/api/roadmaps/${id}`);
 }
 
 // My courses & cart
@@ -204,6 +224,10 @@ export function createPaymentAPI(payload) {
   return post(api, "/api/checkout/pay", payload);
 }
 
+export function syncPaymentAPI(paymentId) {
+  return post(api, `/api/checkout/payments/${paymentId}/sync`, {});
+}
+
 export function getAllPaymentsAPI() {
   return get(paymentApi, "/api/payments");
 }
@@ -230,7 +254,7 @@ export function updateCouponStatusAPI(couponId, active) {
 
 export function uploadVideoAPI(file, folder) {
   if (!folder) {
-    throw new Error("Vui long nhap thu muc Cloudinary");
+    throw new Error("Vui lòng nhập thư mục Cloudinary");
   }
 
   const formData = makeFormData({ video: file, folder });

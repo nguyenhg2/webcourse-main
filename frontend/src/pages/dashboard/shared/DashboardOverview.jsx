@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiBookOpen, FiCheckCircle, FiDollarSign, FiTrendingUp, FiUsers } from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext";
-import { getAdminDashboardAPI, getAdminOrdersAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../services/api";
+import { useAuth } from "../../../context/AuthContext";
+import { getAdminDashboardAPI, getAdminOrdersAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
 
@@ -61,12 +61,19 @@ const StatCard = ({ title, value, icon, color }) => (
 
 export default function DashboardOverview() {
   const { user } = useAuth();
-  const role = user?.role || "student";
+  const role = user?.role;
   const [stats, setStats] = useState({});
   const [items, setItems] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
 
   useEffect(() => {
+    if (!["admin", "operator", "instructor"].includes(role)) {
+      setStats({});
+      setItems([]);
+      setRecentOrders([]);
+      return;
+    }
+
     if (role === "admin") {
       getAdminDashboardAPI()
         .then((data) => {
@@ -165,12 +172,7 @@ export default function DashboardOverview() {
         ["Đã xuất bản", stats.published || 0, <FiCheckCircle size={24} />, "bg-orange-500"],
       ];
     }
-    return [
-      ["Khóa học của tôi", stats.courses || 0, <FiBookOpen size={24} />, "bg-purple-500"],
-      ["Đã hoàn thành", stats.completed || 0, <FiCheckCircle size={24} />, "bg-emerald-500"],
-      ["Tiến độ TB", (stats.progress || 0) + "%", <FiTrendingUp size={24} />, "bg-orange-500"],
-      ["Bài đã học", stats.lessons || 0, <FiUsers size={24} />, "bg-blue-500"],
-    ];
+    return [];
   }, [role, stats]);
 
   return (
@@ -225,7 +227,7 @@ export default function DashboardOverview() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <h2 className="font-semibold text-gray-900 mb-4">
-            {role === "operator" ? "Giao dịch gần đây" : role === "student" ? "Khóa học đang học" : "Mục cần theo dõi"}
+            {role === "operator" ? "Giao dịch gần đây" : "Mục cần theo dõi"}
           </h2>
           <div className="divide-y divide-gray-100">
             {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}

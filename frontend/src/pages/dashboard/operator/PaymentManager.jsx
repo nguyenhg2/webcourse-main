@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiRefreshCw } from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext";
-import { getAdminOrdersAPI, getPaymentHistoryAPI } from "../../services/api";
+import { useAuth } from "../../../context/AuthContext";
+import { getAdminOrdersAPI, getPaymentHistoryAPI } from "../../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
 

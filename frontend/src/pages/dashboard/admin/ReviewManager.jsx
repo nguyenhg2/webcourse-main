@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCoursesAPI, getReviewsByCourseAPI, deleteReviewAPI } from "../../services/api";
+import { getCoursesAPI, getReviewsByCourseAPI, deleteReviewAPI } from "../../../services/api";
 import { FiTrash2, FiStar, FiChevronDown } from "react-icons/fi";
 
 function Stars({ rating }) {

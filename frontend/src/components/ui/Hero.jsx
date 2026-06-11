@@ -19,7 +19,7 @@ export default function Hero() {
                     
           <h1 className="text-4xl lg:text-5xl py-2 xl:text-6xl font-bold leading-tight text-primary-light">
             Nền tảng học lập trình trực tuyến <br/>
-            <span className="text-primary"> "Từ zero đến heroooooo"</span>
+            <span className="text-primary"> "Từ con số 0 đến chuyên gia"</span>
           </h1>
 
           <p className="text-primary-light text-xl leading-6">

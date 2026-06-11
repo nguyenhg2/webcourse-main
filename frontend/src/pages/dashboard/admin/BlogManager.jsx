@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAdminBlogsAPI, createBlogAPI, updateBlogAPI, deleteBlogAPI } from "../../services/api";
+import { getAdminBlogsAPI, createBlogAPI, updateBlogAPI, deleteBlogAPI } from "../../../services/api";
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiCheck } from "react-icons/fi";
 
 const EMPTY = { title: "", slug: "", excerpt: "", content: "", image: "", author: "", is_published: false };

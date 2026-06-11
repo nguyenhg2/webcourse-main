@@ -36,7 +36,7 @@ async def update_section(section_id: str, payload: UpdateSection, db=Depends(get
         raise HTTPException(status_code=400, detail="section_id không hợp lệ")
     section = await db["sections"].find_one({"_id": oid(section_id)})
     if not section:
-        raise HTTPException(status_code=404, detail="Không tìm thấy section")
+        raise HTTPException(status_code=404, detail="Không tìm thấy phần học")
     await _ensure_can_manage_course(db, section["course_id"], user)
     result = await db["sections"].update_one(
         {"_id": oid(section_id)},
@@ -56,9 +56,9 @@ async def delete_section(section_id: str, db=Depends(get_db), user=Depends(requi
         raise HTTPException(status_code=400, detail="section_id không hợp lệ")
     section = await db["sections"].find_one({"_id": oid(section_id)})
     if not section:
-        raise HTTPException(status_code=404, detail="Không tìm thấy section")
+        raise HTTPException(status_code=404, detail="Không tìm thấy phần học")
     await _ensure_can_manage_course(db, section["course_id"], user)
     result = await db["sections"].delete_one({"_id": oid(section_id)})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Không tìm thấy section")
-    return {"message": "Section đã được xóa"}
+        raise HTTPException(status_code=404, detail="Không tìm thấy phần học")
+    return {"message": "Phần học đã được xóa"}

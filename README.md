@@ -22,11 +22,14 @@ PAYMENT_MONGODB_DB=codecamp_payment
 BLOG_MONGODB_DB=codecamp_php
 JWT_SECRET=
 STRIPE_SECRET_KEY=
+VITE_STRIPE_PUBLISHABLE_KEY=
 
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 ```
+
+For local Stripe demo, use test-mode keys only: `sk_test...` for `STRIPE_SECRET_KEY` and `pk_test...` for `VITE_STRIPE_PUBLISHABLE_KEY`. Use Stripe test card `4242 4242 4242 4242` with any future expiry date and any CVC.
 
 ## Run
 

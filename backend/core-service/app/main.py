@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from .api.routes import auth, courses, categories, sections, lessons, enrollment, roadmaps, reviews, progress, cart, admin, checkout
+from .db.mongo import ensure_indexes
 from .subscribers.payment_subscriber import start_payment_success_listener, stop_payment_success_listener
 
 app = FastAPI(title="CodeCamp Core Service")
@@ -30,6 +31,7 @@ app.include_router(checkout.router)
 
 @app.on_event("startup")
 async def startup_event():
+    await ensure_indexes()
     await start_payment_success_listener()
 
 

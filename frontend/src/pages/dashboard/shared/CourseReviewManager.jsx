@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiLoader, FiRefreshCw, FiXCircle } from "react-icons/fi";
-import { getCourseBySlugAPI, getCoursesAPI, reviewCourseAPI } from "../../services/api";
+import { getCourseBySlugAPI, getCoursesAPI, reviewCourseAPI } from "../../../services/api";
 
 const FILTERS = [
   { value: "pending_review", label: "Chờ duyệt" },
@@ -187,7 +187,7 @@ export default function CourseReviewManager() {
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             {selectedCourse ? (
               <div className="flex flex-col gap-5 xl:flex-row">
-                <img src={selectedCourse.thumbnail || "https://placehold.co/220x130?text=Khoa+hoc"} alt={selectedCourse.title} className="h-36 w-full rounded-lg object-cover xl:w-56" />
+                <img src={selectedCourse.thumbnail || "https://placehold.co/220x130?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={selectedCourse.title} className="h-36 w-full rounded-lg object-cover xl:w-56" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>

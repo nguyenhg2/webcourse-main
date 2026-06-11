@@ -22,3 +22,6 @@ class UpdateLesson(BaseModel):
     is_free_preview: Optional[bool] = None
     attachments: Optional[list] = None
     order: Optional[int] = None
+
+class LessonCommentCreate(BaseModel):
+    content: str

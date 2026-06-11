@@ -1,52 +1,33 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FiCheckCircle } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
-import { enrollCourseAPI, removeCartAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 export default function PaymentSuccess() {
   const [countdown, setCountdown] = useState(5);
   const [enrollStatus, setEnrollStatus] = useState("idle");
-  const location = useLocation();
   const navigate = useNavigate();
   const { refreshCartCount } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
 
-    async function unlockCourses() {
-      let fallback = {};
-      const stored = sessionStorage.getItem("pendingPaymentEnrollment");
-      if (stored) {
-        try {
-          fallback = JSON.parse(stored);
-        } catch {
-          sessionStorage.removeItem("pendingPaymentEnrollment");
-        }
-      }
-
-      const paymentId = location.state?.paymentId || fallback.paymentId;
-      const courseIds = location.state?.courseIds || fallback.courseIds || [];
-      if (!paymentId || !courseIds.length) return;
-
+    async function refreshAfterPayment() {
       setEnrollStatus("loading");
       try {
-        await enrollCourseAPI(courseIds, paymentId);
-        await Promise.allSettled(courseIds.map((courseId) => removeCartAPI(courseId)));
         await refreshCartCount?.();
-        sessionStorage.removeItem("pendingPaymentEnrollment");
         if (!cancelled) setEnrollStatus("success");
       } catch {
         if (!cancelled) setEnrollStatus("error");
       }
     }
 
-    unlockCourses();
+    refreshAfterPayment();
     return () => {
       cancelled = true;
     };
-  }, [location.state]);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {

@@ -1,6 +1,5 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { ThemeProvider } from "./context/ThemeContext";
 import ScrollToTop from "./components/ui/ScrollToTop";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
@@ -23,21 +22,21 @@ import Cart from "./pages/Cart";
 import RoadmapListing from "./pages/RoadmapListing";
 import RoadmapDetail from "./pages/RoadmapDetail";
 import DashboardLayout from "./components/layout/DashboardLayout";
-import DashboardOverview from "./pages/dashboard/DashboardOverview";
-import CourseManager from "./pages/dashboard/CourseManager";
-import PaymentManager from "./pages/dashboard/PaymentManager";
-import CouponManager from "./pages/dashboard/CouponManager";
-import UserManager from "./pages/dashboard/UserManager";
-import CategoryManager from "./pages/dashboard/CategoryManager";
-import StudentCourses from "./pages/dashboard/StudentCourses";
-import WorkflowBoard from "./pages/dashboard/WorkflowBoard";
-import BlogManager from "./pages/dashboard/BlogManager";
-import ContactManager from "./pages/dashboard/ContactManager";
-import StudentManager from "./pages/dashboard/StudentManager";
-import ReviewManager from "./pages/dashboard/ReviewManager";
-import OrderManager from "./pages/dashboard/OrderManager";
-import CourseReviewManager from "./pages/dashboard/CourseReviewManager";
-import SystemSettings from "./pages/dashboard/SystemSettings";
+import BlogManager from "./pages/dashboard/admin/BlogManager";
+import CategoryManager from "./pages/dashboard/admin/CategoryManager";
+import ContactManager from "./pages/dashboard/admin/ContactManager";
+import CouponManager from "./pages/dashboard/admin/CouponManager";
+import OrderManager from "./pages/dashboard/admin/OrderManager";
+import ReviewManager from "./pages/dashboard/admin/ReviewManager";
+import RoadmapManager from "./pages/dashboard/admin/RoadmapManager";
+import StudentManager from "./pages/dashboard/admin/StudentManager";
+import UserManager from "./pages/dashboard/admin/UserManager";
+import InstructorStudents from "./pages/dashboard/instructor/InstructorStudents";
+import PaymentManager from "./pages/dashboard/operator/PaymentManager";
+import CourseManager from "./pages/dashboard/shared/CourseManager";
+import CourseReviewManager from "./pages/dashboard/shared/CourseReviewManager";
+import DashboardOverview from "./pages/dashboard/shared/DashboardOverview";
+import WorkflowBoard from "./pages/dashboard/shared/WorkflowBoard";
 import { useAuth } from "./context/AuthContext";
 
 function MainLayout() {
@@ -101,7 +100,7 @@ function PaymentsRoute() {
     return <OrderManager />;
   }
 
-  if (user.role === "student" || user.role === "operator") {
+  if (user.role === "operator") {
     return <PaymentManager />;
   }
 
@@ -111,8 +110,7 @@ function PaymentsRoute() {
 export default function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <BrowserRouter>
+      <BrowserRouter>
           <ScrollToTop />
           <Routes>
             <Route path="/khoa-hoc/:slug/hoc/:lessonId" element={<LessonPlayer />} />
@@ -141,11 +139,12 @@ export default function App() {
 
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
-              <Route path="my-courses" element={<RequireDashboardRole roles={["student"]}><StudentCourses /></RequireDashboardRole>} />
-              <Route path="courses" element={<RequireDashboardRole roles={["admin", "instructor"]}><CourseManager /></RequireDashboardRole>} />
+              <Route path="profile" element={<RequireDashboardRole roles={["admin", "operator", "instructor"]}><Profile /></RequireDashboardRole>} />
+              <Route path="courses" element={<RequireDashboardRole roles={["instructor"]}><CourseManager /></RequireDashboardRole>} />
+              <Route path="roadmaps" element={<RequireDashboardRole roles={["admin"]}><RoadmapManager /></RequireDashboardRole>} />
               <Route path="students" element={<RequireDashboardRole roles={["admin"]}><StudentManager /></RequireDashboardRole>} />
-              <Route path="qa" element={<RequireDashboardRole roles={["instructor"]}><WorkflowBoard type="qa" /></RequireDashboardRole>} />
-              <Route path="course-reviews" element={<RequireDashboardRole roles={["operator"]}><CourseReviewManager /></RequireDashboardRole>} />
+              <Route path="instructor-students" element={<RequireDashboardRole roles={["instructor"]}><InstructorStudents /></RequireDashboardRole>} />
+              <Route path="course-reviews" element={<RequireDashboardRole roles={["admin", "operator"]}><CourseReviewManager /></RequireDashboardRole>} />
               <Route path="reviews" element={<RequireDashboardRole roles={["admin"]}><ReviewManager /></RequireDashboardRole>} />
               <Route path="payments" element={<PaymentsRoute />} />
               <Route path="complaints" element={<RequireDashboardRole roles={["operator"]}><WorkflowBoard type="complaints" /></RequireDashboardRole>} />
@@ -154,11 +153,9 @@ export default function App() {
               <Route path="coupons" element={<RequireDashboardRole roles={["admin"]}><CouponManager /></RequireDashboardRole>} />
               <Route path="blogs" element={<RequireDashboardRole roles={["admin"]}><BlogManager /></RequireDashboardRole>} />
               <Route path="contacts" element={<RequireDashboardRole roles={["admin"]}><ContactManager /></RequireDashboardRole>} />
-              <Route path="settings" element={<RequireDashboardRole roles={["admin"]}><SystemSettings /></RequireDashboardRole>} />
             </Route>
           </Routes>
         </BrowserRouter>
-      </ThemeProvider>
     </AuthProvider>
   );
 }
