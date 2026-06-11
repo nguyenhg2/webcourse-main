@@ -18,7 +18,7 @@ export default function Stats() {
 
   return (
     <section className="bg-gray-900 py-16">
-      <div className="max-w-[1290px] mx-auto px-5 grid grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="max-w-322.5 mx-auto px-5 grid grid-cols-2 lg:grid-cols-4 gap-8">
         {stats.map((stat) => (
           <div key={stat.label} className="flex flex-col items-center gap-3 text-center">
             <span className="text-primary">{ICONS[stat.icon] || ICONS.users}</span>

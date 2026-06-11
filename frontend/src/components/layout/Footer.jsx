@@ -4,7 +4,7 @@ import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaYoutube } from "re
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300 pt-16 pb-8">
-      <div className="max-w-[1290px] mx-auto px-5">
+      <div className="max-w-322.5 mx-auto px-5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-10 border-b border-gray-700">
           <div>
             <Link to="/" className="text-2xl font-heading font-bold text-white">

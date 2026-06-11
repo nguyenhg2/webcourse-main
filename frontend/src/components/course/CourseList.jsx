@@ -56,7 +56,7 @@ export default function CourseList() {
   if (loading) {
     return (
       <section className="py-16 lg:py-20 bg-gray-50">
-        <div className="max-w-[1290px] mx-auto px-5 text-center text-gray-500">
+        <div className="max-w-322.5 mx-auto px-5 text-center text-gray-500">
           Đang tải khóa học...
         </div>
       </section>
@@ -65,7 +65,7 @@ export default function CourseList() {
 
   return (
     <section className="py-16 lg:py-20 bg-gray-50">
-      <div className="max-w-[1290px] mx-auto px-5">
+      <div className="max-w-322.5 mx-auto px-5">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-heading font-bold text-secondary">
             Khóa học nổi bật

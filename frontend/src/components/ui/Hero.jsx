@@ -13,7 +13,7 @@ export default function Hero() {
 
       <div className="absolute inset-0 bg-linear-to-r from-black/50 via-black/30 to-transparent"></div>
 
-      <div className="relative z-10 max-w-[1290px] mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-12 items-center h-full">
+      <div className="relative z-10 max-w-322.5 mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-12 items-center h-full">
         
         <div className="flex flex-col gap-6 max-w-lg">
                     

@@ -73,7 +73,7 @@ export default function Cart() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Giỏ hàng" }]} />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <h1 className="text-2xl font-heading font-bold text-secondary mb-8">Giỏ hàng</h1>
         {items.length === 0 ? (
           <div className="text-center py-20 border border-gray-100 rounded-lg">

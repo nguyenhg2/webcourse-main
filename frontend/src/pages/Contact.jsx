@@ -37,7 +37,7 @@ export default function Contact() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Liên hệ" }]} />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-heading font-bold text-secondary">Liên hệ với chúng tôi</h1>
           <p className="text-gray-600 mt-3 max-w-xl mx-auto">Nếu bạn có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với chúng tôi</p>

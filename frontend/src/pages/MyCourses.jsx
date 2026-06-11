@@ -70,7 +70,7 @@ export default function MyCourses() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Khóa học của tôi" }]} />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <h1 className="text-2xl font-heading font-bold text-secondary mb-8">Khóa học của tôi</h1>
 
         {courses.length === 0 && <p className="text-gray-500">Bạn chưa sở hữu khóa học nào.</p>}

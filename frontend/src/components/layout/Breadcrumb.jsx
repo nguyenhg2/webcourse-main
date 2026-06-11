@@ -4,7 +4,7 @@ import { FiChevronRight } from "react-icons/fi";
 export default function Breadcrumb({ items }) {
   return (
     <div className="bg-gray-50 border-b border-gray-100">
-      <div className="max-w-[1290px] mx-auto px-5 py-5">
+      <div className="max-w-322.5 mx-auto px-5 py-5">
         <div className="flex items-center gap-2 text-sm">
           {items.map((item, i) => (
             <span key={i} className="flex items-center gap-2">

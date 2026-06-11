@@ -26,7 +26,7 @@ export default function BlogListing() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Blog" }]} />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="flex-1">
             <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">

@@ -119,7 +119,7 @@ export default function Categories() {
 
   return (
     <section className="py-14 lg:py-18 bg-white">
-      <div className="max-w-[1290px] mx-auto px-5">
+      <div className="max-w-322.5 mx-auto px-5">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <span className="text-xs font-semibold uppercase tracking-wide text-primary">Danh mục học tập</span>

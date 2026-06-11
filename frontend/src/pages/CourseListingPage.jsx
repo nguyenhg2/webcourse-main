@@ -133,7 +133,7 @@ export default function CourseListingPage() {
       <Breadcrumb
         items={[{ label: "Trang chủ", to: "/" }, { label: "Khóa học" }]}
       />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="hidden lg:block">
             <CourseSidebar {...sidebarProps} />

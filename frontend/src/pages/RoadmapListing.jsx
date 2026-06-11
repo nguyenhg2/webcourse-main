@@ -45,7 +45,7 @@ export default function RoadmapListing() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Lộ trình" }]} />
-      <main className="max-w-[1290px] mx-auto px-5 py-10">
+      <main className="max-w-322.5 mx-auto px-5 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
           <section>
             <div className="flex items-start justify-between gap-5 flex-wrap">

@@ -120,7 +120,7 @@ export default function CourseSingle() {
 
   if (loading) {
     return (
-      <div className="max-w-[1290px] mx-auto px-5 py-20 text-center text-gray-500">
+      <div className="max-w-322.5 mx-auto px-5 py-20 text-center text-gray-500">
         Đang tải khóa học...
       </div>
     );
@@ -128,7 +128,7 @@ export default function CourseSingle() {
 
   if (!course) {
     return (
-      <div className="max-w-[1290px] mx-auto px-5 py-20 text-center text-gray-500">
+      <div className="max-w-322.5 mx-auto px-5 py-20 text-center text-gray-500">
         Không tìm thấy khóa học.
       </div>
     );
@@ -167,7 +167,7 @@ export default function CourseSingle() {
           { label: course.title },
         ]}
       />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="flex-1">
             <span className="text-sm font-medium text-primary bg-primary-light px-3 py-1 rounded-full">

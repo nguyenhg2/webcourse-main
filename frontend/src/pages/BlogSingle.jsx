@@ -16,13 +16,13 @@ export default function BlogSingle() {
   }, [slug]);
 
   if (!post) {
-    return <div className="max-w-[1290px] mx-auto px-5 py-20 text-center text-gray-500">Đang tải bài viết...</div>;
+    return <div className="max-w-322.5 mx-auto px-5 py-20 text-center text-gray-500">Đang tải bài viết...</div>;
   }
 
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Blog", to: "/blog" }, { label: post.title }]} />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="flex-1">
             <h1 className="text-3xl font-heading font-bold text-secondary">{post.title}</h1>

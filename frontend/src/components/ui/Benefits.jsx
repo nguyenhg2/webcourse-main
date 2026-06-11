@@ -18,7 +18,7 @@ export default function Benefits() {
 
   return (
     <section className="py-16 lg:py-20">
-      <div className="max-w-[1290px] mx-auto px-5">
+      <div className="max-w-322.5 mx-auto px-5">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-heading font-bold text-secondary">{content.title}</h2>
           <p className="text-gray-600 mt-3 max-w-xl mx-auto">{content.subtitle}</p>

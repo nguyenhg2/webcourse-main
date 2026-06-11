@@ -300,7 +300,7 @@ export default function Payment() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Thanh toán" }]} />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-heading font-bold text-secondary">Thanh toán khóa học</h1>
           <p className="text-gray-500 mt-2">Nhập thông tin thẻ để hoàn tất thanh toán.</p>

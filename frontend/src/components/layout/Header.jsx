@@ -23,7 +23,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-      <div className="max-w-[1290px] mx-auto px-5 flex items-center justify-between h-15">
+      <div className="max-w-322.5 mx-auto px-5 flex items-center justify-between h-15">
         <Link to="/" className="text-2xl font-heading font-bold text-primary">
           CodeCamp
         </Link>

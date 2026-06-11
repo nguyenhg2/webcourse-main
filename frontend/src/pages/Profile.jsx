@@ -114,7 +114,7 @@ export default function Profile() {
   return (
     <>
       <Breadcrumb items={[{ label: "Trang chủ", to: "/" }, { label: "Trang cá nhân" }]} />
-      <div className="max-w-[1290px] mx-auto px-5 py-10">
+      <div className="max-w-322.5 mx-auto px-5 py-10">
         {error && <div className="mb-6 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="lg:w-80 shrink-0">

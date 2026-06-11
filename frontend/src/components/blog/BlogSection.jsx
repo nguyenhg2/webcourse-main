@@ -12,7 +12,7 @@ export default function BlogSection() {
 
   return (
     <section className="py-16 lg:py-20">
-      <div className="max-w-[1290px] mx-auto px-5">
+      <div className="max-w-322.5 mx-auto px-5">
         <div className="flex items-end justify-between mb-12">
           <div>
             <h2 className="text-3xl font-heading font-bold text-secondary">Bài viết mới nhất</h2>
