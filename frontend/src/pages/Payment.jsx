@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { FiCheckCircle, FiCreditCard, FiShield } from "react-icons/fi";
+import { FiCreditCard, FiShield } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { createPaymentAPI, enrollCourseAPI, syncPaymentAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -90,6 +90,20 @@ function ManualCardCheckout({ course, courseIds, finalPrice, onSuccess }) {
   const [message, setMessage] = useState("");
   const [cardComplete, setCardComplete] = useState(false);
   const [cardBrand, setCardBrand] = useState("");
+  const [billingDetails, setBillingDetails] = useState({
+    name: "",
+    line1: "",
+    postal_code: "",
+  });
+
+  const billingComplete = Boolean(
+    billingDetails.name.trim() && billingDetails.line1.trim() && billingDetails.postal_code.trim()
+  );
+
+  function handleBillingChange(e) {
+    const { name, value } = e.target;
+    setBillingDetails((current) => ({ ...current, [name]: value }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -100,10 +114,19 @@ function ManualCardCheckout({ course, courseIds, finalPrice, onSuccess }) {
       if (!courseIds.length) throw new Error("Không tìm thấy khóa học cần thanh toán");
       if (finalPrice > 0 && (!stripe || !elements)) throw new Error("Stripe chưa sẵn sàng, vui lòng thử lại");
 
+      if (!billingComplete) throw new Error("Vui lòng nhập đầy đủ tên chủ thẻ, địa chỉ và mã postcode");
+      const billingAddress = {
+        name: billingDetails.name.trim(),
+        line1: billingDetails.line1.trim(),
+        postal_code: billingDetails.postal_code.trim(),
+        country: "VN",
+      };
+
       const payment = await createPaymentAPI({
         course_ids: courseIds,
         coupon_code: course.couponCode || "",
         card_brand: cardBrand,
+        billing_address: billingAddress,
       });
 
       if (payment.status === "completed") {
@@ -115,7 +138,17 @@ function ManualCardCheckout({ course, courseIds, finalPrice, onSuccess }) {
       if (!payment.client_secret || !card) throw new Error("Không thể khởi tạo xác nhận thẻ");
 
       const result = await stripe.confirmCardPayment(payment.client_secret, {
-        payment_method: { card },
+        payment_method: {
+          card,
+          billing_details: {
+            name: billingAddress.name,
+            address: {
+              line1: billingAddress.line1,
+              postal_code: billingAddress.postal_code,
+              country: billingAddress.country,
+            },
+          },
+        },
       });
 
       if (result.error) {
@@ -140,53 +173,87 @@ function ManualCardCheckout({ course, courseIds, finalPrice, onSuccess }) {
   return (
     <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-6">
       <section>
-        <div className="flex items-center gap-3 mb-5">
-          <FiCreditCard className="text-primary" size={22} />
-          <h2 className="text-xl font-heading font-semibold text-secondary">Thông tin thẻ</h2>
+        <div className="flex items-center gap-3 mb-6">
+          <FiCreditCard className="text-primary" size={26} />
+          <h2 className="text-2xl font-heading font-semibold text-secondary">Thông tin thẻ</h2>
         </div>
-        <div className="border border-gray-100 rounded-lg p-5 bg-white">
-          <CardElement
-            onChange={(event) => {
-              setCardComplete(event.complete);
-              setCardBrand(event.brand || "");
-              setMessage(event.error?.message || "");
-            }}
-            onReady={(element) => element.focus()}
-            options={{
-              hidePostalCode: true,
-              style: {
-                base: {
-                  color: "#1d2026",
-                  fontFamily: "Be Vietnam Pro, system-ui, sans-serif",
-                  fontSize: "16px",
-                  "::placeholder": { color: "#8c94a3" },
-                },
-                invalid: { color: "#e53935" },
-              },
-            }}
-          />
+        <div className="border border-gray-100 rounded-xl p-6 md:p-7 bg-white flex flex-col gap-5 shadow-sm">
+          <div>
+            <label className="block text-base font-medium text-secondary mb-2.5" htmlFor="cardholder-name">
+              Tên chủ thẻ
+            </label>
+            <input
+              id="cardholder-name"
+              name="name"
+              value={billingDetails.name}
+              onChange={handleBillingChange}
+              placeholder="Nguyễn Văn A"
+              className="w-full border border-gray-200 rounded-lg px-4 py-3.5 text-base text-secondary outline-none focus:border-primary"
+              autoComplete="cc-name"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-base font-medium text-secondary mb-2.5" htmlFor="billing-address">
+              Địa chỉ thanh toán
+            </label>
+            <input
+              id="billing-address"
+              name="line1"
+              value={billingDetails.line1}
+              onChange={handleBillingChange}
+              placeholder="Số nhà, đường, phường/xã"
+              className="w-full border border-gray-200 rounded-lg px-4 py-3.5 text-base text-secondary outline-none focus:border-primary"
+              autoComplete="billing address-line1"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-base font-medium text-secondary mb-2.5" htmlFor="billing-postcode">
+              Mã postcode
+            </label>
+            <input
+              id="billing-postcode"
+              name="postal_code"
+              value={billingDetails.postal_code}
+              onChange={handleBillingChange}
+              placeholder="100000"
+              className="w-full border border-gray-200 rounded-lg px-4 py-3.5 text-base text-secondary outline-none focus:border-primary"
+              autoComplete="billing postal-code"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-base font-medium text-secondary mb-2.5">Số thẻ</label>
+            <div className="border border-gray-200 rounded-lg px-4 py-4 focus-within:border-primary">
+              <CardElement
+                onChange={(event) => {
+                  setCardComplete(event.complete);
+                  setCardBrand(event.brand || "");
+                  setMessage(event.error?.message || "");
+                }}
+                onReady={(element) => element.focus()}
+                options={{
+                  hidePostalCode: true,
+                  disableLink: true,
+                  style: {
+                    base: {
+                      color: "#1d2026",
+                      fontFamily: "Be Vietnam Pro, system-ui, sans-serif",
+                      fontSize: "18px",
+                      "::placeholder": { color: "#8c94a3" },
+                    },
+                    invalid: { color: "#e53935" },
+                  },
+                }}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div className="border border-gray-100 rounded-lg p-4 flex gap-3">
-          <FiShield className="text-success mt-0.5 shrink-0" />
-          <div>
-            <p className="font-semibold text-secondary">Xác thực bằng Stripe</p>
-            <p className="text-gray-500 mt-1">Form thẻ là Stripe CardElement, không có Link và không lưu CVC.</p>
-          </div>
-        </div>
-        <div className="border border-gray-100 rounded-lg p-4 flex gap-3">
-          <FiCheckCircle className="text-success mt-0.5 shrink-0" />
-          <div>
-            <p className="font-semibold text-secondary">Fast checkout</p>
-            <p className="text-gray-500 mt-1">Một lần bấm sẽ tạo đơn, xác nhận thẻ và mở khóa học.</p>
-          </div>
-        </div>
-      </div>
-
       <button
-        disabled={loading || (finalPrice > 0 && (!stripe || !elements || !cardComplete))}
+        disabled={loading || !billingComplete || (finalPrice > 0 && (!stripe || !elements || !cardComplete))}
         type="submit"
         className="w-full py-3.5 bg-primary text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
       >
@@ -236,7 +303,7 @@ export default function Payment() {
       <div className="max-w-[1290px] mx-auto px-5 py-10">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-heading font-bold text-secondary">Thanh toán khóa học</h1>
-          <p className="text-gray-500 mt-2">Nhập thẻ thủ công qua Stripe CardElement, không dùng Link.</p>
+          <p className="text-gray-500 mt-2">Nhập thông tin thẻ để hoàn tất thanh toán.</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-10 items-start">

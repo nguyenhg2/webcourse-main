@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from .api.routes import auth, courses, categories, sections, lessons, enrollment, roadmaps, reviews, progress, cart, admin, checkout
+from .api.routes import auth, courses, categories, sections, lessons, enrollment, roadmaps, reviews, progress, cart, admin, checkout, site_content
 from .db.mongo import ensure_indexes
 from .subscribers.payment_subscriber import start_payment_success_listener, stop_payment_success_listener
 
@@ -27,6 +27,7 @@ app.include_router(progress.router)
 app.include_router(cart.router)
 app.include_router(admin.router)
 app.include_router(checkout.router)
+app.include_router(site_content.router)
 
 
 @app.on_event("startup")

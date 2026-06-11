@@ -325,3 +325,12 @@ export function markContactReadAPI(id) {
 }
 
 export default api;
+
+// Site content
+export function getSiteContentSectionAPI(section) {
+  return get(api, `/api/site-content/${section}`);
+}
+
+export function getSiteContentAPI() {
+  return get(api, "/api/site-content");
+}

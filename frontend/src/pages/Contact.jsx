@@ -2,22 +2,25 @@ import { useState } from "react";
 import { FiMapPin, FiPhone, FiMail, FiClock } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { sendContactAPI } from "../services/api";
+import useSiteContent from "../hooks/useSiteContent";
 
-const contactInfo = [
-  { icon: <FiMapPin size={24} />, title: "Địa chỉ", detail: "236 Hoàng Quốc Việt, Phường Nghĩa Đô, Hà Nội" },
-  { icon: <FiPhone size={24} />, title: "Điện thoại", detail: "+(84) 0914 132 630" },
-  { icon: <FiMail size={24} />, title: "Email", detail: "phamputinl@gmail.com" },
-  { icon: <FiClock size={24} />, title: "Giờ làm việc", detail: "Thứ 2 - Thứ 6: 8:00 - 17:30" },
-];
-
-const address = "236 Hoàng Quốc Việt, Nghĩa Đô, Hà Nội";
-const mapQuery = encodeURIComponent(address);
-const mapLat = 21.0466213;
-const mapLon = 105.7864498;
-const mapBbox = "105.7814498%2C21.0416213%2C105.7914498%2C21.0516213";
+const CONTACT_ICONS = {
+  "map-pin": <FiMapPin size={24} />,
+  phone: <FiPhone size={24} />,
+  mail: <FiMail size={24} />,
+  clock: <FiClock size={24} />,
+};
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
+  const { content } = useSiteContent("contact_info", { items: [] });
+  const contactInfo = content?.items || [];
+  const map = content?.map || {};
+  const address = map.address || "";
+  const mapQuery = encodeURIComponent(address);
+  const mapLat = map.lat || 21.0466213;
+  const mapLon = map.lon || 105.7864498;
+  const mapBbox = map.bbox || "105.7814498%2C21.0416213%2C105.7914498%2C21.0516213";
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -43,9 +46,9 @@ export default function Contact() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {contactInfo.map((item) => (
             <div key={item.title} className="flex flex-col items-center text-center p-6 rounded-xl border border-gray-100">
-              <span className="text-primary mb-3">{item.icon}</span>
+              <span className="text-primary mb-3">{CONTACT_ICONS[item.icon] || CONTACT_ICONS["map-pin"]}</span>
               <h3 className="text-base font-semibold text-secondary">{item.title}</h3>
-              <p className="text-sm text-gray-600 mt-1">{item.detail}</p>
+              <p className="text-sm text-gray-600 mt-1">{item.content}</p>
             </div>
           ))}
         </div>
