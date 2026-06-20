@@ -1,8 +1,32 @@
-import { useEffect, useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { FiBell, FiMenu, FiSearch } from "react-icons/fi";
+import { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
+import { FiBell, FiExternalLink, FiMenu, FiSearch } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import DashboardSidebar from "./DashboardSidebar";
+
+const ROLE_LABELS = {
+  admin: "Quản trị viên",
+  operator: "Nhân viên vận hành",
+  instructor: "Giảng viên",
+};
+
+const PAGE_TITLES = {
+  "/dashboard": "Tổng quan",
+  "/dashboard/profile": "Hồ sơ",
+  "/dashboard/courses": "Quản lý khóa học",
+  "/dashboard/roadmaps": "Quản lý lộ trình",
+  "/dashboard/students": "Học viên",
+  "/dashboard/instructor-students": "Học viên theo khóa",
+  "/dashboard/course-reviews": "Kiểm duyệt khóa học",
+  "/dashboard/reviews": "Kiểm duyệt đánh giá",
+  "/dashboard/payments": "Thanh toán",
+  "/dashboard/complaints": "Khiếu nại",
+  "/dashboard/users": "Người dùng",
+  "/dashboard/categories": "Danh mục",
+  "/dashboard/coupons": "Mã giảm giá",
+  "/dashboard/blogs": "Blog",
+  "/dashboard/contacts": "Liên hệ",
+};
 
 export default function DashboardLayout() {
   const { user, loading } = useAuth();
@@ -11,10 +35,13 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    setSidebarOpen(false);
   }, [location.pathname]);
 
+  const pageTitle = useMemo(() => PAGE_TITLES[location.pathname] || "Bảng điều khiển", [location.pathname]);
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50">Đang tải...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">Đang tải...</div>;
   }
 
   if (!user) {
@@ -26,33 +53,45 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="flex min-h-screen bg-gray-50">
       <DashboardSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 z-10">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-gray-500 hover:text-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
-              <FiMenu size={24} />
-            </button>
-            <div className="hidden sm:flex relative items-center">
-              <FiSearch className="absolute left-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm..."
-                className="pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none w-64 transition-all"
-              />
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-72">
+        <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 px-4 backdrop-blur sm:px-6">
+          <div className="flex h-16 items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <button type="button" onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-50 hover:text-primary lg:hidden">
+                <FiMenu size={22} />
+              </button>
+              <div className="min-w-0">
+                <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">{pageTitle}</h1>
+                <p className="hidden text-xs font-medium text-gray-500 sm:block">{ROLE_LABELS[user.role] || user.role} · {user.name}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative hidden md:block">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Tìm nhanh trong dashboard"
+                  className="h-10 w-72 rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:bg-white"
+                />
+              </div>
+              <button type="button" className="relative grid h-10 w-10 place-items-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:border-primary hover:text-primary" title="Thông báo">
+                <FiBell size={18} />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+              </button>
+              <Link to="/" className="hidden h-10 items-center gap-2 rounded-lg border border-gray-200 px-3 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary sm:inline-flex">
+                Website
+                <FiExternalLink size={15} />
+              </Link>
             </div>
           </div>
-
-          <button className="relative p-2 text-gray-500 hover:text-primary transition-colors">
-            <FiBell size={20} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 p-4 sm:p-6">
+          <div className="mx-auto max-w-7xl">
             <Outlet />
           </div>
         </main>

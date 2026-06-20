@@ -43,6 +43,23 @@ Open the app at:
 http://localhost:5173
 ```
 
+## Seed MongoDB
+
+```bash
+cd backend/core-service
+python -m pip install -r requirements.txt
+python -m app.seed
+```
+
+Demo accounts use password `123456`:
+
+```text
+admin@codecamp.vn
+operator@codecamp.vn
+instructor@codecamp.vn
+student@codecamp.vn
+```
+
 Gateway routes:
 
 ```text

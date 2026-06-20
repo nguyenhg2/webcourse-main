@@ -149,6 +149,8 @@ export default function CourseSingle() {
   const firstLesson = (course.sections || []).flatMap((section) => section.lessons || [])[0];
   const hasCourseAccess = ownedCourseIds.has(course._id);
   const learnPath = firstLesson ? `/khoa-hoc/${slug}/hoc/${firstLesson._id}` : `/khoa-hoc/${slug}`;
+  const reviewCount = course.review_count ?? reviews.length;
+  const ratingValue = Number(course.rating || 0);
 
   const tabs = [
     { id: "overview", label: "Tổng quan" },
@@ -375,7 +377,7 @@ export default function CourseSingle() {
                   <div className="flex items-center gap-6">
                     <div className="text-center">
                       <span className="text-4xl font-heading font-bold text-secondary">
-                        {course.rating || "4.0"}
+                        {ratingValue.toFixed(1)}
                       </span>
                       <div className="flex gap-1 justify-center mt-2">
                         {Array.from({ length: 5 }).map((_, i) => (
@@ -383,7 +385,7 @@ export default function CourseSingle() {
                             key={i}
                             size={16}
                             className={
-                              i < Math.round(course.rating || 4)
+                              i < Math.round(ratingValue)
                                 ? "text-warning fill-warning"
                                 : "text-gray-200"
                             }
@@ -391,7 +393,7 @@ export default function CourseSingle() {
                         ))}
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
-                        {course.total_students} đánh giá
+                         {reviewCount} đánh giá
                       </p>
                     </div>
                   </div>

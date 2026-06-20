@@ -3,6 +3,7 @@ from app.models.common import Level
 from app.core.deps import get_optional_user, require_role
 from app.db.mongo import get_db, serialize_doc, serialize_docs
 from app.models.courses import CourseCreate, CourseResponse
+from app.services.stats_service import attach_course_relations, enrich_course_stats, enrich_courses_stats
 from typing import List, Optional
 from bson import ObjectId
 import re
@@ -23,6 +24,8 @@ def _course_list_query(user: dict | None, review_status: Optional[str] = None, m
     if review_status:
         if not user or user.get("role") not in {"admin", "operator"}:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không đủ quyền thực hiện")
+        if review_status == "all":
+            return {}
         return {"status": review_status}
     if not manage:
         return {"status": "published"}
@@ -82,6 +85,7 @@ async def get_courses(
     if level:
         query["level"] = level
     courses = await db["courses"].find(query).to_list(length=100)
+    await enrich_courses_stats(db, courses)
     return serialize_docs(courses)
 
 
@@ -98,6 +102,8 @@ async def get_course_by_slug(slug: str, db=Depends(get_db), user=Depends(get_opt
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Không tìm thấy khóa học",
         )
+    await enrich_course_stats(db, course)
+    await attach_course_relations(db, course)
     course = serialize_doc(course)
 
     sections = (
@@ -131,6 +137,7 @@ async def get_course(course_id: str, db=Depends(get_db), user=Depends(get_option
         )
     if course.get("status") != "published" and not _can_view_unpublished(course, user):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy khóa học")
+    await enrich_course_stats(db, course)
     return serialize_doc(course)
 
 

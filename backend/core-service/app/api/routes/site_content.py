@@ -1,6 +1,7 @@
 ﻿from datetime import datetime
 from fastapi import APIRouter, Depends
 from app.db.mongo import get_db, serialize_doc, serialize_docs
+from app.services.stats_service import public_platform_stats
 
 router = APIRouter()
 
@@ -113,10 +114,18 @@ async def seed_site_content(db):
 async def get_site_content(db=Depends(get_db)):
     await seed_site_content(db)
     docs = await db["site_content"].find().to_list(100)
-    return serialize_docs([normalize_content(doc) for doc in docs])
+    normalized = []
+    for doc in docs:
+        if doc.get("section") == "stats":
+            normalized.append(await public_platform_stats(db))
+        else:
+            normalized.append(normalize_content(doc))
+    return serialize_docs(normalized)
 
 
 @router.get("/api/site-content/{section}")
 async def get_site_content_section(section: str, db=Depends(get_db)):
     await seed_site_content(db)
+    if section == "stats":
+        return await public_platform_stats(db)
     return normalize_content(await db["site_content"].find_one({"section": section}))

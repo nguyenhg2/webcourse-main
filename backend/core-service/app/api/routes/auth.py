@@ -5,6 +5,7 @@ from app.db.mongo import get_db, oid, serialize_doc
 from datetime import datetime, timedelta, timezone
 from app.core.config import settings
 from app.core.deps import get_current_user as get_current_user_dependency
+from app.services.stats_service import course_rating
 
 router=APIRouter()
 
@@ -77,12 +78,10 @@ async def _build_profile_stats(db, user: dict) -> dict:
             "user_id",
             {"course_id": {"$in": course_ids}, "payment_id": {"$exists": True}},
         ) if course_ids else []
-        ratings = [float(course.get("rating", 0) or 0) for course in courses if course.get("rating")]
-        average_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0
         return {
             "courses": len(courses),
             "students": len(students),
-            "average_rating": average_rating,
+            "average_rating": await course_rating(db, course_ids),
         }
 
     if role == "operator":

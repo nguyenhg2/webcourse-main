@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiBookOpen, FiCheckCircle, FiDollarSign, FiTrendingUp, FiUsers } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { FiArrowRight, FiBookOpen, FiCheckCircle, FiClock, FiDollarSign, FiStar, FiTrendingUp, FiUsers } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { getAdminDashboardAPI, getAdminOrdersAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../../services/api";
 
@@ -15,8 +16,42 @@ const STATUS_LABELS = {
   rejected: "Cần sửa",
 };
 
+const ROLE_META = {
+  admin: {
+    title: "Báo cáo điều hành CodeCamp",
+    desc: "Theo dõi doanh thu, người dùng, khóa học và các hoạt động quản trị quan trọng.",
+    actions: [
+      { label: "Quản lý người dùng", to: "/dashboard/users" },
+      { label: "Xem đơn hàng", to: "/dashboard/payments" },
+      { label: "Tạo mã giảm giá", to: "/dashboard/coupons" },
+    ],
+  },
+  operator: {
+    title: "Không gian vận hành",
+    desc: "Kiểm duyệt nội dung, đối soát giao dịch và xử lý phản hồi để khóa học được xuất bản đúng chất lượng.",
+    actions: [
+      { label: "Kiểm duyệt khóa học", to: "/dashboard/course-reviews" },
+      { label: "Hỗ trợ thanh toán", to: "/dashboard/payments" },
+      { label: "Xử lý khiếu nại", to: "/dashboard/complaints" },
+    ],
+  },
+  instructor: {
+    title: "Trung tâm giảng viên",
+    desc: "Quản lý chương trình học, học liệu, học viên và trạng thái kiểm duyệt của khóa học.",
+    actions: [
+      { label: "Tạo khóa học", to: "/dashboard/courses#create-course" },
+      { label: "Quản lý bài học", to: "/dashboard/courses" },
+      { label: "Xem học viên", to: "/dashboard/instructor-students" },
+    ],
+  },
+};
+
 function statusLabel(status) {
-  return STATUS_LABELS[status] || status || "";
+  return STATUS_LABELS[status] || status || "Không rõ";
+}
+
+function statValue(value, fallback = 0) {
+  return value === undefined || value === null || value === "" ? fallback : value;
 }
 
 function buildTopPurchasedCourses(orders = []) {
@@ -31,48 +66,48 @@ function buildTopPurchasedCourses(orders = []) {
       courses.forEach((course) => {
         const id = course._id || course.id;
         if (!id) return;
-
-        const current = byCourse.get(id) || {
-          _id: id,
-          title: course.title || id,
-          purchases: 0,
-          revenue: 0,
-        };
+        const current = byCourse.get(id) || { _id: id, title: course.title || id, purchases: 0, revenue: 0 };
         current.purchases += 1;
         current.revenue += revenueShare;
         byCourse.set(id, current);
       });
     });
 
-  return Array.from(byCourse.values())
-    .sort((a, b) => b.purchases - a.purchases)
-    .slice(0, 5);
+  return Array.from(byCourse.values()).sort((a, b) => b.purchases - a.purchases).slice(0, 5);
 }
 
-const StatCard = ({ title, value, icon, color }) => (
-  <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-    <div className={`p-4 rounded-lg text-white ${color}`}>{icon}</div>
-    <div>
-      <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-      <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+function StatCard({ title, value, icon, tone }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <span className={`grid h-10 w-10 place-items-center rounded-lg ${tone}`}>{icon}</span>
+      </div>
+      <p className="mt-4 text-2xl font-bold text-gray-900">{value}</p>
     </div>
-  </div>
-);
+  );
+}
+
+function EmptyState({ text = "Chưa có dữ liệu hiển thị." }) {
+  return <div className="rounded-lg bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">{text}</div>;
+}
 
 export default function DashboardOverview() {
   const { user } = useAuth();
   const role = user?.role;
+  const meta = ROLE_META[role] || ROLE_META.instructor;
   const [stats, setStats] = useState({});
   const [items, setItems] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!["admin", "operator", "instructor"].includes(role)) {
-      setStats({});
-      setItems([]);
-      setRecentOrders([]);
+      setLoading(false);
       return;
     }
+
+    setLoading(true);
 
     if (role === "admin") {
       getAdminDashboardAPI()
@@ -81,36 +116,32 @@ export default function DashboardOverview() {
           const topCourses = data?.topCourses || [];
           setItems(topCourses);
 
-          return getAdminOrdersAPI()
-            .then((orders) => {
-              setRecentOrders((orders || []).slice(0, 5));
-              if (topCourses.length === 0) {
-                setItems(buildTopPurchasedCourses(orders));
-              }
-            })
-            .catch(() => {
-              setRecentOrders([]);
-              if (topCourses.length === 0) setItems([]);
-            });
+          return getAdminOrdersAPI().then((orders) => {
+            const list = Array.isArray(orders) ? orders : [];
+            setRecentOrders(list.slice(0, 5));
+            if (!topCourses.length) setItems(buildTopPurchasedCourses(list));
+          });
         })
         .catch(() => {
           setStats({});
           setItems([]);
           setRecentOrders([]);
-        });
+        })
+        .finally(() => setLoading(false));
       return;
     }
 
     getDashboardOverviewAPI()
       .then((data) => {
-        const nextStats = data.stats || {};
+        const nextStats = data?.stats || {};
         setStats(nextStats);
-        setItems(data.items || []);
+        setItems(data?.items || []);
 
         if (role === "instructor" && !nextStats.courses) {
-          return getCoursesAPI().then((courses) => {
-            const visible = courses.filter((course) => !user?._id || course.instructor_id === user._id);
-            const fallback = visible.length ? visible : courses;
+          return getCoursesAPI({ manage: true }).then((courses) => {
+            const list = Array.isArray(courses) ? courses : [];
+            const visible = list.filter((course) => !user?._id || course.instructor_id === user._id);
+            const fallback = visible.length ? visible : list;
             setItems(fallback.slice(0, 5));
             setStats({
               courses: fallback.length,
@@ -122,136 +153,135 @@ export default function DashboardOverview() {
         }
       })
       .catch(() => {
-        if (role !== "instructor") {
-          setStats({});
-          setItems([]);
-          return;
-        }
-
-        getCoursesAPI()
-          .then((courses) => {
-            const visible = courses.filter((course) => !user?._id || course.instructor_id === user._id);
-            const fallback = visible.length ? visible : courses;
-            setItems(fallback.slice(0, 5));
-            setStats({
-              courses: fallback.length,
-              students: fallback.reduce((sum, course) => sum + Number(course.total_students || 0), 0),
-              rating: fallback.length ? (fallback.reduce((sum, course) => sum + Number(course.rating || 0), 0) / fallback.length).toFixed(1) : "0.0",
-              published: fallback.filter((course) => course.status === "published").length,
-            });
-          })
-          .catch(() => {
-            setStats({});
-            setItems([]);
-          });
-      });
+        setStats({});
+        setItems([]);
+      })
+      .finally(() => setLoading(false));
   }, [role, user?._id]);
 
   const cards = useMemo(() => {
     if (role === "admin") {
       return [
-        ["Tổng doanh thu", currency(stats.revenue), <FiDollarSign size={24} />, "bg-emerald-500"],
-        ["Học viên", stats.students || 0, <FiUsers size={24} />, "bg-blue-500"],
-        ["Khóa học", stats.courses || 0, <FiBookOpen size={24} />, "bg-purple-500"],
-        ["Đơn hoàn tất", stats.completedOrders || 0, <FiCheckCircle size={24} />, "bg-orange-500"],
+        ["Tổng doanh thu", currency(stats.revenue), <FiDollarSign size={20} />, "bg-emerald-50 text-emerald-600"],
+        ["Học viên", statValue(stats.students), <FiUsers size={20} />, "bg-blue-50 text-blue-600"],
+        ["Khóa học", statValue(stats.courses), <FiBookOpen size={20} />, "bg-violet-50 text-violet-600"],
+        ["Đơn hoàn tất", statValue(stats.completedOrders), <FiCheckCircle size={20} />, "bg-orange-50 text-orange-600"],
       ];
     }
     if (role === "operator") {
       return [
-        ["Doanh thu xử lý", currency(stats.revenue), <FiDollarSign size={24} />, "bg-emerald-500"],
-        ["Tổng đơn hàng", stats.orders || 0, <FiBookOpen size={24} />, "bg-blue-500"],
-        ["Đã hoàn tất", stats.completedOrders || 0, <FiCheckCircle size={24} />, "bg-purple-500"],
-        ["Đang chờ", stats.pendingOrders || 0, <FiTrendingUp size={24} />, "bg-orange-500"],
+        ["Doanh thu xử lý", currency(stats.revenue), <FiDollarSign size={20} />, "bg-emerald-50 text-emerald-600"],
+        ["Tổng giao dịch", statValue(stats.orders), <FiBookOpen size={20} />, "bg-blue-50 text-blue-600"],
+        ["Hoàn tất", statValue(stats.completedOrders), <FiCheckCircle size={20} />, "bg-violet-50 text-violet-600"],
+        ["Đang chờ", statValue(stats.pendingOrders), <FiClock size={20} />, "bg-orange-50 text-orange-600"],
       ];
     }
-    if (role === "instructor") {
-      return [
-        ["Khóa học", stats.courses || 0, <FiBookOpen size={24} />, "bg-purple-500"],
-        ["Học viên", stats.students || 0, <FiUsers size={24} />, "bg-blue-500"],
-        ["Điểm trung bình", stats.rating || "0.0", <FiTrendingUp size={24} />, "bg-emerald-500"],
-        ["Đã xuất bản", stats.published || 0, <FiCheckCircle size={24} />, "bg-orange-500"],
-      ];
-    }
-    return [];
+    return [
+      ["Khóa học", statValue(stats.courses), <FiBookOpen size={20} />, "bg-violet-50 text-violet-600"],
+      ["Học viên", statValue(stats.students), <FiUsers size={20} />, "bg-blue-50 text-blue-600"],
+      ["Điểm trung bình", statValue(stats.rating, "0.0"), <FiStar size={20} />, "bg-emerald-50 text-emerald-600"],
+      ["Đã xuất bản", statValue(stats.published), <FiCheckCircle size={20} />, "bg-orange-50 text-orange-600"],
+    ];
   }, [role, stats]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tổng quan</h1>
-        <p className="text-gray-500 mt-1">Chào mừng trở lại, {user?.name}!</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {cards.map(([title, value, icon, color]) => (
-          <StatCard key={title} title={title} value={value} icon={icon} color={color} />
-        ))}
-      </div>
-
-      {role === "admin" ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Khóa học có lượt mua nhiều</h2>
-            <div className="divide-y divide-gray-100">
-              {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
-              {items.map((item) => (
-                <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium text-gray-900">{item.title || item.id || item._id}</p>
-                    <p className="text-sm text-gray-500 mt-1">Doanh thu: {currency(item.revenue)}</p>
-                  </div>
-                  <span className="text-sm font-semibold text-primary">{item.purchases || 0} lượt mua</span>
-                </div>
-              ))}
-            </div>
+      <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold text-primary">Xin chào, {user?.name}</p>
+            <h1 className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">{meta.title}</h1>
+            <p className="mt-2 text-sm leading-6 text-gray-500">{meta.desc}</p>
           </div>
-
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Đơn hàng gần đây</h2>
-            <div className="divide-y divide-gray-100">
-              {recentOrders.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
-              {recentOrders.map((order) => (
-                <div key={order.id || order._id} className="py-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium text-gray-900">{order.user?.name || order.user?.email || order.id || order._id}</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {order.created_at ? new Date(order.created_at * 1000).toLocaleDateString("vi-VN") : "Chưa có ngày"} · {statusLabel(order.status)}
-                    </p>
-                  </div>
-                  <span className="text-sm font-semibold text-primary">{currency(order.final_amount ?? order.amount)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">
-            {role === "operator" ? "Giao dịch gần đây" : "Mục cần theo dõi"}
-          </h2>
-          <div className="divide-y divide-gray-100">
-            {items.length === 0 && <p className="text-sm text-gray-500 py-8">Chưa có dữ liệu hiển thị.</p>}
-            {items.map((item) => (
-              <div key={item.id || item._id} className="py-4 flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {role === "operator"
-                      ? item.user?.name || item.user?.email || "Khách hàng"
-                      : item.title || item.id || item._id}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {role === "operator"
-                      ? `${(item.courses || []).map((course) => course.title).join(", ") || "Chưa có tên khóa học"} · ${statusLabel(item.status)}`
-                      : item.status ? statusLabel(item.status) : (item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`)}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-primary">
-                  {role === "operator" ? currency(item.final_amount ?? item.amount) : item.amount ? currency(item.amount) : item.level || item.card_brand || ""}
-                </span>
-              </div>
+          <div className="flex flex-wrap gap-2">
+            {meta.actions.map((action) => (
+              <Link key={action.to} to={action.to} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary">
+                {action.label}
+                <FiArrowRight size={15} />
+              </Link>
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {cards.map(([title, value, icon, tone]) => (
+          <StatCard key={title} title={title} value={value} icon={icon} tone={tone} />
+        ))}
+      </section>
+
+      {role === "admin" ? (
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-semibold text-gray-900">Khóa học bán chạy</h2>
+              <Link to="/dashboard/payments" className="text-sm font-semibold text-primary">Xem đơn hàng</Link>
+            </div>
+            {loading ? <EmptyState text="Đang tải dữ liệu..." /> : items.length === 0 ? <EmptyState /> : (
+              <div className="divide-y divide-gray-100">
+                {items.map((item) => (
+                  <div key={item.id || item._id} className="flex items-center justify-between gap-4 py-4">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-gray-900">{item.title || item.id || item._id}</p>
+                      <p className="mt-1 text-sm text-gray-500">Doanh thu: {currency(item.revenue)}</p>
+                    </div>
+                    <span className="rounded-lg bg-primary-light px-3 py-1 text-sm font-semibold text-primary">{item.purchases || 0} lượt mua</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-semibold text-gray-900">Đơn hàng gần đây</h2>
+              <Link to="/dashboard/payments" className="text-sm font-semibold text-primary">Quản lý</Link>
+            </div>
+            {loading ? <EmptyState text="Đang tải dữ liệu..." /> : recentOrders.length === 0 ? <EmptyState /> : (
+              <div className="divide-y divide-gray-100">
+                {recentOrders.map((order) => (
+                  <div key={order.id || order._id} className="flex items-center justify-between gap-4 py-4">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-gray-900">{order.user?.name || order.user?.email || order.id || order._id}</p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {order.created_at ? new Date(order.created_at * 1000).toLocaleDateString("vi-VN") : "Chưa có ngày"} · {statusLabel(order.status)}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-primary">{currency(order.final_amount ?? order.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="font-semibold text-gray-900">{role === "operator" ? "Giao dịch cần theo dõi" : "Khóa học cần theo dõi"}</h2>
+            <FiTrendingUp className="text-primary" size={18} />
+          </div>
+          {loading ? <EmptyState text="Đang tải dữ liệu..." /> : items.length === 0 ? <EmptyState /> : (
+            <div className="divide-y divide-gray-100">
+              {items.map((item) => (
+                <div key={item.id || item._id} className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-gray-900">
+                      {role === "operator" ? item.user?.name || item.user?.email || "Khách hàng" : item.title || item.id || item._id}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {role === "operator"
+                        ? `${(item.courses || []).map((course) => course.title).join(", ") || "Chưa có tên khóa học"} · ${statusLabel(item.status)}`
+                        : item.status ? statusLabel(item.status) : item.progress !== undefined ? item.progress + "% hoàn thành" : `${item.course_ids?.length || 0} khóa`}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">
+                    {role === "operator" ? currency(item.final_amount ?? item.amount) : item.amount ? currency(item.amount) : item.level || item.card_brand || ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
     </div>
   );

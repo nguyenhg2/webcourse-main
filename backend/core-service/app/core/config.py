@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -16,8 +16,20 @@ class Settings(BaseSettings):
     )
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
 
+    @field_validator("jwt_secret", "jwt_algorithm", mode="before")
+    @classmethod
+    def default_when_blank(cls, value: str | None, info):
+        if value is None or str(value).strip() == "":
+            if info.field_name == "jwt_secret":
+                return "dev-secret"
+            if info.field_name == "jwt_algorithm":
+                return "HS256"
+        return value
+
     class Config:
         env_file = (".env", "../../.env")
+        env_file_encoding = "utf-8-sig"
+        extra = "ignore"
         populate_by_name = True
 
     @property

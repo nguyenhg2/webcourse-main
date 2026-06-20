@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiCheckCircle, FiLoader, FiRefreshCw, FiXCircle } from "react-icons/fi";
+import { FiCheckCircle, FiDownload, FiExternalLink, FiLoader, FiPaperclip, FiPlayCircle, FiRefreshCw, FiUser, FiXCircle } from "react-icons/fi";
 import { getCourseBySlugAPI, getCoursesAPI, reviewCourseAPI } from "../../../services/api";
 
 const FILTERS = [
+  { value: "all", label: "Tất cả" },
   { value: "pending_review", label: "Chờ duyệt" },
+  { value: "draft", label: "Nháp" },
   { value: "rejected", label: "Cần sửa" },
   { value: "published", label: "Đã xuất bản" },
 ];
@@ -18,10 +20,19 @@ function formatCurrency(value) {
   return Number(value || 0).toLocaleString("vi-VN") + "đ";
 }
 
+function formatDuration(seconds) {
+  const total = Number(seconds || 0);
+  if (!total) return "--";
+  const minutes = Math.floor(total / 60);
+  const remain = total % 60;
+  return `${minutes}:${String(remain).padStart(2, "0")}`;
+}
+
 function statusLabel(status) {
   if (status === "pending_review") return "Chờ duyệt";
   if (status === "published") return "Đã xuất bản";
   if (status === "rejected") return "Cần sửa";
+  if (status === "draft") return "Nháp";
   return "Nháp";
 }
 
@@ -42,7 +53,9 @@ export default function CourseReviewManager() {
     setMessage("");
     try {
       const data = await getCoursesAPI({ review_status: nextStatus });
-      const list = (Array.isArray(data) ? data : []).filter((course) => course.status === nextStatus);
+      const list = nextStatus === "all"
+        ? (Array.isArray(data) ? data : [])
+        : (Array.isArray(data) ? data : []).filter((course) => course.status === nextStatus);
       setCourses(list);
       setSelectedId((current) => (list.some((course) => course._id === current) ? current : list[0]?._id || ""));
     } catch (err) {
@@ -119,6 +132,8 @@ export default function CourseReviewManager() {
   const sections = detail?.sections || [];
   const lessons = sections.flatMap((section) => section.lessons || []);
   const missingVideoCount = lessons.filter((lesson) => !lesson.video_url).length;
+  const attachmentCount = lessons.reduce((sum, lesson) => sum + (lesson.attachments || []).length, 0);
+  const canReviewSelected = selectedCourse && selectedCourse.status !== "published";
 
   return (
     <div className="space-y-6">
@@ -194,10 +209,17 @@ export default function CourseReviewManager() {
                     <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{statusLabel(selectedCourse.status)}</span>
                   </div>
                   <p className="mt-2 text-sm text-gray-500">{selectedCourse.description}</p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-500">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2.5 py-1"><FiUser size={13} /> {detail?.instructor?.name || selectedCourse.instructor?.name || "Chưa có giảng viên"}</span>
+                    <span className="rounded-full bg-gray-50 px-2.5 py-1">{detail?.category?.name || selectedCourse.category?.name || selectedCourse.category_id || "Chưa có danh mục"}</span>
+                    <span className="rounded-full bg-gray-50 px-2.5 py-1">{LEVEL_LABELS[selectedCourse.level] || selectedCourse.level}</span>
+                    <span className="rounded-full bg-gray-50 px-2.5 py-1">{formatCurrency(selectedCourse.price)}</span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-4">
                     <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Phần</p><p className="mt-1 text-lg font-bold text-gray-900">{sections.length}</p></div>
                     <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Bài học</p><p className="mt-1 text-lg font-bold text-gray-900">{lessons.length}</p></div>
                     <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Thiếu video</p><p className="mt-1 text-lg font-bold text-gray-900">{missingVideoCount}</p></div>
+                    <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Tệp học liệu</p><p className="mt-1 text-lg font-bold text-gray-900">{attachmentCount}</p></div>
                   </div>
                 </div>
               </div>
@@ -225,14 +247,57 @@ export default function CourseReviewManager() {
                     </div>
                     <div className="mt-3 divide-y divide-gray-100">
                       {(section.lessons || []).map((lesson) => (
-                        <div key={lesson._id} className="flex flex-col gap-2 py-3 text-sm md:flex-row md:items-center md:justify-between">
-                          <div>
-                            <p className="font-medium text-gray-800">{lesson.title}</p>
-                            <p className="mt-1 text-xs text-gray-500">Thứ tự {lesson.order || "-"} · {lesson.is_free_preview ? "Xem thử" : "Không xem thử"}</p>
+                        <div key={lesson._id} className="py-4 text-sm">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <FiPlayCircle className="text-primary" size={17} />
+                                <p className="font-semibold text-gray-900">{lesson.title}</p>
+                                {lesson.is_free_preview && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Xem thử</span>}
+                              </div>
+                              <p className="mt-1 text-xs text-gray-500">Thứ tự {lesson.order || "-"} · Thời lượng {formatDuration(lesson.duration)} · ID {lesson._id}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${lesson.video_url ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                              {lesson.video_url ? "Có video" : "Thiếu video"}
+                            </span>
                           </div>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${lesson.video_url ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
-                            {lesson.video_url ? "Có video" : "Thiếu video"}
-                          </span>
+
+                          <div className="mt-3 rounded-lg bg-gray-50 p-3">
+                            <p className="text-xs font-semibold text-gray-600">Video bài giảng</p>
+                            {lesson.video_url ? (
+                              <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                                <p className="min-w-0 break-all text-xs text-gray-600">{lesson.video_url}</p>
+                                <a href={lesson.video_url} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                                  Mở video <FiExternalLink size={13} />
+                                </a>
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-xs text-red-600">Bài học chưa có video.</p>
+                            )}
+                            {lesson.video_public_id && <p className="mt-2 break-all text-xs text-gray-400">Cloudinary public id: {lesson.video_public_id}</p>}
+                          </div>
+
+                          {(lesson.attachments || []).length > 0 && (
+                            <div className="mt-3 rounded-lg border border-gray-100">
+                              <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-xs font-semibold text-gray-600">
+                                <FiPaperclip size={14} /> PDF, source code và tệp thực hành
+                              </div>
+                              <div className="divide-y divide-gray-100">
+                                {(lesson.attachments || []).map((attachment, index) => (
+                                  <a
+                                    key={`${attachment.url || attachment.name}-${index}`}
+                                    href={attachment.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center justify-between gap-3 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-primary"
+                                  >
+                                    <span className="min-w-0 truncate">{attachment.name || "Tài liệu"}</span>
+                                    <FiDownload className="shrink-0" size={14} />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                       {(section.lessons || []).length === 0 && <p className="py-3 text-sm text-gray-500">Phần này chưa có bài học.</p>}
@@ -244,7 +309,7 @@ export default function CourseReviewManager() {
             </div>
           )}
 
-          {selectedCourse && status !== "published" && (
+          {canReviewSelected && (
             <div className="rounded-lg border border-gray-100 bg-white p-5">
               <h3 className="font-semibold text-gray-900">Ghi chú kiểm duyệt</h3>
               <textarea
