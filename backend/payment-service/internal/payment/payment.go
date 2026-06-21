@@ -341,7 +341,7 @@ func publishPaymentSuccess(ctx context.Context, redisClient *redis.Client, payme
 }
 
 func listPayments(ctx context.Context, col *mongo.Collection, filter bson.M) ([]*Payment, error) {
-	cursor, err := col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}))
+	cursor, err := col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(500))
 	if err != nil {
 		return nil, err
 	}

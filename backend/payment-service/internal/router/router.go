@@ -14,6 +14,9 @@ import (
 func SetupRouter(db *mongo.Database, cfg *config.Config, redisClient *redis.Client) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORSMiddleware())
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"service": "payment", "status": "ok"})
+	})
 
 	payment.RegisterWebhookRoute(r.Group("/api/payments"), db, cfg.StripeWebhookSecret, redisClient)
 

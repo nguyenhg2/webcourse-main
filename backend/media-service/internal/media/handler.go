@@ -21,7 +21,7 @@ func RegisterRoutes(g *gin.RouterGroup, cfg *config.Config) {
 func uploadVideo(c *gin.Context, cfg *config.Config) {
 	folder := strings.Trim(strings.TrimSpace(c.PostForm("folder")), "/")
 	if folder == "" {
-        writeError(c, apiError{Status: http.StatusBadRequest, Message: "Vui lòng nhập thư mục"})
+		writeError(c, apiError{Status: http.StatusBadRequest, Message: "Vui lòng nhập thư mục"})
 		return
 	}
 
@@ -72,13 +72,13 @@ func deleteVideo(c *gin.Context, cfg *config.Config) {
 
 	var req deleteVideoRequest
 	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
-        writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id là bắt buộc"})
+		writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id là bắt buộc"})
 		return
 	}
 
 	publicID := strings.TrimSpace(req.PublicID)
 	if publicID == "" {
-        writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id là bắt buộc"})
+		writeError(c, apiError{Status: http.StatusBadRequest, Message: "public_id là bắt buộc"})
 		return
 	}
 
@@ -104,7 +104,7 @@ func upload(c *gin.Context, cfg *config.Config, formField string, resourceType s
 
 	file, header, err := c.Request.FormFile(formField)
 	if err != nil {
-        return cloudinaryUpload{}, "", apiError{Status: http.StatusBadRequest, Message: "Vui lòng chọn tệp để tải lên"}
+		return cloudinaryUpload{}, "", apiError{Status: http.StatusBadRequest, Message: "Vui lòng chọn tệp để tải lên"}
 	}
 	defer file.Close()
 

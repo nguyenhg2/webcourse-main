@@ -316,8 +316,7 @@ export function uploadVideoAPI(file, folder) {
     throw new Error("Vui lòng nhập thư mục Cloudinary");
   }
 
-  const formData = makeFormData({ video: file, folder });
-  return post(mediaApi, "/api/videos/upload", formData);
+  return uploadMediaAPI("/api/videos/upload", { video: file, folder });
 }
 
 export function deleteVideoAPI(payload) {
@@ -329,8 +328,11 @@ export function uploadLessonVideoAPI(file, folder) {
 }
 
 export function uploadAttachmentAPI(file) {
-  const formData = makeFormData({ file });
-  return post(mediaApi, "/api/files/upload", formData);
+  return uploadMediaAPI("/api/files/upload", { file });
+}
+
+function uploadMediaAPI(url, fields) {
+  return post(mediaApi, url, makeFormData(fields));
 }
 
 // Admin APIs

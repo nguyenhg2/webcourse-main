@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -94,7 +93,7 @@ func Discount(ctx context.Context, db *mongo.Database, code string, amount int64
 }
 
 func listCoupons(ctx context.Context, col *mongo.Collection) ([]Coupon, error) {
-	cursor, err := col.Find(ctx, bson.M{})
+	cursor, err := col.Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{Key: "active", Value: -1}, {Key: "code", Value: 1}}).SetLimit(500))
 	if err != nil {
 		return nil, err
 	}
@@ -104,12 +103,6 @@ func listCoupons(ctx context.Context, col *mongo.Collection) ([]Coupon, error) {
 	if err := cursor.All(ctx, &coupons); err != nil {
 		return nil, err
 	}
-	sort.SliceStable(coupons, func(i, j int) bool {
-		if coupons[i].Active != coupons[j].Active {
-			return coupons[i].Active
-		}
-		return coupons[i].Code < coupons[j].Code
-	})
 	return coupons, nil
 }
 
