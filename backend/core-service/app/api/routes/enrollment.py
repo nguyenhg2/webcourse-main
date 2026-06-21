@@ -7,7 +7,7 @@ from app.core.deps import get_current_user
 from app.db.mongo import get_db, oid, serialize_doc
 from app.models.enrollments import EnrollRequest
 from app.services.enrollment_service import create_enrollments
-from app.services.stats_service import attach_course_relations
+from app.services.stats_service import attach_course_relations, enrich_course_stats
 
 router = APIRouter()
 
@@ -177,6 +177,7 @@ async def my_courses(db=Depends(get_db), user=Depends(get_current_user)):
         first_lesson = course_lessons[0] if course_lessons else None
         enrollment = enrollment_by_course_id[course_id]
 
+        course = await enrich_course_stats(db, course)
         course = await attach_course_relations(db, course)
         course = serialize_doc(course)
         course["progress"] = progress
