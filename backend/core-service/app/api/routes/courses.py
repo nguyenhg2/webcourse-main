@@ -6,6 +6,8 @@ from app.models.courses import CourseCreate, CourseResponse
 from app.services.stats_service import attach_course_relations, enrich_course_stats, enrich_courses_stats
 from typing import List, Optional
 from bson import ObjectId
+from collections import defaultdict
+import asyncio
 import re
 import unicodedata
 
@@ -107,26 +109,24 @@ async def get_course_by_slug(slug: str, db=Depends(get_db), user=Depends(get_opt
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Không tìm thấy khóa học",
         )
-    await enrich_course_stats(db, course)
-    await attach_course_relations(db, course)
-    course = serialize_doc(course)
-
-    sections = (
-        await db["sections"]
-        .find({"course_id": course["_id"]})
-        .sort("order", 1)
-        .to_list(length=100)
+    course_id = str(course["_id"])
+    sections_query = db["sections"].find({"course_id": course_id}).sort("order", 1).to_list(length=100)
+    lessons_query = db["lessons"].find({"course_id": course_id}).sort([("section_id", 1), ("order", 1)]).to_list(length=500)
+    _, _, sections, lessons = await asyncio.gather(
+        enrich_course_stats(db, course),
+        attach_course_relations(db, course),
+        sections_query,
+        lessons_query,
     )
+    course = serialize_doc(course)
     sections = serialize_docs(sections)
 
+    lessons_by_section = defaultdict(list)
+    for lesson in serialize_docs(lessons):
+        lessons_by_section[lesson.get("section_id")].append(lesson)
+
     for section in sections:
-        section_lessons = (
-            await db["lessons"]
-            .find({"section_id": section["_id"]})
-            .sort("order", 1)
-            .to_list(length=100)
-        )
-        section["lessons"] = serialize_docs(section_lessons)
+        section["lessons"] = lessons_by_section[section["_id"]]
 
     course["sections"] = sections
     return course

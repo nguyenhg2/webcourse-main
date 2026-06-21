@@ -23,11 +23,32 @@ function responseData(request) {
   return request.then((res) => res.data);
 }
 
+const getCache = new Map();
+
+function cachedGet(client, url, config, ttl = 30000) {
+  const key = `${client.defaults.baseURL}${url}${JSON.stringify(config?.params || {})}`;
+  const cached = getCache.get(key);
+  if (cached && cached.expires > Date.now()) {
+    return cached.promise;
+  }
+
+  const promise = get(client, url, config).catch((err) => {
+    getCache.delete(key);
+    throw err;
+  });
+  getCache.set(key, { promise, expires: Date.now() + ttl });
+  return promise;
+}
+
+function clearGetCache() {
+  getCache.clear();
+}
+
 const get = (client, url, config) => responseData(client.get(url, config));
-const post = (client, url, data, config) => responseData(client.post(url, data, config));
-const put = (client, url, data, config) => responseData(client.put(url, data, config));
-const patch = (client, url, data, config) => responseData(client.patch(url, data, config));
-const remove = (client, url, config) => responseData(client.delete(url, config));
+const post = (client, url, data, config) => responseData(client.post(url, data, config)).then((data) => { clearGetCache(); return data; });
+const put = (client, url, data, config) => responseData(client.put(url, data, config)).then((data) => { clearGetCache(); return data; });
+const patch = (client, url, data, config) => responseData(client.patch(url, data, config)).then((data) => { clearGetCache(); return data; });
+const remove = (client, url, config) => responseData(client.delete(url, config)).then((data) => { clearGetCache(); return data; });
 
 function makeFormData(fields) {
   const formData = new FormData();
@@ -67,6 +88,9 @@ export function getProfileAPI() {
 
 // Courses
 export function getCoursesAPI(params) {
+  if (!params?.manage && !params?.review_status) {
+    return cachedGet(api, "/api/courses", { params });
+  }
   return get(api, "/api/courses", { params });
 }
 
@@ -112,11 +136,11 @@ export function createLessonAPI(sectionId, payload) {
 
 // Categories
 export function getCategoriesAPI() {
-  return get(api, "/api/categories");
+  return cachedGet(api, "/api/categories");
 }
 
 export function getSiteContentSectionAPI(section) {
-  return get(api, `/api/site-content/${section}`);
+  return cachedGet(api, `/api/site-content/${section}`);
 }
 
 export function updateSiteContentSectionAPI(section, payload) {
@@ -173,6 +197,9 @@ export function updateLessonAPI(lessonId, payload) {
 
 // Blog & Contact
 export function getBlogsAPI(params) {
+  if (!params) {
+    return cachedGet(blogApi, "/api/blogs");
+  }
   return get(blogApi, "/api/blogs", { params });
 }
 
@@ -240,7 +267,7 @@ export function getReviewsByCourseAPI(courseId) {
 }
 
 export function getPublicReviewsAPI() {
-  return get(api, "/api/reviews");
+  return cachedGet(api, "/api/reviews");
 }
 
 export function createReviewAPI(payload) {

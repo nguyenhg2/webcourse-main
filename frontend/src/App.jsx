@@ -1,44 +1,50 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ScrollToTop from "./components/ui/ScrollToTop";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
-import Home from "./pages/Home";
-import CourseListingPage from "./pages/CourseListingPage";
-import CourseSingle from "./pages/CourseSingle";
-import LessonPlayer from "./pages/LessonPlayer";
-import BlogListing from "./pages/BlogListing";
-import BlogSingle from "./pages/BlogSingle";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Payment from "./pages/Payment";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import NotFound from "./pages/NotFound";
-import Profile from "./pages/Profile";
-import MyCourses from "./pages/MyCourses";
-import Cart from "./pages/Cart";
-import RoadmapListing from "./pages/RoadmapListing";
-import RoadmapDetail from "./pages/RoadmapDetail";
-import DashboardLayout from "./components/layout/DashboardLayout";
-import BlogManager from "./pages/dashboard/admin/BlogManager";
-import CategoryManager from "./pages/dashboard/admin/CategoryManager";
-import ContactManager from "./pages/dashboard/admin/ContactManager";
-import CouponManager from "./pages/dashboard/admin/CouponManager";
-import OrderManager from "./pages/dashboard/admin/OrderManager";
-import ReviewManager from "./pages/dashboard/admin/ReviewManager";
-import RoadmapManager from "./pages/dashboard/admin/RoadmapManager";
-import SiteContentManager from "./pages/dashboard/admin/SiteContentManager";
-import StudentManager from "./pages/dashboard/admin/StudentManager";
-import UserManager from "./pages/dashboard/admin/UserManager";
-import InstructorStudents from "./pages/dashboard/instructor/InstructorStudents";
-import PaymentManager from "./pages/dashboard/operator/PaymentManager";
-import CourseManager from "./pages/dashboard/shared/CourseManager";
-import CourseReviewManager from "./pages/dashboard/shared/CourseReviewManager";
-import DashboardOverview from "./pages/dashboard/shared/DashboardOverview";
-import WorkflowBoard from "./pages/dashboard/shared/WorkflowBoard";
 import { useAuth } from "./context/AuthContext";
+
+const Home = lazy(() => import("./pages/Home"));
+const CourseListingPage = lazy(() => import("./pages/CourseListingPage"));
+const CourseSingle = lazy(() => import("./pages/CourseSingle"));
+const LessonPlayer = lazy(() => import("./pages/LessonPlayer"));
+const BlogListing = lazy(() => import("./pages/BlogListing"));
+const BlogSingle = lazy(() => import("./pages/BlogSingle"));
+const Contact = lazy(() => import("./pages/Contact"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Payment = lazy(() => import("./pages/Payment"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Profile = lazy(() => import("./pages/Profile"));
+const MyCourses = lazy(() => import("./pages/MyCourses"));
+const Cart = lazy(() => import("./pages/Cart"));
+const RoadmapListing = lazy(() => import("./pages/RoadmapListing"));
+const RoadmapDetail = lazy(() => import("./pages/RoadmapDetail"));
+const DashboardLayout = lazy(() => import("./components/layout/DashboardLayout"));
+const BlogManager = lazy(() => import("./pages/dashboard/admin/BlogManager"));
+const CategoryManager = lazy(() => import("./pages/dashboard/admin/CategoryManager"));
+const ContactManager = lazy(() => import("./pages/dashboard/admin/ContactManager"));
+const CouponManager = lazy(() => import("./pages/dashboard/admin/CouponManager"));
+const OrderManager = lazy(() => import("./pages/dashboard/admin/OrderManager"));
+const ReviewManager = lazy(() => import("./pages/dashboard/admin/ReviewManager"));
+const RoadmapManager = lazy(() => import("./pages/dashboard/admin/RoadmapManager"));
+const SiteContentManager = lazy(() => import("./pages/dashboard/admin/SiteContentManager"));
+const StudentManager = lazy(() => import("./pages/dashboard/admin/StudentManager"));
+const UserManager = lazy(() => import("./pages/dashboard/admin/UserManager"));
+const InstructorStudents = lazy(() => import("./pages/dashboard/instructor/InstructorStudents"));
+const PaymentManager = lazy(() => import("./pages/dashboard/operator/PaymentManager"));
+const CourseManager = lazy(() => import("./pages/dashboard/shared/CourseManager"));
+const CourseReviewManager = lazy(() => import("./pages/dashboard/shared/CourseReviewManager"));
+const DashboardOverview = lazy(() => import("./pages/dashboard/shared/DashboardOverview"));
+const WorkflowBoard = lazy(() => import("./pages/dashboard/shared/WorkflowBoard"));
+
+function PageLoader() {
+  return <div className="min-h-[240px] flex items-center justify-center text-gray-500">Đang tải...</div>;
+}
 
 function MainLayout() {
   return (
@@ -113,6 +119,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
           <ScrollToTop />
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/khoa-hoc/:slug/hoc/:lessonId" element={<LessonPlayer />} />
             <Route element={<MainLayout />}>
@@ -157,6 +164,7 @@ export default function App() {
               <Route path="contacts" element={<RequireDashboardRole roles={["admin"]}><ContactManager /></RequireDashboardRole>} />
             </Route>
           </Routes>
+          </Suspense>
         </BrowserRouter>
     </AuthProvider>
   );

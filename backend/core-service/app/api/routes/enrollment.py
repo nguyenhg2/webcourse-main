@@ -1,4 +1,5 @@
 from collections import defaultdict
+import asyncio
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +8,7 @@ from app.core.deps import get_current_user
 from app.db.mongo import get_db, oid, serialize_doc
 from app.models.enrollments import EnrollRequest
 from app.services.enrollment_service import create_enrollments
-from app.services.stats_service import attach_course_relations, enrich_course_stats
+from app.services.stats_service import attach_courses_relations, course_stats_map
 
 router = APIRouter()
 
@@ -133,36 +134,33 @@ async def my_courses(db=Depends(get_db), user=Depends(get_current_user)):
     if not course_ids:
         return []
 
-    courses = await db["courses"].find(
-        {"_id": {"$in": [oid(course_id) for course_id in course_ids]}}
-    ).to_list(length=len(course_ids))
-    course_by_id = {str(course["_id"]): course for course in courses}
-
-    lessons = await db["lessons"].find(
+    courses_query = db["courses"].find({"_id": {"$in": [oid(course_id) for course_id in course_ids]}}).to_list(length=len(course_ids))
+    lessons_query = db["lessons"].find(
         {"course_id": {"$in": course_ids}},
         {"_id": 1, "course_id": 1, "title": 1, "order": 1},
     ).sort([("course_id", 1), ("order", 1), ("_id", 1)]).to_list(length=1000)
+    progress_query = db["progress"].aggregate([
+        {
+            "$match": {
+                "user_id": user["_id"],
+                "course_id": {"$in": course_ids},
+                "completed": True,
+            }
+        },
+        {"$group": {"_id": "$course_id", "completed": {"$sum": 1}}},
+    ]).to_list(length=len(course_ids))
+    stats_query = course_stats_map(db, course_ids)
+
+    courses, lessons, progress_rows, stats = await asyncio.gather(courses_query, lessons_query, progress_query, stats_query)
+    for course in courses:
+        course.update(stats.get(str(course["_id"]), {}))
+    await attach_courses_relations(db, courses)
+    course_by_id = {str(course["_id"]): course for course in courses}
 
     lessons_by_course_id = defaultdict(list)
     for lesson in lessons:
         lessons_by_course_id[lesson.get("course_id")].append(lesson)
-
-    lesson_ids = [str(lesson["_id"]) for lesson in lessons]
-
-    completed_by_course_id = {}
-    if lesson_ids:
-        progress_rows = await db["progress"].aggregate([
-            {
-                "$match": {
-                    "user_id": user["_id"],
-                    "course_id": {"$in": course_ids},
-                    "lesson_id": {"$in": lesson_ids},
-                    "completed": True,
-                }
-            },
-            {"$group": {"_id": "$course_id", "completed": {"$sum": 1}}},
-        ]).to_list(length=len(course_ids))
-        completed_by_course_id = {row["_id"]: row["completed"] for row in progress_rows}
+    completed_by_course_id = {row["_id"]: row["completed"] for row in progress_rows}
 
     items = []
     for course_id in course_ids:
@@ -171,14 +169,12 @@ async def my_courses(db=Depends(get_db), user=Depends(get_current_user)):
             continue
 
         course_lessons = lessons_by_course_id.get(course_id, [])
-        completed = completed_by_course_id.get(course_id, 0)
         total = len(course_lessons)
+        completed = min(completed_by_course_id.get(course_id, 0), total)
         progress = round(completed * 100 / total) if total else 0
         first_lesson = course_lessons[0] if course_lessons else None
         enrollment = enrollment_by_course_id[course_id]
 
-        course = await enrich_course_stats(db, course)
-        course = await attach_course_relations(db, course)
         course = serialize_doc(course)
         course["progress"] = progress
         course["totalLessons"] = total

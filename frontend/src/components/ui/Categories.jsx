@@ -11,7 +11,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { getCategoriesAPI, getCoursesAPI } from "../../services/api";
+import { getCategoriesAPI } from "../../services/api";
 
 const CATEGORY_VISUALS = {
   code: { Icon: FiCode, tone: "bg-orange-50 text-primary ring-orange-100" },
@@ -68,28 +68,10 @@ export default function Categories() {
   useEffect(() => {
     let mounted = true;
 
-    Promise.allSettled([getCategoriesAPI(), getCoursesAPI()])
-      .then(([categoryResult, courseResult]) => {
+    getCategoriesAPI()
+      .then((data) => {
         if (!mounted) return;
-
-        const apiCategories = categoryResult.status === "fulfilled" && Array.isArray(categoryResult.value)
-          ? categoryResult.value
-          : [];
-        const apiCourses = courseResult.status === "fulfilled" && Array.isArray(courseResult.value)
-          ? courseResult.value
-          : [];
-        const counts = apiCourses.reduce((map, course) => {
-          if (course.category_id) {
-            map.set(course.category_id, (map.get(course.category_id) || 0) + 1);
-          }
-          return map;
-        }, new Map());
-        setCategories(
-          apiCategories.map((category) => ({
-            ...category,
-            courseCount: category._id ? counts.get(category._id) || 0 : category.courseCount || 0,
-          }))
-        );
+        setCategories(Array.isArray(data) ? data : []);
       })
       .catch(() => {
         if (mounted) setCategories([]);

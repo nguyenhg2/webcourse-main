@@ -9,6 +9,13 @@ router = APIRouter()
 @router.get("/api/categories")
 async def get_categories(db=Depends(get_db)):
     cats = await db["categories"].find().to_list(100)
+    counts = await db["courses"].aggregate([
+        {"$match": {"status": "published"}},
+        {"$group": {"_id": "$category_id", "courseCount": {"$sum": 1}}},
+    ]).to_list(length=100)
+    count_by_category = {row["_id"]: row["courseCount"] for row in counts}
+    for cat in cats:
+        cat["courseCount"] = count_by_category.get(str(cat["_id"]), 0)
     return serialize_docs(cats)
 
 
