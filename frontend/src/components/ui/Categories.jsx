@@ -13,16 +13,6 @@ import {
 import { Link } from "react-router-dom";
 import { getCategoriesAPI, getCoursesAPI } from "../../services/api";
 
-const FALLBACK_CATEGORIES = [
-  { _id: "", name: "Lập trình web", icon: "code" },
-  { _id: "", name: "Python", icon: "python" },
-  { _id: "", name: "Frontend", icon: "react" },
-  { _id: "", name: "Backend", icon: "server" },
-  { _id: "", name: "DevOps", icon: "docker" },
-  { _id: "", name: "Di động", icon: "smartphone" },
-  { _id: "", name: "Dữ liệu", icon: "database" },
-];
-
 const CATEGORY_VISUALS = {
   code: { Icon: FiCode, tone: "bg-orange-50 text-primary ring-orange-100" },
   python: { Icon: FiTrendingUp, tone: "bg-blue-50 text-blue-600 ring-blue-100" },
@@ -94,17 +84,15 @@ export default function Categories() {
           }
           return map;
         }, new Map());
-        const sourceCategories = apiCategories.length ? apiCategories : FALLBACK_CATEGORIES;
-
         setCategories(
-          sourceCategories.map((category) => ({
+          apiCategories.map((category) => ({
             ...category,
             courseCount: category._id ? counts.get(category._id) || 0 : category.courseCount || 0,
           }))
         );
       })
       .catch(() => {
-        if (mounted) setCategories(FALLBACK_CATEGORIES);
+        if (mounted) setCategories([]);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -114,8 +102,6 @@ export default function Categories() {
       mounted = false;
     };
   }, []);
-
-  const displayCategories = categories.length ? categories : FALLBACK_CATEGORIES;
 
   return (
     <section className="py-14 lg:py-18 bg-white">
@@ -147,7 +133,11 @@ export default function Categories() {
                   <div className="mt-3 h-3 w-1/2 rounded bg-gray-100" />
                 </div>
               ))
-            : displayCategories.map((category, index) => {
+            : categories.length === 0 ? (
+                <div className="rounded-lg border border-gray-100 bg-gray-50 p-6 text-sm text-gray-500 lg:col-span-12">
+                  Chưa có danh mục trong cơ sở dữ liệu.
+                </div>
+              ) : categories.map((category, index) => {
                 const visual = getCategoryVisual(category);
                 const Icon = visual.Icon;
                 const courseCount = Number(category.courseCount || 0);
@@ -156,7 +146,7 @@ export default function Categories() {
                   <Link
                     key={category._id || category.name}
                     to={categoryLink(category)}
-                    className={`group min-h-[132px] rounded-lg border border-gray-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md ${desktopSpanClass(index, displayCategories.length)}`}
+                    className={`group min-h-[132px] rounded-lg border border-gray-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md ${desktopSpanClass(index, categories.length)}`}
                   >
                     <div className="flex h-full items-start justify-between gap-4">
                       <div className="min-w-0">

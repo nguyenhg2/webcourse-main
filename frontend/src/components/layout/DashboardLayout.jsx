@@ -8,11 +8,15 @@ const ROLE_LABELS = {
   admin: "Quản trị viên",
   operator: "Nhân viên vận hành",
   instructor: "Giảng viên",
+  student: "Học viên",
 };
 
 const PAGE_TITLES = {
   "/dashboard": "Tổng quan",
   "/dashboard/profile": "Hồ sơ",
+  "/khoa-hoc-cua-toi": "Khóa học của tôi",
+  "/gio-hang": "Giỏ hàng",
+  "/lo-trinh": "Lộ trình",
   "/dashboard/courses": "Quản lý khóa học",
   "/dashboard/roadmaps": "Quản lý lộ trình",
   "/dashboard/students": "Học viên",
@@ -25,6 +29,7 @@ const PAGE_TITLES = {
   "/dashboard/categories": "Danh mục",
   "/dashboard/coupons": "Mã giảm giá",
   "/dashboard/blogs": "Blog",
+  "/dashboard/site-content": "Cấu hình nội dung",
   "/dashboard/contacts": "Liên hệ",
 };
 
@@ -46,10 +51,6 @@ export default function DashboardLayout() {
 
   if (!user) {
     return <Navigate to="/dang-nhap" replace />;
-  }
-
-  if (user.role === "student") {
-    return <Navigate to="/khoa-hoc-cua-toi" replace />;
   }
 
   return (

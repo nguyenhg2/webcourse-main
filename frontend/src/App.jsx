@@ -29,6 +29,7 @@ import CouponManager from "./pages/dashboard/admin/CouponManager";
 import OrderManager from "./pages/dashboard/admin/OrderManager";
 import ReviewManager from "./pages/dashboard/admin/ReviewManager";
 import RoadmapManager from "./pages/dashboard/admin/RoadmapManager";
+import SiteContentManager from "./pages/dashboard/admin/SiteContentManager";
 import StudentManager from "./pages/dashboard/admin/StudentManager";
 import UserManager from "./pages/dashboard/admin/UserManager";
 import InstructorStudents from "./pages/dashboard/instructor/InstructorStudents";
@@ -139,12 +140,12 @@ export default function App() {
 
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
-              <Route path="profile" element={<RequireDashboardRole roles={["admin", "operator", "instructor"]}><Profile /></RequireDashboardRole>} />
-              <Route path="courses" element={<RequireDashboardRole roles={["instructor"]}><CourseManager /></RequireDashboardRole>} />
+              <Route path="profile" element={<RequireDashboardRole roles={["admin", "operator", "instructor", "student"]}><Profile /></RequireDashboardRole>} />
+              <Route path="courses" element={<RequireDashboardRole roles={["admin", "instructor"]}><CourseManager /></RequireDashboardRole>} />
               <Route path="roadmaps" element={<RequireDashboardRole roles={["admin"]}><RoadmapManager /></RequireDashboardRole>} />
               <Route path="students" element={<RequireDashboardRole roles={["admin"]}><StudentManager /></RequireDashboardRole>} />
               <Route path="instructor-students" element={<RequireDashboardRole roles={["instructor"]}><InstructorStudents /></RequireDashboardRole>} />
-              <Route path="course-reviews" element={<RequireDashboardRole roles={["admin", "operator"]}><CourseReviewManager /></RequireDashboardRole>} />
+              <Route path="course-reviews" element={<RequireDashboardRole roles={["operator"]}><CourseReviewManager /></RequireDashboardRole>} />
               <Route path="reviews" element={<RequireDashboardRole roles={["admin"]}><ReviewManager /></RequireDashboardRole>} />
               <Route path="payments" element={<PaymentsRoute />} />
               <Route path="complaints" element={<RequireDashboardRole roles={["operator"]}><WorkflowBoard type="complaints" /></RequireDashboardRole>} />
@@ -152,6 +153,7 @@ export default function App() {
               <Route path="categories" element={<RequireDashboardRole roles={["admin"]}><CategoryManager /></RequireDashboardRole>} />
               <Route path="coupons" element={<RequireDashboardRole roles={["admin"]}><CouponManager /></RequireDashboardRole>} />
               <Route path="blogs" element={<RequireDashboardRole roles={["admin"]}><BlogManager /></RequireDashboardRole>} />
+              <Route path="site-content" element={<RequireDashboardRole roles={["admin"]}><SiteContentManager /></RequireDashboardRole>} />
               <Route path="contacts" element={<RequireDashboardRole roles={["admin"]}><ContactManager /></RequireDashboardRole>} />
             </Route>
           </Routes>

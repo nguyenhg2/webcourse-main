@@ -115,6 +115,14 @@ export function getCategoriesAPI() {
   return get(api, "/api/categories");
 }
 
+export function getSiteContentSectionAPI(section) {
+  return get(api, `/api/site-content/${section}`);
+}
+
+export function updateSiteContentSectionAPI(section, payload) {
+  return put(api, `/api/site-content/${section}`, payload);
+}
+
 export function createCategoryAPI(payload) {
   return post(api, "/api/categories", payload);
 }
@@ -145,6 +153,18 @@ export function getLessonCommentsAPI(lessonId) {
 
 export function createLessonCommentAPI(lessonId, content) {
   return post(api, `/api/lessons/${lessonId}/comments`, { content });
+}
+
+export function getLessonNotesAPI(lessonId) {
+  return get(api, `/api/lessons/${lessonId}/notes`);
+}
+
+export function createLessonNoteAPI(lessonId, payload) {
+  return post(api, `/api/lessons/${lessonId}/notes`, payload);
+}
+
+export function deleteLessonNoteAPI(noteId) {
+  return remove(api, `/api/lesson-notes/${noteId}`);
 }
 
 export function updateLessonAPI(lessonId, payload) {
@@ -206,6 +226,10 @@ export function saveProgressAPI(payload) {
   return post(api, "/api/progress", payload);
 }
 
+export function downloadCertificateAPI(courseId) {
+  return api.get(`/api/certificate/${courseId}`, { responseType: "blob" }).then((res) => res.data);
+}
+
 // Reviews
 export function getCourseReviewsAPI(courseId) {
   return get(api, "/api/courses/" + courseId + "/reviews");
@@ -213,6 +237,14 @@ export function getCourseReviewsAPI(courseId) {
 
 export function getReviewsByCourseAPI(courseId) {
   return get(api, `/api/courses/${courseId}/reviews`);
+}
+
+export function getPublicReviewsAPI() {
+  return get(api, "/api/reviews");
+}
+
+export function createReviewAPI(payload) {
+  return post(api, "/api/reviews", payload);
 }
 
 export function deleteReviewAPI(reviewId) {
@@ -291,12 +323,28 @@ export function updateAdminUserRoleAPI(userId, role) {
   return put(api, `/api/admin/users/${userId}/role`, { role });
 }
 
+export function updateAdminUserStatusAPI(userId, isActive) {
+  return put(api, `/api/admin/users/${userId}/status`, { is_active: isActive });
+}
+
 export function getAdminOrdersAPI() {
   return get(api, "/api/admin/orders");
 }
 
 export function getAdminRevenueAPI() {
   return get(api, "/api/admin/revenue");
+}
+
+export function getComplaintsAPI(params) {
+  return get(api, "/api/complaints", { params });
+}
+
+export function createComplaintAPI(payload) {
+  return post(api, "/api/complaints", payload);
+}
+
+export function updateComplaintAPI(id, payload) {
+  return patch(api, `/api/complaints/${id}`, payload);
 }
 
 // Admin Blog & Contact

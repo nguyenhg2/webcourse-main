@@ -12,6 +12,8 @@ import {
   FiMail,
   FiPenTool,
   FiPlus,
+  FiSettings,
+  FiShoppingCart,
   FiTag,
   FiUser,
   FiUsers,
@@ -19,6 +21,13 @@ import {
 } from "react-icons/fi";
 
 const MENU_ITEMS = {
+  student: [
+    { title: "Tổng quan", desc: "Tiến độ học tập", path: "/dashboard", icon: <FiGrid /> },
+    { title: "Khóa học của tôi", desc: "Video, tài liệu, chứng chỉ", path: "/khoa-hoc-cua-toi", icon: <FiBookOpen /> },
+    { title: "Giỏ hàng", desc: "Khóa học chờ thanh toán", path: "/gio-hang", icon: <FiShoppingCart /> },
+    { title: "Lộ trình", desc: "Định hướng kỹ năng", path: "/lo-trinh", icon: <FiMap /> },
+    { title: "Hồ sơ", desc: "Thông tin cá nhân", path: "/dashboard/profile", icon: <FiUser /> },
+  ],
   instructor: [
     { title: "Tổng quan", desc: "Hiệu quả giảng dạy", path: "/dashboard", icon: <FiGrid /> },
     { title: "Tạo khóa học", desc: "Chương, bài học, học liệu", path: "/dashboard/courses#create-course", icon: <FiPlus /> },
@@ -35,13 +44,14 @@ const MENU_ITEMS = {
   admin: [
     { title: "Báo cáo", desc: "Doanh thu và tăng trưởng", path: "/dashboard", icon: <FiBarChart2 /> },
     { title: "Người dùng", desc: "Tài khoản và vai trò", path: "/dashboard/users", icon: <FiUsers /> },
+    { title: "Khóa học", desc: "CRUD nội dung", path: "/dashboard/courses", icon: <FiBookOpen /> },
     { title: "Lộ trình", desc: "Chuỗi kỹ năng", path: "/dashboard/roadmaps", icon: <FiMap /> },
     { title: "Đơn hàng", desc: "Thanh toán và doanh thu", path: "/dashboard/payments", icon: <FiDollarSign /> },
-    { title: "Duyệt khóa học", desc: "Nội dung chờ xuất bản", path: "/dashboard/course-reviews", icon: <FiCheckSquare /> },
     { title: "Đánh giá", desc: "Nhận xét học viên", path: "/dashboard/reviews", icon: <FiCheckSquare /> },
     { title: "Danh mục", desc: "Nhóm khóa học", path: "/dashboard/categories", icon: <FiTag /> },
     { title: "Mã giảm giá", desc: "Chiến dịch bán hàng", path: "/dashboard/coupons", icon: <FiAlertCircle /> },
     { title: "Blog", desc: "Bài viết và bản nháp", path: "/dashboard/blogs", icon: <FiPenTool /> },
+    { title: "Cấu hình", desc: "FAQ, liên hệ, nội dung", path: "/dashboard/site-content", icon: <FiSettings /> },
     { title: "Liên hệ", desc: "Tin nhắn khách hàng", path: "/dashboard/contacts", icon: <FiMail /> },
     { title: "Hồ sơ", desc: "Thông tin cá nhân", path: "/dashboard/profile", icon: <FiUser /> },
   ],
@@ -51,6 +61,7 @@ const ROLE_LABELS = {
   admin: "Quản trị viên",
   operator: "Nhân viên vận hành",
   instructor: "Giảng viên",
+  student: "Học viên",
 };
 
 export default function DashboardSidebar({ sidebarOpen, setSidebarOpen }) {

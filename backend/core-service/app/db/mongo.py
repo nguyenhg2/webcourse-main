@@ -27,7 +27,10 @@ async def ensure_indexes():
     await db["lessons"].create_index([("course_id", 1), ("order", 1)])
     await db["lesson_comments"].create_index([("lesson_id", 1), ("created_at", -1)])
     await db["lesson_comments"].create_index([("course_id", 1), ("created_at", -1)])
+    await db["lesson_notes"].create_index([("user_id", 1), ("lesson_id", 1), ("timestamp", 1)])
     await db["progress"].create_index([("user_id", 1), ("course_id", 1), ("lesson_id", 1), ("completed", 1)])
+    await db["complaints"].create_index([("status", 1), ("created_at", -1)])
+    await db["complaints"].create_index([("student_id", 1), ("created_at", -1)])
 
 
 def serialize_doc(doc: dict | None) -> dict | None:

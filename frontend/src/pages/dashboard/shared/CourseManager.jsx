@@ -97,6 +97,7 @@ function emptyLessonForm(nextOrder = 1) {
     video_url: "",
     video_public_id: "",
     video_asset_folder: "",
+    content: "",
     duration: 0,
     is_free_preview: false,
     attachmentsText: "",
@@ -282,8 +283,6 @@ export default function CourseManager() {
         price: Number(courseForm.price || 0),
         instructor_id: user._id,
         status: user?.role === "instructor" ? "draft" : courseForm.status,
-        rating: 0,
-        total_students: 0,
         cloudinary_folder: cloudinaryFolder,
       });
       setCourseForm({ ...emptyCourseForm, category_id: categories[0]?._id || "" });
@@ -339,8 +338,6 @@ export default function CourseManager() {
         price: Number(editingCourseForm.price || 0),
         category_id: editingCourseForm.category_id,
         instructor_id: selectedCourse.instructor_id || user._id,
-        rating: Number(selectedCourse.rating || 0),
-        total_students: Number(selectedCourse.total_students || 0),
       };
       delete payload._id;
 
@@ -371,8 +368,6 @@ export default function CourseManager() {
         ...selectedCourse,
         status: "draft",
         instructor_id: selectedCourse.instructor_id || user._id,
-        rating: Number(selectedCourse.rating || 0),
-        total_students: Number(selectedCourse.total_students || 0),
       };
       delete payload._id;
 
@@ -424,8 +419,6 @@ export default function CourseManager() {
           ...selectedCourse,
           status: "pending_review",
           instructor_id: selectedCourse.instructor_id || user._id,
-          rating: Number(selectedCourse.rating || 0),
-          total_students: Number(selectedCourse.total_students || 0),
         };
         delete fallbackPayload._id;
         updated = await updateCourseAPI(selectedCourseId, fallbackPayload);
@@ -485,6 +478,7 @@ export default function CourseManager() {
         video_url: form.video_url.trim(),
         video_public_id: form.video_public_id || "",
         video_asset_folder: form.video_asset_folder || selectedCourseFolder || "",
+        content: form.content.trim(),
         duration: Number(form.duration || 0),
         is_free_preview: Boolean(form.is_free_preview),
         attachments: parseAttachments(form.attachmentsText),
@@ -537,6 +531,7 @@ export default function CourseManager() {
       video_url: lesson.video_url || "",
       video_public_id: lesson.video_public_id || "",
       video_asset_folder: lesson.video_asset_folder || selectedCourseFolder || "",
+      content: lesson.content || "",
       duration: lesson.duration || 0,
       is_free_preview: Boolean(lesson.is_free_preview),
       attachmentsText: formatAttachments(lesson.attachments),
@@ -565,6 +560,7 @@ export default function CourseManager() {
         video_url: editingLessonForm.video_url.trim(),
         video_public_id: editingLessonForm.video_public_id || "",
         video_asset_folder: editingLessonForm.video_asset_folder || selectedCourseFolder || "",
+        content: editingLessonForm.content.trim(),
         duration: Number(editingLessonForm.duration || 0),
         is_free_preview: Boolean(editingLessonForm.is_free_preview),
         attachments: parseAttachments(editingLessonForm.attachmentsText),
@@ -989,6 +985,12 @@ export default function CourseManager() {
                       </label>
                       <input value={lessonForm.video_url} onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, video_url: e.target.value } })} placeholder="URL video nếu có" className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary lg:col-span-3" />
                       <textarea
+                        value={lessonForm.content}
+                        onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, content: e.target.value } })}
+                        placeholder="Nội dung văn bản của bài học"
+                        className="min-h-20 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary lg:col-span-3"
+                      />
+                      <textarea
                         value={lessonForm.attachmentsText}
                         onChange={(e) => setLessonForms({ ...lessonForms, [section._id]: { ...lessonForm, attachmentsText: e.target.value } })}
                         placeholder="PDF / mã nguồn / tệp thực hành, mỗi dòng: Tên tài liệu | URL"
@@ -1033,6 +1035,12 @@ export default function CourseManager() {
                                   </label>
                                 </div>
                                 <input value={editingLessonForm.video_url} onChange={(e) => setEditingLessonForm({ ...editingLessonForm, video_url: e.target.value })} placeholder="URL video" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+                                <textarea
+                                  value={editingLessonForm.content}
+                                  onChange={(e) => setEditingLessonForm({ ...editingLessonForm, content: e.target.value })}
+                                  placeholder="Nội dung văn bản của bài học"
+                                  className="min-h-24 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+                                />
                                 <textarea
                                   value={editingLessonForm.attachmentsText}
                                   onChange={(e) => setEditingLessonForm({ ...editingLessonForm, attachmentsText: e.target.value })}

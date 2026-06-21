@@ -1,7 +1,20 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiPlay } from "react-icons/fi";
+import { getSiteContentSectionAPI } from "../../services/api";
 
 export default function Hero() {
+  const [stats, setStats] = useState([]);
+
+  useEffect(() => {
+    getSiteContentSectionAPI("stats")
+      .then((data) => setStats(Array.isArray(data?.items) ? data.items : []))
+      .catch(() => setStats([]));
+  }, []);
+
+  const studentStat = stats.find((item) => item.icon === "users");
+  const courseStat = stats.find((item) => item.icon === "book");
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       
@@ -45,15 +58,19 @@ export default function Hero() {
 
       </div>
 
-      <div className="absolute bottom-12 left-12 bg-primary-light rounded-full shadow-2xl px-6 py-4 hidden xl:flex items-center gap-4">
-        <span className="text-4xl font-bold text-[#FF782D]">25K+</span>
-        <span className="text-sm text-gray-700">Học viên<br />đang học</span>
-      </div>
+      {studentStat && (
+        <div className="absolute bottom-12 left-12 bg-primary-light rounded-full shadow-2xl px-6 py-4 hidden xl:flex items-center gap-4">
+          <span className="text-4xl font-bold text-[#FF782D]">{studentStat.value}</span>
+          <span className="text-sm text-gray-700">{studentStat.label}</span>
+        </div>
+      )}
 
-      <div className="absolute bottom-12 right-12 bg-primary-light rounded-full shadow-2xl px-6 py-4 hidden xl:flex items-center gap-4">
-        <span className="text-4xl font-bold text-[#FF782D]">899</span>
-        <span className="text-sm text-gray-700">Khóa học<br />chất lượng</span>
-      </div>
+      {courseStat && (
+        <div className="absolute bottom-12 right-12 bg-primary-light rounded-full shadow-2xl px-6 py-4 hidden xl:flex items-center gap-4">
+          <span className="text-4xl font-bold text-[#FF782D]">{courseStat.value}</span>
+          <span className="text-sm text-gray-700">{courseStat.label}</span>
+        </div>
+      )}
     </section>
   );
 }

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from bson import ObjectId
-from app.models.lessons import Lesson, LessonCommentCreate, UpdateLesson
+from app.models.lessons import Lesson, LessonCommentCreate, LessonNoteCreate, UpdateLesson
 from app.db.mongo import get_db, oid, serialize_doc, serialize_docs
 from app.core.deps import get_current_user, get_optional_user, require_role
 
@@ -120,6 +120,12 @@ async def get_lesson_content(lesson_id: str, db=Depends(get_db), current_user=De
     if not current_user:
         raise HTTPException(status_code=401, detail="Bạn cần đăng nhập để xem bài học này")
 
+    course = None
+    if ObjectId.is_valid(str(lesson.get("course_id", ""))):
+        course = await db["courses"].find_one({"_id": oid(lesson["course_id"])})
+    if current_user.get("role") == "admin" or (course and course.get("instructor_id") == current_user["_id"]):
+        return serialize_doc(lesson)
+
     enrollment = await db["enrollments"].find_one({
         "user_id": current_user["_id"],
         "course_id": lesson["course_id"],
@@ -171,3 +177,56 @@ async def create_lesson_comment(
     result = await db["lesson_comments"].insert_one(comment_doc)
     comment = await db["lesson_comments"].find_one({"_id": result.inserted_id})
     return serialize_doc(comment)
+
+@router.get("/api/lessons/{lesson_id}/notes")
+async def get_lesson_notes(lesson_id: str, db=Depends(get_db), user=Depends(get_current_user)):
+    lesson = await _get_lesson_or_404(db, lesson_id)
+    await _ensure_can_access_lesson_comments(db, lesson, user)
+
+    notes = (
+        await db["lesson_notes"]
+        .find({"lesson_id": lesson_id, "user_id": user["_id"]})
+        .sort("timestamp", 1)
+        .to_list(length=200)
+    )
+    return serialize_docs(notes)
+
+@router.post("/api/lessons/{lesson_id}/notes")
+async def create_lesson_note(
+    lesson_id: str,
+    payload: LessonNoteCreate,
+    db=Depends(get_db),
+    user=Depends(get_current_user),
+):
+    lesson = await _get_lesson_or_404(db, lesson_id)
+    await _ensure_can_access_lesson_comments(db, lesson, user)
+
+    content = payload.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Nội dung ghi chú không được để trống")
+
+    note_doc = {
+        "lesson_id": lesson_id,
+        "course_id": lesson["course_id"],
+        "user_id": user["_id"],
+        "content": content,
+        "timestamp": max(int(payload.timestamp or 0), 0),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db["lesson_notes"].insert_one(note_doc)
+    note = await db["lesson_notes"].find_one({"_id": result.inserted_id})
+    return serialize_doc(note)
+
+@router.delete("/api/lesson-notes/{note_id}")
+async def delete_lesson_note(note_id: str, db=Depends(get_db), user=Depends(get_current_user)):
+    if not ObjectId.is_valid(note_id):
+        raise HTTPException(status_code=400, detail="note_id không hợp lệ")
+
+    note = await db["lesson_notes"].find_one({"_id": oid(note_id)})
+    if not note:
+        raise HTTPException(status_code=404, detail="Không tìm thấy ghi chú")
+    if note.get("user_id") != user["_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Không đủ quyền thực hiện")
+
+    await db["lesson_notes"].delete_one({"_id": oid(note_id)})
+    return {"message": "Đã xóa ghi chú"}

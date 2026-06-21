@@ -32,6 +32,8 @@ async def get_user_from_token(token: str) -> dict:
     user = await db.users.find_one({"_id": user_object_id})
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Không tìm thấy người dùng")
+    if user.get("is_active") is False:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tài khoản đã bị khóa")
     user = serialize_doc(user)
     user.pop("hashed_password", None)
     user.pop("passwordHash", None)

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiDownload, FiLock, FiMessageCircle, FiPlay } from "react-icons/fi";
+import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiDownload, FiLock, FiMessageCircle, FiPlay, FiTrash2 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import { createLessonCommentAPI, getCourseBySlugAPI, getLessonAPI, getLessonCommentsAPI, getMyCoursesAPI, saveProgressAPI } from "../services/api";
+import { createLessonCommentAPI, createLessonNoteAPI, deleteLessonNoteAPI, getCourseBySlugAPI, getLessonAPI, getLessonCommentsAPI, getLessonNotesAPI, getMyCoursesAPI, saveProgressAPI } from "../services/api";
 
 function formatDuration(seconds) {
   if (!seconds) return "";
@@ -44,14 +44,20 @@ export default function LessonPlayer() {
   const [course, setCourse] = useState(null);
   const [lesson, setLesson] = useState(null);
   const [lessonComments, setLessonComments] = useState([]);
+  const [lessonNotes, setLessonNotes] = useState([]);
   const [commentContent, setCommentContent] = useState("");
+  const [noteContent, setNoteContent] = useState("");
   const [commentMessage, setCommentMessage] = useState("");
+  const [noteMessage, setNoteMessage] = useState("");
   const [savingComment, setSavingComment] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   const [activeTab, setActiveTab] = useState("content");
   const [message, setMessage] = useState("");
   const [savingProgress, setSavingProgress] = useState(false);
   const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
   const [ownershipLoaded, setOwnershipLoaded] = useState(false);
+  const videoRef = useRef(null);
   const savedLessonsRef = useRef(new Set());
 
   useEffect(() => {
@@ -77,7 +83,10 @@ export default function LessonPlayer() {
   useEffect(() => {
     setMessage("");
     setCommentMessage("");
+    setNoteMessage("");
     setLessonComments([]);
+    setLessonNotes([]);
+    setCurrentTime(0);
     if (!/^[a-f\d]{24}$/i.test(lessonId || "")) {
       setLesson(null);
       setMessage("Bài học không hợp lệ");
@@ -126,16 +135,23 @@ export default function LessonPlayer() {
   useEffect(() => {
     if (!lesson?._id || !user) {
       setLessonComments([]);
+      setLessonNotes([]);
       return;
     }
 
     let cancelled = false;
-    getLessonCommentsAPI(lesson._id)
-      .then((items) => {
-        if (!cancelled) setLessonComments(items);
+    Promise.all([getLessonCommentsAPI(lesson._id), getLessonNotesAPI(lesson._id)])
+      .then(([comments, notes]) => {
+        if (!cancelled) {
+          setLessonComments(comments);
+          setLessonNotes(notes);
+        }
       })
       .catch(() => {
-        if (!cancelled) setLessonComments([]);
+        if (!cancelled) {
+          setLessonComments([]);
+          setLessonNotes([]);
+        }
       });
 
     return () => {
@@ -207,10 +223,50 @@ export default function LessonPlayer() {
 
   function handleVideoProgress(event) {
     const video = event.currentTarget;
+    setCurrentTime(Math.floor(video.currentTime || 0));
     if (!video.duration || Number.isNaN(video.duration)) return;
     if (video.currentTime / video.duration >= 0.9) {
       autoSaveCompleted();
     }
+  }
+
+  async function handleSubmitNote(event) {
+    event.preventDefault();
+    setNoteMessage("");
+
+    const content = noteContent.trim();
+    if (!content) {
+      setNoteMessage("Vui lòng nhập nội dung ghi chú.");
+      return;
+    }
+    if (!lesson?._id) {
+      setNoteMessage("Chưa tải được bài học hiện tại.");
+      return;
+    }
+
+    setSavingNote(true);
+    try {
+      const created = await createLessonNoteAPI(lesson._id, { content, timestamp: currentTime });
+      setLessonNotes((prev) => [...prev, created].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0)));
+      setNoteContent("");
+      setNoteMessage("Đã lưu ghi chú.");
+    } catch (error) {
+      const detail = error.response?.data?.detail;
+      setNoteMessage(detail || "Không lưu được ghi chú. Vui lòng thử lại.");
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  function handleSeek(timestamp) {
+    if (!videoRef.current) return;
+    videoRef.current.currentTime = Number(timestamp || 0);
+    videoRef.current.play?.();
+  }
+
+  async function handleDeleteNote(noteId) {
+    await deleteLessonNoteAPI(noteId);
+    setLessonNotes((prev) => prev.filter((item) => item._id !== noteId));
   }
 
   async function handleSubmitComment(event) {
@@ -279,6 +335,7 @@ export default function LessonPlayer() {
             <div className="aspect-video bg-black flex items-center justify-center">
               {videoUrl ? (
                 <video
+                  ref={videoRef}
                   src={videoUrl}
                   controls
                   className="w-full h-full"
@@ -312,6 +369,7 @@ export default function LessonPlayer() {
             <div className="flex gap-1 border-b border-gray-100 mt-6">
               {[
                 ["content", "Nội dung"],
+                ["notes", "Ghi chú"],
                 ["resources", "Tài liệu"],
                 ["qa", "Hỏi đáp"],
               ].map(([id, label]) => (
@@ -323,9 +381,67 @@ export default function LessonPlayer() {
 
             <div className="mt-6">
               {activeTab === "content" && (
-                <p className={`${muted} leading-7 text-sm`}>
-                      Nội dung bài học được lấy từ cơ sở dữ liệu. Video được phát từ đường dẫn Cloudinary của bài học hiện tại.
-                </p>
+                <div className="space-y-5">
+                  <p className={`${muted} whitespace-pre-line text-sm leading-7`}>
+                    {lesson?.content || "Nội dung bài học được lấy từ cơ sở dữ liệu. Video được phát từ đường dẫn Cloudinary của bài học hiện tại."}
+                  </p>
+                  {(lesson?.quiz || []).length > 0 && (
+                    <div className="rounded-lg border border-gray-100 p-4">
+                      <h3 className="text-sm font-semibold text-gray-900">Quiz thực hành</h3>
+                      <div className="mt-3 space-y-4">
+                        {lesson.quiz.map((item, index) => (
+                          <div key={index} className="rounded-lg bg-gray-50 p-4">
+                            <p className="text-sm font-medium text-gray-900">{index + 1}. {item.question}</p>
+                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                              {(item.options || []).map((option) => (
+                                <span key={option} className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">{option}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "notes" && (
+                <div className="space-y-4">
+                  <form onSubmit={handleSubmitNote} className="rounded-lg border border-gray-100 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <label htmlFor="lesson-note" className="text-sm font-semibold text-gray-900">Ghi chú tại {formatDuration(currentTime)}</label>
+                      <button type="button" onClick={() => setCurrentTime(Math.floor(videoRef.current?.currentTime || currentTime))} className="text-sm font-semibold text-primary">Lấy mốc hiện tại</button>
+                    </div>
+                    <textarea
+                      id="lesson-note"
+                      value={noteContent}
+                      onChange={(event) => setNoteContent(event.target.value)}
+                      rows={4}
+                      className="mt-3 w-full resize-none rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-primary"
+                      placeholder="Ghi lại ý chính, lỗi cần sửa hoặc bài tập cần làm tại mốc này..."
+                      disabled={savingNote}
+                    />
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className={`text-sm ${noteMessage === "Đã lưu ghi chú." ? "text-success" : muted}`}>{noteMessage || "Ghi chú được lưu theo tài khoản của bạn."}</p>
+                      <button type="submit" disabled={savingNote || !noteContent.trim()} className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+                        {savingNote ? "Đang lưu..." : "Lưu ghi chú"}
+                      </button>
+                    </div>
+                  </form>
+
+                  {lessonNotes.length === 0 && <p className={`text-sm ${muted}`}>Chưa có ghi chú nào cho bài học này.</p>}
+                  {lessonNotes.map((note) => (
+                    <div key={note._id} className="flex gap-3 rounded-lg border border-gray-100 p-4">
+                      <button onClick={() => handleSeek(note.timestamp)} className="h-9 shrink-0 rounded-lg bg-primary-light px-3 text-sm font-semibold text-primary">
+                        {formatDuration(note.timestamp)}
+                      </button>
+                      <p className={`min-w-0 flex-1 whitespace-pre-line text-sm leading-6 ${muted}`}>{note.content}</p>
+                      <button onClick={() => handleDeleteNote(note._id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600" title="Xóa ghi chú">
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
 
               {activeTab === "resources" && (

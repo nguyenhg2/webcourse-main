@@ -22,7 +22,7 @@ def _can_view_unpublished(course: dict, user: dict | None) -> bool:
 
 def _course_list_query(user: dict | None, review_status: Optional[str] = None, manage: bool = False) -> dict:
     if review_status:
-        if not user or user.get("role") not in {"admin", "operator"}:
+        if not user or user.get("role") != "operator":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không đủ quyền thực hiện")
         if review_status == "all":
             return {}
@@ -68,6 +68,11 @@ def _cloudinary_folder_for_course(payload: dict) -> str:
     slug = re.sub(r"[^a-z0-9-]+", "-", slug)
     slug = re.sub(r"-+", "-", slug).strip("-") or "course"
     return f"codecamp/courses/{slug}"
+
+def _remove_computed_course_fields(payload: dict) -> dict:
+    payload.pop("rating", None)
+    payload.pop("total_students", None)
+    return payload
 
 
 @router.get("/api/courses", response_model=List[CourseResponse])
@@ -147,7 +152,7 @@ async def create_course(
     db=Depends(get_db),
     user=Depends(require_role("admin", "instructor")),
 ):
-    new_course = payload.model_dump()
+    new_course = _remove_computed_course_fields(payload.model_dump())
     if not new_course.get("cloudinary_folder"):
         new_course["cloudinary_folder"] = _cloudinary_folder_for_course(new_course)
     if user.get("role") == "instructor":
@@ -167,7 +172,7 @@ async def update_course(
 ):
     existing = await db["courses"].find_one({"_id": ObjectId(course_id)})
     _ensure_course_owner(existing, user)
-    update_data = payload.model_dump(exclude_unset=True)
+    update_data = _remove_computed_course_fields(payload.model_dump(exclude_unset=True))
     if user.get("role") == "instructor":
         update_data["instructor_id"] = user["_id"]
     update_data = _normalize_course_status(update_data, user, existing)
@@ -193,7 +198,7 @@ async def review_course(
     course_id: str,
     payload: dict,
     db=Depends(get_db),
-    user=Depends(require_role("operator", "admin")),
+    user=Depends(require_role("operator")),
 ):
     if not ObjectId.is_valid(course_id):
         raise HTTPException(status_code=400, detail="course_id không hợp lệ")

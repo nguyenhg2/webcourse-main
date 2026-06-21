@@ -123,6 +123,8 @@ async def login(payload: LoginRequest, db=Depends(get_db)):
     user=await db.users.find_one({"email": payload.email})
     if not user:
         raise HTTPException(status_code=400, detail="Email hoặc mật khẩu không đúng")
+    if user.get("is_active") is False:
+        raise HTTPException(status_code=403, detail="Tài khoản đã bị khóa")
     if not verify_password(payload.password, user["hashed_password"]):
         raise HTTPException(status_code=400, detail="Email hoặc mật khẩu không đúng")
     

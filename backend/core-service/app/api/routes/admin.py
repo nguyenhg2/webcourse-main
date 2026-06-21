@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.config import settings
 from app.core.deps import get_current_user, require_role
 from app.db.mongo import get_db, oid, serialize_doc
-from app.models.admin import UserRoleUpdate
+from app.models.admin import UserRoleUpdate, UserStatusUpdate
 
 router = APIRouter()
 
@@ -222,6 +222,7 @@ async def dashboard(db=Depends(get_db), user=Depends(get_current_user)):
                 "orders": len(payments),
                 "completedOrders": len(completed_payments),
                 "pendingOrders": len([payment for payment in payments if payment.get("status") == "pending"]),
+                "openComplaints": await db["complaints"].count_documents({"status": {"$in": ["open", "pending"]}}),
             },
             "items": items,
         }
@@ -283,6 +284,27 @@ async def update_user_role(
         {"$set": {"role": payload.role.value}},
     )
 
+    updated_user = await db["users"].find_one({"_id": oid(user_id)})
+    return _sanitize_user(updated_user)
+
+
+@router.put("/api/admin/users/{user_id}/status")
+async def update_user_status(
+    user_id: str,
+    payload: UserStatusUpdate,
+    db=Depends(get_db),
+    user=Depends(require_role("admin")),
+):
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="user_id không hợp lệ")
+
+    target_user = await db["users"].find_one({"_id": oid(user_id)})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+    if target_user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Không được khóa tài khoản quản trị viên")
+
+    await db["users"].update_one({"_id": oid(user_id)}, {"$set": {"is_active": payload.is_active}})
     updated_user = await db["users"].find_one({"_id": oid(user_id)})
     return _sanitize_user(updated_user)
 

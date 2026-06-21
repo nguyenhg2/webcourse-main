@@ -25,6 +25,27 @@ async def get_course_reviews(course_id: str, db=Depends(get_db)):
     return serialize_docs(reviews)
 
 
+@router.get("/api/reviews")
+async def get_public_reviews(db=Depends(get_db)):
+    reviews = await db["reviews"].find({}).sort("created_at", -1).to_list(length=6)
+    items = []
+    for review in reviews:
+        item = serialize_doc(review)
+        user = None
+        if ObjectId.is_valid(str(item.get("user_id", ""))):
+            user = await db["users"].find_one({"_id": oid(item["user_id"])})
+        course = None
+        if ObjectId.is_valid(str(item.get("course_id", ""))):
+            course = await db["courses"].find_one({"_id": oid(item["course_id"])})
+        item["user"] = serialize_doc(user) if user else None
+        if item["user"]:
+            item["user"].pop("hashed_password", None)
+            item["user"].pop("passwordHash", None)
+        item["course"] = serialize_doc(course) if course else None
+        items.append(item)
+    return items
+
+
 @router.post("/api/reviews")
 async def create_review(
     payload: ReviewCreate,

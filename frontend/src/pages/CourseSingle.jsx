@@ -13,9 +13,8 @@ import {
   FiStar,
 } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
-import CommentForm from "../components/ui/CommentForm";
 import CommentList from "../components/ui/CommentList";
-import { addCartAPI, getCourseBySlugAPI, getCourseReviewsAPI, getMyCoursesAPI } from "../services/api";
+import { addCartAPI, createReviewAPI, getCourseBySlugAPI, getCourseReviewsAPI, getMyCoursesAPI, getSiteContentSectionAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 const LEVEL_MAP = {
@@ -23,21 +22,6 @@ const LEVEL_MAP = {
   intermediate: "Trung cấp",
   advanced: "Nâng cao",
 };
-
-const FAQS = [
-  {
-    q: "Khóa học này phù hợp với ai?",
-    a: "Khóa học phù hợp với người mới bắt đầu lập trình web hoặc những ai muốn nâng cao kỹ năng.",
-  },
-  {
-    q: "Tôi cần kiến thức gì trước khi học?",
-    a: "Bạn cần có kiến thức cơ bản về HTML, CSS và JavaScript.",
-  },
-  {
-    q: "Khóa học có cập nhật không?",
-    a: "Có, khóa học được cập nhật thường xuyên để theo kịp các phiên bản mới nhất.",
-  },
-];
 
 function formatDuration(seconds) {
   if (!seconds) return "";
@@ -68,9 +52,18 @@ export default function CourseSingle() {
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSections, setExpandedSections] = useState({});
   const [expandedFaqs, setExpandedFaqs] = useState({});
+  const [courseFaqs, setCourseFaqs] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
   const [cartMessage, setCartMessage] = useState("");
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+  const [reviewMessage, setReviewMessage] = useState("");
+  useEffect(() => {
+    getSiteContentSectionAPI("course_faqs")
+      .then((data) => setCourseFaqs(Array.isArray(data?.items) ? data.items : []))
+      .catch(() => setCourseFaqs([]));
+  }, []);
+
   useEffect(() => {
     getCourseBySlugAPI(slug)
       .then((data) => {
@@ -126,6 +119,33 @@ export default function CourseSingle() {
         return;
       }
       setCartMessage(err.response?.data?.detail || "Không thêm được khóa học vào giỏ hàng.");
+    }
+  }
+
+  async function submitReview(event) {
+    event.preventDefault();
+    setReviewMessage("");
+
+    if (!user) {
+      setReviewMessage("Vui lòng đăng nhập để đánh giá khóa học.");
+      return;
+    }
+    if (!hasCourseAccess) {
+      setReviewMessage("Bạn cần mua khóa học trước khi đánh giá.");
+      return;
+    }
+
+    try {
+      const created = await createReviewAPI({
+        course_id: course._id,
+        rating: Number(reviewForm.rating),
+        comment: reviewForm.comment.trim(),
+      });
+      setReviews((items) => [created, ...items]);
+      setReviewForm({ rating: 5, comment: "" });
+      setReviewMessage("Đã lưu đánh giá vào cơ sở dữ liệu.");
+    } catch (err) {
+      setReviewMessage(err.response?.data?.detail || "Không gửi được đánh giá.");
     }
   }
 
@@ -319,16 +339,16 @@ export default function CourseSingle() {
               {activeTab === "instructor" && (
                 <div className="flex items-start gap-6">
                   <img
-                    src="https://placehold.co/120/564FFD/fff?text=GV"
-                    alt="Giảng viên"
+                    src={course.instructor?.avatar || "https://placehold.co/120/564FFD/fff?text=GV"}
+                    alt={course.instructor?.name || "Giảng viên"}
                     className="w-28 h-28 rounded-xl object-cover"
                   />
                   <div>
                     <h3 className="text-xl font-semibold text-secondary">
-                      Đinh Thành Nguyên
+                      {course.instructor?.name || "Giảng viên chưa cập nhật"}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      Senior Frontend Developer
+                      {course.instructor?.title || course.instructor?.role || "Chưa cập nhật vai trò"}
                     </p>
                     <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
@@ -339,9 +359,7 @@ export default function CourseSingle() {
                       </span>
                     </div>
                     <p className="text-gray-600 mt-4 leading-7">
-                      Hơn 10 năm kinh nghiệm phát triển phần mềm, chuyên gia
-                      về kiến trúc frontend. Từng làm việc tại các công ty công
-                      nghệ hàng đầu Việt Nam.
+                      {course.instructor?.bio || "Chưa cập nhật thông tin giảng viên."}
                     </p>
                   </div>
                 </div>
@@ -349,7 +367,8 @@ export default function CourseSingle() {
 
               {activeTab === "faqs" && (
                 <div className="flex flex-col gap-4">
-                  {FAQS.map((faq, i) => (
+                  {courseFaqs.length === 0 && <p className="text-sm text-gray-500">Chưa có FAQ khóa học trong cơ sở dữ liệu.</p>}
+                  {courseFaqs.map((faq, i) => (
                     <div
                       key={i}
                       className="border border-gray-100 rounded-xl overflow-hidden"
@@ -409,7 +428,19 @@ export default function CourseSingle() {
                     </div>
                   </div>
                   <CommentList comments={reviews} />
-                  <CommentForm />
+                  <form onSubmit={submitReview} className="rounded-xl border border-gray-100 p-5">
+                    <h3 className="text-lg font-semibold text-secondary">Đánh giá khóa học</h3>
+                    <div className="mt-4 grid gap-4 md:grid-cols-[160px_1fr]">
+                      <select value={reviewForm.rating} onChange={(e) => setReviewForm({ ...reviewForm, rating: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-primary">
+                        {[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} sao</option>)}
+                      </select>
+                      <textarea value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} rows={4} required placeholder="Nhận xét sau khi học khóa này" className="rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-primary" />
+                    </div>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className={`text-sm ${reviewMessage.includes("Đã lưu") ? "text-success" : "text-gray-500"}`}>{reviewMessage || "Chỉ học viên đã mua khóa học mới có thể đánh giá."}</p>
+                      <button type="submit" className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white">Gửi đánh giá</button>
+                    </div>
+                  </form>
                 </div>
               )}
             </div>
