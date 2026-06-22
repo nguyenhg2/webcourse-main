@@ -60,7 +60,7 @@ function RequireDashboardRole({ roles, children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-[240px] flex items-center justify-center text-gray-500">Đang tải...</div>;
+    return <PageLoader />;
   }
 
   if (!user) {
@@ -78,7 +78,7 @@ function RequireRole({ roles, children, fallback = "/" }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-[240px] flex items-center justify-center text-gray-500">Đang tải...</div>;
+    return <PageLoader />;
   }
 
   if (!user) {
@@ -96,7 +96,7 @@ function PaymentsRoute() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-[240px] flex items-center justify-center text-gray-500">Đang tải...</div>;
+    return <PageLoader />;
   }
 
   if (!user) {
