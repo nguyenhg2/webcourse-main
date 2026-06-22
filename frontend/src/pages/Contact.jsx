@@ -41,7 +41,6 @@ export default function Contact() {
       <div className="max-w-322.5 mx-auto px-5 py-10">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-heading font-bold text-secondary">Liên hệ với chúng tôi</h1>
-          <p className="text-gray-600 mt-3 max-w-xl mx-auto">Thông tin liên hệ được lấy từ MongoDB.</p>
         </div>
 
         {items.length > 0 && (
