@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+from bson.binary import Binary
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from pymongo.errors import DuplicateKeyError
 from app.core.deps import get_current_user
 from app.db.mongo import get_db, oid
 from app.models.progress import ProgressUpdate
@@ -13,8 +15,7 @@ def _pdf_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
 
-def _build_certificate_pdf(student_name: str, course_title: str) -> bytes:
-    issued_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+def _build_certificate_pdf(student_name: str, course_title: str, issued_at: str) -> bytes:
     lines = [
         "CERTIFICATE OF COMPLETION",
         f"This certifies that {student_name}",
@@ -61,6 +62,48 @@ def _build_certificate_pdf(student_name: str, course_title: str) -> bytes:
         ).encode("ascii")
     )
     return bytes(pdf)
+
+
+async def _ensure_certificate(db, user: dict, progress: dict) -> dict:
+    course_id = progress["course_id"]
+    existing = await db["certificates"].find_one(
+        {"user_id": user["_id"], "course_id": course_id}
+    )
+    if existing:
+        return existing
+
+    issued_at = datetime.now(timezone.utc).isoformat()
+    issued_date = issued_at[:10]
+    student_name = user.get("name") or "Học viên"
+    course_title = progress["course"].get("title") or "Khóa học"
+    filename = f"certificate-{course_id}.pdf"
+    pdf = _build_certificate_pdf(
+        student_name=student_name,
+        course_title=course_title,
+        issued_at=issued_date,
+    )
+    certificate = {
+        "user_id": user["_id"],
+        "course_id": course_id,
+        "student_name": student_name,
+        "course_title": course_title,
+        "issued_at": issued_at,
+        "filename": filename,
+        "content_type": "application/pdf",
+        "pdf": Binary(pdf),
+    }
+
+    try:
+        result = await db["certificates"].insert_one(certificate)
+        certificate["_id"] = result.inserted_id
+        return certificate
+    except DuplicateKeyError:
+        existing = await db["certificates"].find_one(
+            {"user_id": user["_id"], "course_id": course_id}
+        )
+        if existing:
+            return existing
+        raise
 
 
 async def _get_course_progress(db, user_id: str, course_id: str):
@@ -154,7 +197,19 @@ async def save_progress(
         {"$set": doc},
         upsert=True,
     )
-    return doc
+
+    result = dict(doc)
+    if payload.completed:
+        progress = await _get_course_progress(db, user["_id"], payload.course_id)
+        if progress["isCompleted"]:
+            certificate = await _ensure_certificate(db, user, progress)
+            result["certificate"] = {
+                "course_id": certificate["course_id"],
+                "filename": certificate["filename"],
+                "issued_at": certificate["issued_at"],
+                "ready": True,
+            }
+    return result
 
 
 @router.get("/api/progress/{course_id}")
@@ -170,13 +225,11 @@ async def download_certificate(course_id: str, db=Depends(get_db), user=Depends(
     if not progress["isCompleted"]:
         raise HTTPException(status_code=403, detail="Cần hoàn thành 100% khóa học để tải chứng chỉ")
 
-    pdf = _build_certificate_pdf(
-        student_name=user.get("name") or "Học viên",
-        course_title=progress["course"].get("title") or "Khóa học",
-    )
-    filename = f"certificate-{course_id}.pdf"
+    certificate = await _ensure_certificate(db, user, progress)
+    pdf = bytes(certificate["pdf"])
+    filename = certificate.get("filename") or f"certificate-{course_id}.pdf"
     return Response(
         content=pdf,
-        media_type="application/pdf",
+        media_type=certificate.get("content_type") or "application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

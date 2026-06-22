@@ -7,10 +7,10 @@ from fastapi import APIRouter, HTTPException, Request, Response
 router = APIRouter()
 
 SERVICES = {
-    "core": os.getenv("CORE_SERVICE_URL", "http://core:8001"),
-    "payment": os.getenv("PAYMENT_SERVICE_URL", "http://payment:8002"),
-    "media": os.getenv("MEDIA_SERVICE_URL", "http://media:8004"),
-    "blog": os.getenv("BLOG_SERVICE_URL", "http://blog:8003"),
+    "core": os.getenv("CORE_SERVICE_URL", "http://localhost:8001"),
+    "payment": os.getenv("PAYMENT_SERVICE_URL", "http://localhost:8002"),
+    "media": os.getenv("MEDIA_SERVICE_URL", "http://localhost:8004"),
+    "blog": os.getenv("BLOG_SERVICE_URL", "http://localhost:8003"),
 }
 
 client = httpx.AsyncClient(timeout=float(os.getenv("PROXY_TIMEOUT_SECONDS", "60")))

@@ -17,15 +17,6 @@ const STATUS_LABELS = {
 };
 
 const ROLE_META = {
-  student: {
-    title: "Không gian học tập cá nhân",
-    desc: "Theo dõi khóa học đang học, tiến độ bài học, chứng chỉ và các thao tác học tập quan trọng.",
-    actions: [
-      { label: "Tiếp tục học", to: "/khoa-hoc-cua-toi" },
-      { label: "Xem lộ trình", to: "/lo-trinh" },
-      { label: "Giỏ hàng", to: "/gio-hang" },
-    ],
-  },
   admin: {
     title: "Báo cáo điều hành CodeCamp",
     desc: "Theo dõi doanh thu, người dùng, khóa học và các hoạt động quản trị quan trọng.",
@@ -111,7 +102,7 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!["admin", "operator", "instructor", "student"].includes(role)) {
+    if (!["admin", "operator", "instructor"].includes(role)) {
       setLoading(false);
       return;
     }
@@ -183,14 +174,6 @@ export default function DashboardOverview() {
         ["Tổng giao dịch", statValue(stats.orders), <FiBookOpen size={20} />, "bg-blue-50 text-blue-600"],
         ["Hoàn tất", statValue(stats.completedOrders), <FiCheckCircle size={20} />, "bg-violet-50 text-violet-600"],
         ["Cần xử lý", statValue(stats.openComplaints ?? stats.pendingOrders), <FiClock size={20} />, "bg-orange-50 text-orange-600"],
-      ];
-    }
-    if (role === "student") {
-      return [
-        ["Khóa đang học", statValue(stats.courses), <FiBookOpen size={20} />, "bg-violet-50 text-violet-600"],
-        ["Đã hoàn thành", statValue(stats.completed), <FiCheckCircle size={20} />, "bg-emerald-50 text-emerald-600"],
-        ["Tiến độ trung bình", `${statValue(stats.progress)}%`, <FiTrendingUp size={20} />, "bg-blue-50 text-blue-600"],
-        ["Bài đã học", statValue(stats.lessons), <FiClock size={20} />, "bg-orange-50 text-orange-600"],
       ];
     }
     return [
@@ -275,7 +258,7 @@ export default function DashboardOverview() {
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="font-semibold text-gray-900">
-              {role === "operator" ? "Giao dịch cần theo dõi" : role === "student" ? "Khóa học đang học" : "Khóa học cần theo dõi"}
+              {role === "operator" ? "Giao dịch cần theo dõi" : "Khóa học cần theo dõi"}
             </h2>
             <FiTrendingUp className="text-primary" size={18} />
           </div>

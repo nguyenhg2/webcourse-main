@@ -196,8 +196,8 @@ export default function LessonPlayer() {
 
     setSavingProgress(true);
     try {
-      await saveProgressAPI({ lesson_id: lesson._id, course_id: lesson.course_id, completed: true });
-      setMessage("Đã lưu tiến độ vào cơ sở dữ liệu");
+      const result = await saveProgressAPI({ lesson_id: lesson._id, course_id: lesson.course_id, completed: true });
+      setMessage(result.certificate?.ready ? "Đã hoàn thành khóa học và tạo chứng chỉ PDF." : "Đã lưu tiến độ vào cơ sở dữ liệu");
     } catch (error) {
       const status = error.response?.status;
       const detail = error.response?.data?.detail;

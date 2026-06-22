@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/core";
-const PAYMENT_API_BASE = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:8000/payment";
-const MEDIA_API_BASE = import.meta.env.VITE_MEDIA_API_URL || "http://localhost:8000/media";
-const BLOG_API_BASE = import.meta.env.VITE_BLOG_API_URL || "http://localhost:8000/blog";
+const API_BASE = "http://localhost:8000/core";
+const PAYMENT_API_BASE = "http://localhost:8000/payment";
+const MEDIA_API_BASE = "http://localhost:8000/media";
+const BLOG_API_BASE = "http://localhost:8000/blog";
 
 function createClient(baseURL) {
   const client = axios.create({ baseURL });
@@ -287,10 +287,6 @@ export function syncPaymentAPI(paymentId) {
   return post(api, `/api/checkout/payments/${paymentId}/sync`, {});
 }
 
-export function getAllPaymentsAPI() {
-  return get(paymentApi, "/api/payments");
-}
-
 export function getPaymentHistoryAPI() {
   return get(paymentApi, "/api/payments/history");
 }
@@ -358,10 +354,6 @@ export function updateAdminUserStatusAPI(userId, isActive) {
 
 export function getAdminOrdersAPI() {
   return get(api, "/api/admin/orders");
-}
-
-export function getAdminRevenueAPI() {
-  return get(api, "/api/admin/revenue");
 }
 
 export function getComplaintsAPI(params) {
