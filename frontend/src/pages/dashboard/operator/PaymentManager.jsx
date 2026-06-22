@@ -12,8 +12,33 @@ const STATUS_LABELS = {
   failed: "Thất bại",
 };
 
+const FILTERS = ["all", "completed", "pending"];
+
 function statusLabel(status) {
   return STATUS_LABELS[status] || status || "Không rõ";
+}
+
+function paymentAmount(payment) {
+  const amount = Number(payment.amount || 0);
+  const discount = Number(payment.coupon_discount || 0);
+  return Number(payment.final_amount ?? amount - discount);
+}
+
+function courseNames(payment) {
+  if (payment.courses?.length) {
+    return payment.courses.map((course) => course.title).join(", ");
+  }
+  return `${payment.course_ids?.length || 0} khóa`;
+}
+
+function cardText(payment) {
+  if (!payment.card_brand) return "Chưa xác nhận";
+  return payment.card_last4 ? `${payment.card_brand} ****${payment.card_last4}` : payment.card_brand;
+}
+
+function buyerName(payment, user, canSeeAll) {
+  if (!canSeeAll) return user?.name || user?.email;
+  return payment.user?.name || payment.user?.email || payment.user_id;
 }
 
 export default function PaymentManager() {
@@ -22,9 +47,13 @@ export default function PaymentManager() {
   const [status, setStatus] = useState("all");
   const canSeeAll = user?.role === "admin" || user?.role === "operator";
 
-  function load() {
-    const request = canSeeAll ? getAdminOrdersAPI() : getPaymentHistoryAPI();
-    request.then((data) => setPayments(Array.isArray(data) ? data : data.payments || [])).catch(() => setPayments([]));
+  async function load() {
+    try {
+      const data = canSeeAll ? await getAdminOrdersAPI() : await getPaymentHistoryAPI();
+      setPayments(Array.isArray(data) ? data : data.payments || []);
+    } catch {
+      setPayments([]);
+    }
   }
 
   useEffect(() => {
@@ -36,7 +65,10 @@ export default function PaymentManager() {
     return payments.filter((payment) => payment.status === status);
   }, [payments, status]);
 
-  const total = payments.filter((payment) => payment.status === "completed").reduce((sum, payment) => sum + Number(payment.final_amount ?? (Number(payment.amount || 0) - Number(payment.coupon_discount || 0))), 0);
+  const completedRevenue = payments
+    .filter((payment) => payment.status === "completed")
+    .reduce((sum, payment) => sum + paymentAmount(payment), 0);
+  const pendingCount = payments.filter((payment) => payment.status === "pending").length;
 
   return (
     <div className="space-y-6">
@@ -53,7 +85,7 @@ export default function PaymentManager() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border border-gray-100 rounded-lg p-5">
           <p className="text-sm text-gray-500">Doanh thu hoàn tất</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{currency(total)}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-2">{currency(completedRevenue)}</p>
         </div>
         <div className="bg-white border border-gray-100 rounded-lg p-5">
           <p className="text-sm text-gray-500">Tổng giao dịch</p>
@@ -61,12 +93,12 @@ export default function PaymentManager() {
         </div>
         <div className="bg-white border border-gray-100 rounded-lg p-5">
           <p className="text-sm text-gray-500">Đang chờ</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{payments.filter((payment) => payment.status === "pending").length}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-2">{pendingCount}</p>
         </div>
       </div>
 
       <div className="bg-white border border-gray-100 rounded-lg p-4 flex flex-wrap gap-2">
-        {["all", "completed", "pending"].map((item) => (
+        {FILTERS.map((item) => (
           <button key={item} onClick={() => setStatus(item)} className={`px-4 py-2 rounded-lg text-sm font-medium ${status === item ? "bg-primary text-white" : "bg-gray-50 text-gray-600"}`}>
             {statusLabel(item)}
           </button>
@@ -92,18 +124,14 @@ export default function PaymentManager() {
                 <td className="p-4 font-medium text-gray-900">{payment.id}</td>
                 <td className="p-4">
                   <div>
-                    <p className="font-medium text-gray-900">{canSeeAll ? payment.user?.name || payment.user?.email || payment.user_id : user?.name || user?.email}</p>
+                    <p className="font-medium text-gray-900">{buyerName(payment, user, canSeeAll)}</p>
                     {canSeeAll && payment.user?.email && <p className="text-xs text-gray-500 mt-1">{payment.user.email}</p>}
                   </div>
                 </td>
-                <td className="p-4">
-                  {payment.courses?.length
-                    ? payment.courses.map((course) => course.title).join(", ")
-                    : `${payment.course_ids?.length || 0} khóa`}
-                </td>
-                <td className="p-4">{currency(payment.final_amount ?? (Number(payment.amount || 0) - Number(payment.coupon_discount || 0)))}</td>
+                <td className="p-4">{courseNames(payment)}</td>
+                <td className="p-4">{currency(paymentAmount(payment))}</td>
                 <td className="p-4">{payment.coupon_code || "-"}</td>
-                <td className="p-4">{payment.card_brand ? `${payment.card_brand} ${payment.card_last4 ? "****" + payment.card_last4 : ""}` : "Chưa xác nhận"}</td>
+                <td className="p-4">{cardText(payment)}</td>
                 <td className="p-4">
                   <span className={`px-2 py-1 rounded-full text-xs ${payment.status === "completed" ? "bg-success-light text-success" : "bg-orange-50 text-orange-600"}`}>
                     {statusLabel(payment.status)}

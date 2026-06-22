@@ -30,7 +30,7 @@ class JwtAuthMiddleware
 
         $role = $decoded->role ?? '';
 
-        if ($requiredRole === 'admin' && !in_array($role, ['admin', 'operator', 'instructor'], true)) {
+        if ($requiredRole !== '' && $role !== $requiredRole) {
             return response()->json(['error' => 'Không đủ quyền thực hiện'], 403);
         }
 
