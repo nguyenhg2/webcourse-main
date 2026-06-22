@@ -68,9 +68,11 @@ export default function Header() {
                   <Link to="/khoa-hoc-cua-toi" onClick={() => setDropdownOpen(false)} className={`${user.role === "student" ? "flex" : "hidden"} items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50`}>
                     <FiBookOpen size={16} /> Khóa học của tôi
                   </Link>
-                  <Link to="/dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50">
-                    <FiBookOpen size={16} /> Bảng điều khiển
-                  </Link>
+                  {user.role !== "student" && (
+                    <Link to="/dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50">
+                      <FiBookOpen size={16} /> Bảng điều khiển
+                    </Link>
+                  )}
                   <hr className="my-1 border-gray-100" />
                   <button onClick={() => { logout(); setDropdownOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-error hover:bg-gray-50 w-full text-left">
                     <FiLogOut size={16} /> Đăng xuất
@@ -110,7 +112,7 @@ export default function Header() {
             <>
               <Link to="/trang-ca-nhan" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Trang cá nhân</Link>
               {user.role === "student" && <Link to="/khoa-hoc-cua-toi" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Khóa học của tôi</Link>}
-              <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Bảng điều khiển</Link>
+              {user.role !== "student" && <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-secondary py-2">Bảng điều khiển</Link>}
               <button onClick={() => { logout(); setMobileOpen(false); }} className="text-sm text-error py-2 text-left">Đăng xuất</button>
             </>
           ) : (

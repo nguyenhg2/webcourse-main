@@ -18,7 +18,6 @@ export default function FAQ() {
       <div className="max-w-3xl mx-auto px-5 py-10">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-heading font-bold text-secondary">Câu hỏi thường gặp</h1>
-          <p className="text-gray-600 mt-3">Dữ liệu được quản lý trong MongoDB.</p>
         </div>
 
         {groups.length === 0 && <p className="text-center text-gray-500">Chưa có FAQ trong cơ sở dữ liệu.</p>}
