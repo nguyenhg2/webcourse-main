@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { FiArrowLeft, FiArrowRight, FiBookOpen, FiClock, FiLayers, FiUsers } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { getRoadmapAPI } from "../services/api";
+import { courseImage } from "../utils/courseImages";
 
 const levelText = {
   beginner: "Người mới",
@@ -10,15 +11,8 @@ const levelText = {
   advanced: "Nâng cao",
 };
 
-const fallbackImages = [
-  "/images/react.png",
-  "/images/nodejs.png",
-  "/images/python.png",
-  "/images/docker.png",
-];
-
-function imageFor(item, index) {
-  return item.thumbnail || fallbackImages[index % fallbackImages.length];
+function imageFor(item) {
+  return courseImage(item);
 }
 
 function priceText(course) {

@@ -4,6 +4,7 @@ import { FiUser, FiCalendar } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import BlogSidebar from "../components/blog/BlogSidebar";
 import { getBlogBySlugAPI } from "../services/api";
+import { blogImage } from "../utils/courseImages";
 
 export default function BlogSingle() {
   const { slug } = useParams();
@@ -28,7 +29,7 @@ export default function BlogSingle() {
               <span className="flex items-center gap-2"><FiUser size={14} /> {post.author}</span>
               <span className="flex items-center gap-2"><FiCalendar size={14} /> {post.created_at}</span>
             </div>
-            <img src={post.image || post.thumbnail} alt={post.title} className="w-full rounded-xl mt-8" />
+            <img src={blogImage(post)} alt={post.title} className="w-full rounded-xl mt-8" />
             <div className="prose max-w-none mt-8 text-gray-600 leading-8">
               <p>{post.content}</p>
             </div>

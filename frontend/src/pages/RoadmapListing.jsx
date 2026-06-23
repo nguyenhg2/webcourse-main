@@ -3,16 +3,10 @@ import { Link } from "react-router-dom";
 import { FiArrowRight, FiBookOpen, FiMap, FiSearch } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { getRoadmapsAPI } from "../services/api";
+import { courseImage } from "../utils/courseImages";
 
-const fallbackImages = [
-  "/images/react.png",
-  "/images/nodejs.png",
-  "/images/python.png",
-  "/images/docker.png",
-];
-
-function roadmapImage(roadmap, index) {
-  return roadmap.thumbnail || fallbackImages[index % fallbackImages.length];
+function roadmapImage(roadmap) {
+  return courseImage(roadmap);
 }
 
 function courseCount(roadmap) {

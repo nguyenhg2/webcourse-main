@@ -582,9 +582,6 @@ export default function SiteContentManager() {
           <div>
             <p className="text-sm font-semibold text-primary">Quản trị nội dung hiển thị</p>
             <h1 className="mt-1 text-2xl font-bold text-gray-900">Cấu hình nội dung người dùng nhìn thấy</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-              Chọn khu vực giao diện, chỉnh nội dung bằng các ô nhập bên dưới rồi lưu để cập nhật website.
-            </p>
           </div>
           <button
             type="button"

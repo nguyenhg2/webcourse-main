@@ -311,6 +311,10 @@ export function uploadCourseImageAPI(file, folder) {
   return uploadMediaAPI("/api/images/upload", { image: file, folder });
 }
 
+export function uploadBlogImageAPI(file, folder) {
+  return uploadMediaAPI("/api/images/upload", { image: file, folder: folder || "blogs" });
+}
+
 export function uploadVideoAPI(file, folder) {
   if (!folder) {
     throw new Error("Vui lòng nhập thư mục Cloudinary");

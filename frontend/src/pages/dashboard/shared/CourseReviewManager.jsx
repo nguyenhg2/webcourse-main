@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiCheckCircle, FiDownload, FiExternalLink, FiLoader, FiPaperclip, FiPlayCircle, FiRefreshCw, FiUser, FiXCircle } from "react-icons/fi";
 import { getCourseBySlugAPI, getCoursesAPI, reviewCourseAPI } from "../../../services/api";
+import { courseImage } from "../../../utils/courseImages";
 
 const FILTERS = [
   { value: "all", label: "Tất cả" },
@@ -140,7 +141,6 @@ export default function CourseReviewManager() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Kiểm duyệt khóa học</h1>
-          <p className="mt-1 text-gray-500">Nhân viên vận hành kiểm tra nội dung giảng viên gửi trước khi xuất bản.</p>
         </div>
         <button
           type="button"
@@ -202,7 +202,7 @@ export default function CourseReviewManager() {
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             {selectedCourse ? (
               <div className="flex flex-col gap-5 xl:flex-row">
-                <img src={selectedCourse.thumbnail || "https://placehold.co/220x130?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={selectedCourse.title} className="h-36 w-full rounded-lg bg-gray-50 object-contain p-2 xl:w-56" />
+                <img src={courseImage(selectedCourse)} alt={selectedCourse.title} className="h-36 w-full rounded-lg bg-gray-50 object-contain p-2 xl:w-56" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
@@ -233,7 +233,6 @@ export default function CourseReviewManager() {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-900">Nội dung khóa học</h3>
-                  <p className="mt-1 text-xs text-gray-500">Kiểm tra cấu trúc bài học, video và tài liệu trước khi duyệt.</p>
                 </div>
                 {loadingDetail && <span className="inline-flex items-center gap-2 text-sm text-gray-500"><FiLoader className="animate-spin" /> Đang tải</span>}
               </div>

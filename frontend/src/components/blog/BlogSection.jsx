@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCalendar, FiArrowRight } from "react-icons/fi";
 import { getBlogsAPI } from "../../services/api";
+import { blogImage } from "../../utils/courseImages";
 
 export default function BlogSection() {
   const [posts, setPosts] = useState([]);
@@ -25,7 +26,7 @@ export default function BlogSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {posts.map((post) => (
             <div key={post._id} className="rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-              <img src={post.image || post.thumbnail} alt={post.title} className="w-full h-52 object-cover" />
+              <img src={blogImage(post)} alt={post.title} className="w-full h-52 object-cover" />
               <div className="p-6 flex flex-col gap-3">
                 <span className="text-xs font-medium text-primary bg-primary-light px-3 py-1 rounded-full self-start">Blog</span>
                 <h3 className="text-lg font-semibold text-secondary hover:text-primary transition-colors">

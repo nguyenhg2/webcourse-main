@@ -221,7 +221,6 @@ export default function RoadmapManager() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý lộ trình</h1>
-          <p className="mt-1 text-gray-500">Quản trị viên tạo lộ trình học và sắp xếp các khóa học theo mục tiêu học tập.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
@@ -346,7 +345,6 @@ export default function RoadmapManager() {
             <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">{modal.mode === "create" ? "Tạo lộ trình" : "Sửa lộ trình"}</h2>
-                <p className="mt-1 text-sm text-gray-500">Chọn thông tin hiển thị và danh sách khóa học theo đúng thứ tự học.</p>
               </div>
               <button type="button" onClick={closeModal} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Đóng">
                 <FiX size={18} />
@@ -426,7 +424,6 @@ export default function RoadmapManager() {
                 <div className="sticky top-0 space-y-4 bg-white">
                   <div>
                     <h3 className="font-semibold text-gray-900">Chọn khóa học</h3>
-                    <p className="mt-1 text-sm text-gray-500">Danh sách lấy từ dữ liệu khóa học quản trị.</p>
                   </div>
                   <div className="relative">
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />

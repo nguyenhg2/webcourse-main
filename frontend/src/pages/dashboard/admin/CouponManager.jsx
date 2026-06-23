@@ -139,7 +139,6 @@ export default function CouponManager() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mã giảm giá</h1>
-          <p className="text-gray-500 mt-1">Tạo mã giảm giá, kiểm tra hiệu lực và bật tắt trạng thái sử dụng.</p>
         </div>
         <button
           type="button"

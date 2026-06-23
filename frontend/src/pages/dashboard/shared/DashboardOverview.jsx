@@ -19,7 +19,6 @@ const STATUS_LABELS = {
 const ROLE_META = {
   admin: {
     title: "Báo cáo điều hành CodeCamp",
-    desc: "Theo dõi doanh thu, người dùng, khóa học và các hoạt động quản trị quan trọng.",
     actions: [
       { label: "Quản lý người dùng", to: "/dashboard/users" },
       { label: "Xem đơn hàng", to: "/dashboard/payments" },
@@ -28,7 +27,6 @@ const ROLE_META = {
   },
   operator: {
     title: "Không gian vận hành",
-    desc: "Kiểm duyệt nội dung, đối soát giao dịch và xử lý phản hồi để khóa học được xuất bản đúng chất lượng.",
     actions: [
       { label: "Kiểm duyệt khóa học", to: "/dashboard/course-reviews" },
       { label: "Hỗ trợ thanh toán", to: "/dashboard/payments" },
@@ -37,7 +35,6 @@ const ROLE_META = {
   },
   instructor: {
     title: "Trung tâm giảng viên",
-    desc: "Quản lý chương trình học, học liệu, học viên và trạng thái kiểm duyệt của khóa học.",
     actions: [
       { label: "Tạo khóa học", to: "/dashboard/courses#create-course" },
       { label: "Quản lý bài học", to: "/dashboard/courses" },
@@ -188,7 +185,6 @@ export default function DashboardOverview() {
           <div className="max-w-3xl">
             <p className="text-sm font-semibold text-primary">Xin chào, {user?.name}</p>
             <h1 className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">{meta.title}</h1>
-            <p className="mt-2 text-sm leading-6 text-gray-500">{meta.desc}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {meta.actions.map((action) => (

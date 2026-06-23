@@ -16,6 +16,7 @@ import Breadcrumb from "../components/layout/Breadcrumb";
 import CommentList from "../components/ui/CommentList";
 import { addCartAPI, createReviewAPI, getCourseBySlugAPI, getCourseReviewsAPI, getMyCoursesAPI, getSiteContentSectionAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { courseImage } from "../utils/courseImages";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -449,7 +450,7 @@ export default function CourseSingle() {
           <div className="w-full lg:w-80 shrink-0">
             <div className="sticky top-28 border border-gray-100 rounded-xl p-6 flex flex-col gap-5">
               <img
-                src={course.thumbnail || "https://placehold.co/320x180"}
+                src={courseImage(course)}
                 alt={course.title}
                 className="aspect-video w-full rounded-lg bg-gray-50 object-contain p-2"
               />
@@ -472,7 +473,7 @@ export default function CourseSingle() {
                 <>
               <Link
                 to={user ? "/thanh-toan" : "/dang-nhap"}
-                state={{ courseId: course._id, title: course.title, price: course.price, thumbnail: course.thumbnail }}
+                state={{ courseId: course._id, title: course.title, price: course.price, thumbnail: courseImage(course) }}
                 className="w-full py-3 bg-primary text-white font-semibold rounded-lg text-center hover:bg-orange-600 transition-colors"
               >
                 Bắt đầu ngay

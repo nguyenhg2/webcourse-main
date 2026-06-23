@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FiClock, FiShoppingCart, FiUsers } from "react-icons/fi";
+import { courseImage } from "../../utils/courseImages";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -17,7 +18,7 @@ export default function CourseGridCard({ course, isOwned = false, isInCart = fal
   return (
     <div className="rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
       <img
-        src={course.thumbnail || "https://placehold.co/600x400"}
+        src={courseImage(course)}
         alt={course.title}
         className="w-full h-48 bg-gray-50 object-contain p-2"
       />

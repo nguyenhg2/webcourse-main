@@ -75,7 +75,6 @@ export default function PaymentManager() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{canSeeAll ? "Hỗ trợ thanh toán" : "Thanh toán của tôi"}</h1>
-          <p className="text-gray-500 mt-1">{canSeeAll ? "Theo dõi và đối soát giao dịch từ Payment Service." : "Lịch sử giao dịch của tài khoản hiện tại."}</p>
         </div>
         <button onClick={load} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-primary hover:text-primary">
           <FiRefreshCw size={16} /> Làm mới

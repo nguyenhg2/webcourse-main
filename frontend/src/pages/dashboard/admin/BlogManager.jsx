@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { getAdminBlogsAPI, createBlogAPI, updateBlogAPI, deleteBlogAPI } from "../../../services/api";
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiCheck } from "react-icons/fi";
+import { getAdminBlogsAPI, createBlogAPI, updateBlogAPI, deleteBlogAPI, uploadBlogImageAPI } from "../../../services/api";
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiCheck, FiUploadCloud, FiLoader } from "react-icons/fi";
+import { blogImage } from "../../../utils/courseImages";
 
 const EMPTY = { title: "", slug: "", excerpt: "", content: "", image: "", author: "", is_published: false };
 
@@ -10,6 +11,7 @@ export default function BlogManager() {
   const [modal, setModal] = useState(null); // null | { mode: "create"|"edit", data }
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchBlogs();
@@ -60,12 +62,38 @@ export default function BlogManager() {
     fetchBlogs();
   }
 
+  function imageFolder() {
+    const base = form.slug || form.title || "blog";
+    const slug = base
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return `blogs/${slug || "blog"}`;
+  }
+
+  async function handleImageUpload(file) {
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const upload = await uploadBlogImageAPI(file, imageFolder());
+      const imageUrl = upload.image_url || upload.url;
+      if (!imageUrl) throw new Error("Cloudinary khÃ´ng tráº£ vá» URL áº£nh");
+      setForm((current) => ({ ...current, image: imageUrl }));
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.detail || err.message || "Táº£i áº£nh lÃªn tháº¥t báº¡i");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý bài viết</h1>
-          <p className="text-gray-500 mt-1">Đăng và chỉnh sửa bài viết.</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-semibold text-sm">
           <FiPlus /> Thêm bài viết
@@ -150,6 +178,29 @@ export default function BlogManager() {
                   />
                 </div>
               ))}
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">áº¢nh bÃ¬a</label>
+                <div className="aspect-video overflow-hidden rounded-lg bg-white">
+                  <img src={blogImage(form)} alt={form.title || "áº¢nh bÃ¬a bÃ i viáº¿t"} className="h-full w-full object-cover" />
+                </div>
+                <div className="mt-3">
+                  <label className={`inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white ${uploadingImage ? "cursor-wait opacity-70" : "cursor-pointer hover:bg-orange-600"}`}>
+                    {uploadingImage ? <FiLoader className="animate-spin" /> : <FiUploadCloud size={16} />}
+                    {uploadingImage ? "Äang táº£i áº£nh..." : "Chá»n áº£nh tá»« mÃ¡y"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={uploadingImage}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        handleImageUpload(file);
+                        event.target.value = "";
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tóm tắt *</label>
                 <textarea

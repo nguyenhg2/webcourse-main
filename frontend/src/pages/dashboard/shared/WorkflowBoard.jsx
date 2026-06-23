@@ -83,7 +83,6 @@ export default function WorkflowBoard() {
           <div>
             <p className="text-sm font-semibold text-primary">Vận hành</p>
             <h1 className="mt-2 text-2xl font-bold text-gray-900">Giải quyết khiếu nại</h1>
-            <p className="mt-2 text-sm leading-6 text-gray-500">Theo dõi phản hồi từ người học, đối chiếu thanh toán và cập nhật kết quả xử lý.</p>
           </div>
           <button onClick={loadComplaints} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary">
             <FiRefreshCw size={16} />
@@ -134,7 +133,6 @@ export default function WorkflowBoard() {
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">#{item._id.slice(-6)}</p>
                   <h2 className="mt-2 text-lg font-semibold text-gray-900">{item.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-gray-500">{item.description}</p>
                 </div>
                 <span className="shrink-0 rounded-lg bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{STATUS_LABELS[item.status] || item.status}</span>
               </div>

@@ -106,7 +106,6 @@ export default function UserManager() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
-          <p className="text-gray-500 mt-1">Quản trị tài khoản và phân quyền.</p>
         </div>
         <input
           value={search}

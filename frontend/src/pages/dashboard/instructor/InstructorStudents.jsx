@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FiBookOpen, FiRefreshCw, FiSearch, FiStar, FiUsers } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
 import { getCoursesAPI } from "../../../services/api";
+import { courseImage } from "../../../utils/courseImages";
 
 const LEVEL_LABELS = {
   beginner: "Cơ bản",
@@ -64,7 +65,6 @@ export default function InstructorStudents() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Học viên theo khóa</h1>
-          <p className="mt-1 text-gray-500">Theo dõi lượng học viên, trạng thái xuất bản và đánh giá của từng khóa bạn phụ trách.</p>
         </div>
         <button
           type="button"
@@ -129,7 +129,7 @@ export default function InstructorStudents() {
               <tr key={course._id} className="hover:bg-gray-50">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
-                    <img src={course.thumbnail || "https://placehold.co/80x52?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={course.title} className="h-12 w-16 rounded-lg bg-gray-50 object-contain p-1" />
+                    <img src={courseImage(course)} alt={course.title} className="h-12 w-16 rounded-lg bg-gray-50 object-contain p-1" />
                     <div>
                       <p className="font-semibold text-gray-900">{course.title}</p>
                       <p className="mt-1 text-xs text-gray-500">/{course.slug}</p>

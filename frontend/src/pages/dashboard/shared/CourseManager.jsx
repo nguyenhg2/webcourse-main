@@ -47,6 +47,7 @@ import {
   shortUrl,
   slugify,
 } from "./courseManagerUtils";
+import { courseImage } from "../../../utils/courseImages";
 
 function CourseCoverField({ value, uploading, onUrlChange, onFileChange }) {
   return (
@@ -716,7 +717,6 @@ export default function CourseManager() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý khóa học</h1>
-          <p className="text-gray-500 mt-1">Tạo khóa học, quản lý curriculum, tải video/PDF và đính kèm mã nguồn hoặc tệp thực hành dưới từng bài học.</p>
         </div>
 
         <button
@@ -740,7 +740,6 @@ export default function CourseManager() {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-gray-900">Thêm khóa học</h2>
-            <p className="mt-1 text-xs text-gray-500">Khóa học mới của giảng viên sẽ ở trạng thái nháp. Sau khi thêm đủ phần và bài học mới gửi duyệt.</p>
           </div>
           <button disabled={savingCourse || !canManage} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60">
             {savingCourse ? <FiLoader className="animate-spin" /> : <FiPlus size={16} />}
@@ -807,7 +806,7 @@ export default function CourseManager() {
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             {selectedCourse ? (
               <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
-              <img src={selectedCourse.thumbnail || "https://placehold.co/160x96?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={selectedCourse.title} className="h-32 w-full rounded-lg bg-gray-50 object-contain p-2 xl:h-24 xl:w-40" />
+              <img src={courseImage(selectedCourse)} alt={selectedCourse.title} className="h-32 w-full rounded-lg bg-gray-50 object-contain p-2 xl:h-24 xl:w-40" />
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-500">{selectedCourse.description}</p>
@@ -868,7 +867,6 @@ export default function CourseManager() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="font-semibold text-gray-900">Sửa khóa học</h3>
-                  <p className="mt-1 text-xs text-gray-500">Cập nhật thông tin khóa học đang chọn.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -924,7 +922,6 @@ export default function CourseManager() {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-900">Thêm phần</h3>
-                  <p className="mt-1 text-xs text-gray-500">Phần là nhóm bài học trong khóa học đang chọn.</p>
                 </div>
                 <button disabled={savingSection} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60">
                   {savingSection ? <FiLoader className="animate-spin" /> : <FiPlus size={16} />}
@@ -942,7 +939,6 @@ export default function CourseManager() {
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <div>
                 <p className="font-semibold text-gray-900">Phần, bài học và học liệu</p>
-                <p className="mt-1 text-xs text-gray-500">Thêm bài học trong từng phần, tải video bài giảng và đính kèm PDF, mã nguồn hoặc tệp thực hành.</p>
               </div>
               {loadingDetail && <span className="inline-flex items-center gap-2 text-sm text-gray-500"><FiLoader className="animate-spin" /> Đang tải</span>}
             </div>

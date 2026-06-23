@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { FiCalendar } from "react-icons/fi";
+import { blogImage } from "../../utils/courseImages";
 
 export default function BlogListCard({ post, isActive }) {
   return (
     <div className={`w-full rounded-2xl border border-gray-100 flex flex-col md:flex-row overflow-hidden ${isActive ? "bg-gray-50 shadow-[0px_4px_20px_0px_rgba(0,0,0,0.1)]" : ""}`}>
-      <img src={post.image} alt={post.title} className="w-full md:w-[410px] h-64 object-cover shrink-0" />
+      <img src={blogImage(post)} alt={post.title} className="w-full md:w-[410px] h-64 object-cover shrink-0" />
       <div className="flex-1 px-7 py-5 flex flex-col gap-4">
         <Link
           to={`/blog/${post.slug}`}

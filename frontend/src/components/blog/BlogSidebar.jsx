@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getBlogsAPI, getCategoriesAPI } from "../../services/api";
+import { blogImage } from "../../utils/courseImages";
 
 export default function BlogSidebar() {
   const [categories, setCategories] = useState([]);
@@ -32,7 +33,7 @@ export default function BlogSidebar() {
         <div className="flex flex-col gap-4">
           {posts.map((post) => (
             <Link key={post._id} to={`/blog/${post.slug}`} className="flex gap-4 items-start">
-              <img src={post.image || post.thumbnail} alt={post.title} className="size-24 rounded-xl object-cover shrink-0" />
+              <img src={blogImage(post)} alt={post.title} className="size-24 rounded-xl object-cover shrink-0" />
               <span className="text-base font-medium leading-6 text-secondary hover:text-primary transition-colors">
                 {post.title}
               </span>

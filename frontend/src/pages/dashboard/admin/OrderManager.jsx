@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getAdminOrdersAPI } from "../../../services/api";
 import { FiSearch } from "react-icons/fi";
+import { courseImage } from "../../../utils/courseImages";
 
 const STATUS_COLORS = {
   completed: "bg-green-100 text-green-700",
@@ -51,9 +52,6 @@ export default function OrderManager() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý đơn hàng</h1>
-          <p className="text-gray-500 mt-1">
-            {orders.length} đơn hàng — Doanh thu: <span className="text-emerald-600 font-semibold">{fmt(totalRevenue)}đ</span>
-          </p>
         </div>
         <div className="relative">
           <FiSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -158,7 +156,7 @@ export default function OrderManager() {
                   <div className="space-y-2">
                     {selected.courses.map((c) => (
                       <div key={c._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        {c.thumbnail && <img src={c.thumbnail} className="h-10 w-10 rounded bg-gray-50 object-contain p-1" alt="" />}
+                        <img src={courseImage(c)} className="h-10 w-10 rounded bg-gray-50 object-contain p-1" alt="" />
                         <div>
                           <p className="text-sm font-medium text-gray-900">{c.title}</p>
                           <p className="text-xs text-gray-500">{fmt(c.price)}đ</p>

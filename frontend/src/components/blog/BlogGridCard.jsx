@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { FiCalendar } from "react-icons/fi";
+import { blogImage } from "../../utils/courseImages";
 
 export default function BlogGridCard({ post, isActive }) {
   return (
     <div className={`rounded-xl border border-gray-100 overflow-hidden ${isActive ? "shadow-md" : ""}`}>
-      <img src={post.image} alt={post.title} className="w-full h-52 object-cover" />
+      <img src={blogImage(post)} alt={post.title} className="w-full h-52 object-cover" />
       <div className="p-6 flex flex-col gap-3">
         <Link
           to={`/blog/${post.slug}`}

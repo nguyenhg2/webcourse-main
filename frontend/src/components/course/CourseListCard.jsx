@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FiClock, FiUsers, FiBarChart, FiBookOpen, FiShoppingCart } from "react-icons/fi";
+import { courseImage } from "../../utils/courseImages";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -17,7 +18,7 @@ export default function CourseListCard({ course, isOwned = false, isInCart = fal
   return (
     <div className="w-full rounded-xl border border-gray-100 flex flex-col md:flex-row overflow-hidden hover:shadow-md transition-shadow">
       <img
-        src={course.thumbnail || "https://placehold.co/600x400"}
+        src={courseImage(course)}
         alt={course.title}
         className="w-full h-56 shrink-0 bg-gray-50 object-contain p-2 md:w-[300px]"
       />

@@ -20,16 +20,12 @@ export default function ContactManager() {
     if (selected?._id === id) setSelected(updated);
   }
 
-  const unread = contacts.filter((c) => !c.is_read).length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý liên hệ</h1>
-          <p className="text-gray-500 mt-1">
-            {unread > 0 ? <span className="text-primary font-medium">{unread} tin chưa đọc</span> : "Tất cả đã đọc"}
-          </p>
         </div>
       </div>
 
