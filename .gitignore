@@ -1,4 +1,3 @@
-```
 # Dependencies
 node_modules/
 
@@ -63,10 +62,5 @@ target/
 *.ear
 
 # Browsers
-*.swp
 *~
-.DS_Store
-Thumbs.db
-
-```
 .claude/
