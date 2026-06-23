@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 import uvicorn
+from redis.asyncio import Redis
 from .api.routes import auth, courses, categories, sections, lessons, enrollment, roadmaps, reviews, progress, cart, admin, checkout, complaints, site_content
+from .core.config import settings
 from .db.mongo import ensure_indexes
 from .subscribers.payment_subscriber import start_payment_success_listener, stop_payment_success_listener
 
 app = FastAPI(title="CodeCamp Core Service")
+logger = logging.getLogger(__name__)
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,9 +34,33 @@ app.include_router(checkout.router)
 app.include_router(complaints.router)
 app.include_router(site_content.router)
 
+
+@app.get("/health")
+async def health():
+    return {"service": "core", "status": "ok"}
+
+
+async def _ensure_indexes_without_blocking_startup():
+    redis = None
+    try:
+        if settings.redis_url:
+            redis = Redis.from_url(settings.redis_url, decode_responses=True)
+            lock_acquired = await redis.set("core:startup:ensure-indexes", "1", nx=True, ex=300)
+            if not lock_acquired:
+                logger.info("Skipping index bootstrap because another worker holds the lock")
+                return
+
+        await ensure_indexes()
+    except Exception as exc:
+        logger.warning("Cannot ensure Mongo indexes during startup: %s", exc)
+    finally:
+        if redis:
+            await redis.close()
+
+
 @app.on_event("startup")
 async def startup_event():
-    await ensure_indexes()
+    await _ensure_indexes_without_blocking_startup()
     await start_payment_success_listener()
 
 

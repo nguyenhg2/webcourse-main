@@ -58,6 +58,8 @@ export default function LessonPlayer() {
   const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
   const [ownershipLoaded, setOwnershipLoaded] = useState(false);
   const videoRef = useRef(null);
+  const playbackRefreshRef = useRef(false);
+  const playbackRefreshTimerRef = useRef(null);
   const savedLessonsRef = useRef(new Set());
 
   useEffect(() => {
@@ -159,6 +161,28 @@ export default function LessonPlayer() {
     };
   }, [lesson?._id, user]);
 
+  useEffect(() => {
+    if (playbackRefreshTimerRef.current) {
+      window.clearTimeout(playbackRefreshTimerRef.current);
+      playbackRefreshTimerRef.current = null;
+    }
+
+    const expiresAt = Number(lesson?.signed_url_expires_at || 0) * 1000;
+    if (!lesson?._id || !expiresAt || !Number.isFinite(expiresAt)) return undefined;
+
+    const refreshDelay = Math.max(expiresAt - Date.now() - 90_000, 15_000);
+    playbackRefreshTimerRef.current = window.setTimeout(() => {
+      refreshLessonPlayback();
+    }, refreshDelay);
+
+    return () => {
+      if (playbackRefreshTimerRef.current) {
+        window.clearTimeout(playbackRefreshTimerRef.current);
+        playbackRefreshTimerRef.current = null;
+      }
+    };
+  }, [lesson?._id, lesson?.signed_url_expires_at]);
+
   const lessons = useMemo(() => (course?.sections || []).flatMap((section) => section.lessons || []), [course]);
   const currentLessonSection = useMemo(
     () => (course?.sections || []).find((section) => (section.lessons || []).some((item) => item._id === lessonId)),
@@ -219,6 +243,35 @@ export default function LessonPlayer() {
     if (!lesson?._id || savedLessonsRef.current.has(lesson._id)) return;
     savedLessonsRef.current.add(lesson._id);
     markCompleted();
+  }
+
+  async function refreshLessonPlayback({ silent = true } = {}) {
+    if (!lesson?._id || playbackRefreshRef.current) return;
+
+    playbackRefreshRef.current = true;
+    const previousTime = Math.floor(videoRef.current?.currentTime || 0);
+    const wasPaused = videoRef.current?.paused ?? true;
+
+    try {
+      const data = await getLessonAPI(lesson._id);
+      setLesson(data);
+      window.setTimeout(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        if (previousTime > 0 && Math.abs((video.currentTime || 0) - previousTime) > 2) {
+          video.currentTime = previousTime;
+        }
+        if (!wasPaused) {
+          video.play?.().catch(() => {});
+        }
+      }, 0);
+    } catch (error) {
+      if (!silent) {
+        setMessage(error.response?.data?.detail || "Khong gia han duoc URL phat video. Vui long thu lai.");
+      }
+    } finally {
+      playbackRefreshRef.current = false;
+    }
   }
 
   function handleVideoProgress(event) {
@@ -341,6 +394,7 @@ export default function LessonPlayer() {
                   className="w-full h-full"
                   onTimeUpdate={handleVideoProgress}
                   onEnded={autoSaveCompleted}
+                  onError={() => refreshLessonPlayback({ silent: false })}
                 />
               ) : (
                 <p className="text-white text-sm">{message || "Đang tải video..."}</p>

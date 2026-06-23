@@ -14,7 +14,15 @@ import (
 	"media-service/internal/config"
 )
 
-var cloudinaryClient = &http.Client{Timeout: 30 * time.Second}
+var cloudinaryClient = &http.Client{
+	Timeout: 30 * time.Second,
+	Transport: &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 100,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+	},
+}
 
 func uploadBody(cfg *config.Config, file multipart.File, fileName string, folder string, deliveryType string) (*bytes.Buffer, string, error) {
 	body := &bytes.Buffer{}
@@ -55,7 +63,7 @@ func uploadBody(cfg *config.Config, file multipart.File, fileName string, folder
 
 func ensureCloudinaryConfig(cfg *config.Config) error {
 	if cfg.CloudinaryCloud == "" || cfg.CloudinaryKey == "" || cfg.CloudinarySecret == "" {
-        return apiError{Status: http.StatusInternalServerError, Message: "Thiếu cấu hình Cloudinary"}
+		return apiError{Status: http.StatusInternalServerError, Message: "Thiếu cấu hình Cloudinary"}
 	}
 	return nil
 }

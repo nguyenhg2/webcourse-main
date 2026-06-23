@@ -14,7 +14,14 @@ class Settings(BaseSettings):
     cloudinary_cloud_name: str | None = Field(default=None, alias="CLOUDINARY_CLOUD_NAME")
     cloudinary_api_key: str | None = Field(default=None, alias="CLOUDINARY_API_KEY")
     cloudinary_api_secret: str | None = Field(default=None, alias="CLOUDINARY_API_SECRET")
+    cloudinary_auth_token_key: str | None = Field(default=None, alias="CLOUDINARY_AUTH_TOKEN_KEY")
     cloudinary_signed_url_ttl_seconds: int = Field(default=600, alias="CLOUDINARY_SIGNED_URL_TTL_SECONDS")
+    cloudinary_signed_url_cache_grace_seconds: int = Field(
+        default=60, alias="CLOUDINARY_SIGNED_URL_CACHE_GRACE_SECONDS"
+    )
+    allow_legacy_public_video_urls: bool = Field(
+        default=False, alias="ALLOW_LEGACY_PUBLIC_VIDEO_URLS"
+    )
     access_token_expire_minutes: int = Field(
         default=60 * 12, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
