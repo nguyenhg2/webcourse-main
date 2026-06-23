@@ -3,19 +3,25 @@ import { FiAward, FiClock, FiHeadphones, FiMonitor } from "react-icons/fi";
 import { getSiteContentSectionAPI } from "../../services/api";
 
 const ICONS = {
-  award: <FiAward size={32} />,
-  clock: <FiClock size={32} />,
-  headphones: <FiHeadphones size={32} />,
-  monitor: <FiMonitor size={32} />,
+  award: FiAward,
+  clock: FiClock,
+  headphones: FiHeadphones,
+  monitor: FiMonitor,
 };
 
 export default function Benefits() {
   const [content, setContent] = useState(null);
 
   useEffect(() => {
-    getSiteContentSectionAPI("benefits")
-      .then(setContent)
-      .catch(() => setContent(null));
+    async function loadBenefits() {
+      try {
+        setContent(await getSiteContentSectionAPI("benefits"));
+      } catch {
+        setContent(null);
+      }
+    }
+
+    loadBenefits();
   }, []);
 
   const items = Array.isArray(content?.items) ? content.items : [];
@@ -28,14 +34,22 @@ export default function Benefits() {
           <h2 className="text-3xl font-heading font-bold text-secondary">{content.title}</h2>
           {content.subtitle && <p className="text-gray-600 mt-3 max-w-xl mx-auto">{content.subtitle}</p>}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {items.map((item) => (
-            <div key={item.title} className="flex flex-col items-center text-center gap-4 p-8 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
-              <span className="text-primary">{ICONS[item.icon] || <FiMonitor size={32} />}</span>
-              <h3 className="text-lg font-semibold text-secondary">{item.title}</h3>
-              <p className="text-sm text-gray-600 leading-6">{item.desc}</p>
-            </div>
-          ))}
+
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((item) => {
+            const Icon = ICONS[item.icon] || FiMonitor;
+
+            return (
+              <div
+                key={item.title}
+                className="flex flex-col items-center gap-4 rounded-lg border border-gray-100 p-8 text-center transition-shadow hover:shadow-md"
+              >
+                <Icon size={32} className="text-primary" />
+                <h3 className="text-lg font-semibold text-secondary">{item.title}</h3>
+                <p className="text-sm leading-6 text-gray-600">{item.desc}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

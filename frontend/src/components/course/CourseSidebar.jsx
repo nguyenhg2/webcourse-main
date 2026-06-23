@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { FiStar } from "react-icons/fi";
 import { getCategoriesAPI } from "../../services/api";
+import RatingStars from "../ui/RatingStars";
 
 const LEVELS = [
   { name: "beginner", label: "Người mới" },
@@ -8,32 +8,34 @@ const LEVELS = [
   { name: "advanced", label: "Nâng cao" },
 ];
 
+const RATINGS = [5, 4, 3, 2, 1];
+
+function FilterCheckbox({ checked, label, onChange, children }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+      <input type="checkbox" checked={checked} onChange={onChange} className="accent-primary" />
+      {children || label}
+    </label>
+  );
+}
+
 function RatingFilter({ selectedRatings, onToggleRating }) {
   return (
     <div className="flex flex-col gap-4">
       <h4 className="font-heading text-secondary text-lg font-semibold">Đánh giá</h4>
+
       <div className="flex flex-col gap-2.5">
-        {[5, 4, 3, 2, 1].map((rating) => (
-          <label key={rating} className="flex items-center justify-between cursor-pointer">
+        {RATINGS.map((rating) => (
+          <FilterCheckbox
+            key={rating}
+            checked={selectedRatings.includes(rating)}
+            onChange={() => onToggleRating(rating)}
+          >
             <span className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedRatings.includes(rating)}
-                onChange={() => onToggleRating(rating)}
-                className="accent-primary"
-              />
-              <span className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <FiStar
-                    key={i}
-                    size={14}
-                    className={i < rating ? "text-warning fill-warning" : "text-gray-200"}
-                  />
-                ))}
-              </span>
+              <RatingStars value={rating} size={14} />
               <span className="text-xs text-gray-500">trở lên</span>
             </span>
-          </label>
+          </FilterCheckbox>
         ))}
       </div>
     </div>
@@ -52,7 +54,16 @@ export default function CourseSidebar({
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    getCategoriesAPI().then(setCategories).catch(() => setCategories([]));
+    async function loadCategories() {
+      try {
+        const data = await getCategoriesAPI();
+        setCategories(Array.isArray(data) ? data : []);
+      } catch {
+        setCategories([]);
+      }
+    }
+
+    loadCategories();
   }, []);
 
   return (
@@ -64,34 +75,30 @@ export default function CourseSidebar({
             Xóa lọc
           </button>
         </div>
+
         <div className="flex flex-col gap-2.5">
-          {categories.map((item) => (
-            <label key={item._id} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedCategories.includes(item._id)}
-                onChange={() => onToggleCategory(item._id)}
-                className="accent-primary"
-              />
-              {item.name}
-            </label>
+          {categories.map((category) => (
+            <FilterCheckbox
+              key={category._id}
+              label={category.name}
+              checked={selectedCategories.includes(category._id)}
+              onChange={() => onToggleCategory(category._id)}
+            />
           ))}
         </div>
       </div>
 
       <div className="flex flex-col gap-4">
         <h4 className="font-heading text-secondary text-lg font-semibold">Cấp độ</h4>
+
         <div className="flex flex-col gap-2.5">
-          {LEVELS.map((item) => (
-            <label key={item.name} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedLevels.includes(item.name)}
-                onChange={() => onToggleLevel(item.name)}
-                className="accent-primary"
-              />
-              {item.label}
-            </label>
+          {LEVELS.map((level) => (
+            <FilterCheckbox
+              key={level.name}
+              label={level.label}
+              checked={selectedLevels.includes(level.name)}
+              onChange={() => onToggleLevel(level.name)}
+            />
           ))}
         </div>
       </div>

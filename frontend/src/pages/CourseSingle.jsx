@@ -10,10 +10,10 @@ import {
   FiCheckCircle,
   FiChevronDown,
   FiChevronUp,
-  FiStar,
 } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import CommentList from "../components/ui/CommentList";
+import RatingStars from "../components/ui/RatingStars";
 import { addCartAPI, createReviewAPI, getCourseBySlugAPI, getCourseReviewsAPI, getMyCoursesAPI, getSiteContentSectionAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { courseImage } from "../utils/courseImages";
@@ -410,18 +410,8 @@ export default function CourseSingle() {
                       <span className="text-4xl font-heading font-bold text-secondary">
                         {ratingValue.toFixed(1)}
                       </span>
-                      <div className="flex gap-1 justify-center mt-2">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <FiStar
-                            key={i}
-                            size={16}
-                            className={
-                              i < Math.round(ratingValue)
-                                ? "text-warning fill-warning"
-                                : "text-gray-200"
-                            }
-                          />
-                        ))}
+                      <div className="flex justify-center mt-2">
+                        <RatingStars value={ratingValue} />
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
                          {reviewCount} đánh giá
@@ -520,7 +510,7 @@ export default function CourseSingle() {
                   <div className="flex justify-between">
                     <span>Đánh giá</span>
                     <span className="font-medium text-secondary flex items-center gap-1">
-                      <FiStar size={12} className="text-warning fill-warning" />
+                      <RatingStars value={1} size={12} max={1} />
                       {course.rating}
                     </span>
                   </div>
