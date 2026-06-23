@@ -1,11 +1,15 @@
 import time
 import logging
+import os
 from fastapi import Request, HTTPException
 import redis.asyncio as redis 
 
 class RateLimiter:
-    def __init__(self, host="localhost", port=6379, db=0):
-        self.redis = redis.Redis(host=host, port=port, db=db, decode_responses=True)
+    def __init__(self, url=None, host="localhost", port=6379, db=0):
+        if url:
+            self.redis = redis.from_url(url, decode_responses=True)
+        else:
+            self.redis = redis.Redis(host=host, port=port, db=db, decode_responses=True)
         self.limit = 100 
         self.window = 60 
 
@@ -32,4 +36,4 @@ class RateLimiter:
         except redis.ConnectionError:
             logging.error("Could not connect to Redis for Rate Limiting")
             return
-limiter = RateLimiter(host="localhost", port=6379)
+limiter = RateLimiter(url=os.getenv("REDIS_URL"), host=os.getenv("REDIS_HOST", "localhost"), port=int(os.getenv("REDIS_PORT", "6379")))
