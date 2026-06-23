@@ -36,7 +36,10 @@ def _course_list_query(user: dict | None, review_status: Optional[str] = None, m
     if user.get("role") in {"admin", "operator"}:
         return {}
     if user.get("role") == "instructor":
-        return {"$or": [{"status": "published"}, {"instructor_id": user["_id"]}]}
+        values = [user["_id"]]
+        if ObjectId.is_valid(user["_id"]):
+            values.append(ObjectId(user["_id"]))
+        return {"instructor_id": {"$in": values}}
     return {"status": "published"}
 
 

@@ -307,6 +307,10 @@ export function updateCouponStatusAPI(couponId, active) {
   return patch(paymentApi, `/api/coupons/${couponId}/active`, { active });
 }
 
+export function uploadCourseImageAPI(file, folder) {
+  return uploadMediaAPI("/api/images/upload", { image: file, folder });
+}
+
 export function uploadVideoAPI(file, folder) {
   if (!folder) {
     throw new Error("Vui lòng nhập thư mục Cloudinary");

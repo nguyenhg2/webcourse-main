@@ -28,6 +28,7 @@ import {
   updateLessonAPI,
   updateSectionAPI,
   uploadAttachmentAPI,
+  uploadCourseImageAPI,
   uploadLessonVideoAPI,
 } from "../../../services/api";
 import {
@@ -46,6 +47,46 @@ import {
   shortUrl,
   slugify,
 } from "./courseManagerUtils";
+
+function CourseCoverField({ value, uploading, onUrlChange, onFileChange }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div className="aspect-video overflow-hidden rounded-lg bg-white">
+        {value ? (
+          <img src={value} alt="Ảnh bìa khóa học" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
+            <FiUploadCloud size={28} />
+            <span className="text-sm font-medium">Chưa có ảnh bìa</span>
+          </div>
+        )}
+      </div>
+      <div className="mt-3 grid gap-2">
+        <label className={`inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white ${uploading ? "cursor-wait opacity-70" : "cursor-pointer hover:bg-orange-600"}`}>
+          {uploading ? <FiLoader className="animate-spin" /> : <FiUploadCloud size={16} />}
+          {uploading ? "Đang tải ảnh..." : "Chọn ảnh từ máy"}
+          <input
+            type="file"
+            accept="image/*"
+            disabled={uploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              onFileChange(file);
+              event.target.value = "";
+            }}
+            className="hidden"
+          />
+        </label>
+        <input
+          value={value}
+          onChange={(event) => onUrlChange(event.target.value)}
+          placeholder="Hoặc dán URL ảnh bìa"
+          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function CourseManager() {
   const { user } = useAuth();
@@ -75,6 +116,7 @@ export default function CourseManager() {
   const [uploadingLessonId, setUploadingLessonId] = useState("");
   const [deletingLessonVideoId, setDeletingLessonVideoId] = useState("");
   const [uploadingAttachmentKey, setUploadingAttachmentKey] = useState("");
+  const [uploadingCoverKey, setUploadingCoverKey] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
 
@@ -200,6 +242,44 @@ export default function CourseManager() {
       setMessage(err.response?.data?.detail || err.message || "Tạo khóa học thất bại.");
     } finally {
       setSavingCourse(false);
+    }
+  }
+
+  function folderForCourseForm(form) {
+    return form.cloudinary_folder?.trim() || courseFolderFromSlug(form.slug || form.title || "course");
+  }
+
+  async function uploadCoverImage(target, file) {
+    if (!file) return;
+
+    const form = target === "edit" ? editingCourseForm : courseForm;
+    const folder = folderForCourseForm(form);
+    setUploadingCoverKey(target);
+    setMessage("");
+
+    try {
+      const upload = await uploadCourseImageAPI(file, folder);
+      const imageUrl = upload.image_url || upload.url;
+      if (!imageUrl) throw new Error("Cloudinary không trả về URL ảnh");
+
+      const update = (current) => ({
+        ...current,
+        thumbnail: imageUrl,
+        cloudinary_folder: current.cloudinary_folder || folder,
+      });
+      if (target === "edit") {
+        setEditingCourseForm(update);
+      } else {
+        setCourseForm(update);
+      }
+
+      setMessageType("success");
+      setMessage(`Đã tải ảnh bìa "${upload.name || file.name}" lên.`);
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Tải ảnh bìa lên thất bại.");
+    } finally {
+      setUploadingCoverKey("");
     }
   }
 
@@ -669,6 +749,14 @@ export default function CourseManager() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-4">
+          <div className="lg:col-span-4">
+            <CourseCoverField
+              value={courseForm.thumbnail}
+              uploading={uploadingCoverKey === "create"}
+              onUrlChange={(value) => setCourseForm({ ...courseForm, thumbnail: value })}
+              onFileChange={(file) => uploadCoverImage("create", file)}
+            />
+          </div>
           <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value, slug: courseForm.slug || slugify(e.target.value) })} placeholder="Tên khóa học" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
           <input value={courseForm.slug} onChange={(e) => setCourseForm({ ...courseForm, slug: slugify(e.target.value) })} placeholder="slug" className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary" />
           <select value={courseForm.category_id} onChange={(e) => setCourseForm({ ...courseForm, category_id: e.target.value })} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-primary">
@@ -795,6 +883,15 @@ export default function CourseManager() {
                     Lưu khóa học
                   </button>
                 </div>
+              </div>
+
+              <div className="mb-4">
+                <CourseCoverField
+                  value={editingCourseForm.thumbnail}
+                  uploading={uploadingCoverKey === "edit"}
+                  onUrlChange={(value) => setEditingCourseForm({ ...editingCourseForm, thumbnail: value })}
+                  onFileChange={(file) => uploadCoverImage("edit", file)}
+                />
               </div>
 
               <div className="grid gap-4 lg:grid-cols-4">

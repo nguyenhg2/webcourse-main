@@ -13,9 +13,33 @@ import (
 )
 
 func RegisterRoutes(g *gin.RouterGroup, cfg *config.Config) {
+	g.POST("/images/upload", func(c *gin.Context) { uploadImage(c, cfg) })
 	g.POST("/videos/upload", func(c *gin.Context) { uploadVideo(c, cfg) })
 	g.DELETE("/videos/delete", func(c *gin.Context) { deleteVideo(c, cfg) })
 	g.POST("/files/upload", func(c *gin.Context) { uploadFile(c, cfg) })
+}
+
+func uploadImage(c *gin.Context, cfg *config.Config) {
+	folder := strings.Trim(strings.TrimSpace(c.PostForm("folder")), "/")
+	if folder == "" {
+		folder = "codecamp/course-covers"
+	}
+
+	data, fileName, err := upload(c, cfg, "image", "image", folder)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"image_url":    data.SecureURL,
+		"url":          data.SecureURL,
+		"public_id":    data.PublicID,
+		"asset_folder": folder,
+		"bytes":        data.Bytes,
+		"format":       data.Format,
+		"name":         fileName,
+	})
 }
 
 func uploadVideo(c *gin.Context, cfg *config.Config) {

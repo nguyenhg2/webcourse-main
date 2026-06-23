@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiArrowRight, FiBookOpen, FiCheckCircle, FiClock, FiDollarSign, FiStar, FiTrendingUp, FiUsers } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext";
-import { getAdminDashboardAPI, getAdminOrdersAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../../services/api";
+import { getAdminDashboardAPI, getCoursesAPI, getDashboardOverviewAPI } from "../../../services/api";
 
 const currency = (value) => Number(value || 0).toLocaleString("vi-VN") + "đ";
 
@@ -115,12 +115,9 @@ export default function DashboardOverview() {
           setStats(data || {});
           const topCourses = data?.topCourses || [];
           setItems(topCourses);
-
-          return getAdminOrdersAPI().then((orders) => {
-            const list = Array.isArray(orders) ? orders : [];
-            setRecentOrders(list.slice(0, 5));
-            if (!topCourses.length) setItems(buildTopPurchasedCourses(list));
-          });
+          const orders = Array.isArray(data?.recentOrders) ? data.recentOrders : [];
+          setRecentOrders(orders);
+          if (!topCourses.length) setItems(buildTopPurchasedCourses(orders));
         })
         .catch(() => {
           setStats({});
