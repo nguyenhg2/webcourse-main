@@ -2,20 +2,12 @@
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-
+from app.models.checkout import CheckoutRequest
 from app.core.config import settings
 from app.core.deps import require_role
 from app.db.mongo import get_db, oid
 
 router = APIRouter()
-
-
-class CheckoutRequest(BaseModel):
-    course_ids: list[str]
-    coupon_code: str | None = None
-    card_last4: str | None = None
-    card_brand: str | None = None
-    billing_address: dict | None = None
 
 
 @router.post("/api/checkout/pay")
