@@ -8,6 +8,9 @@ class Lesson(BaseModel):
     video_url: str
     video_public_id: Optional[str] = None
     video_asset_folder: Optional[str] = None
+    video_delivery_type: Optional[str] = None
+    video_format: Optional[str] = None
+    video_version: Optional[int] = None
     content: Optional[str] = None
     quiz: Optional[list] = None
     duration: int
@@ -20,6 +23,9 @@ class UpdateLesson(BaseModel):
     video_url: Optional[str] = None
     video_public_id: Optional[str] = None
     video_asset_folder: Optional[str] = None
+    video_delivery_type: Optional[str] = None
+    video_format: Optional[str] = None
+    video_version: Optional[int] = None
     content: Optional[str] = None
     quiz: Optional[list] = None
     duration: Optional[int] = None

@@ -87,6 +87,13 @@ def _remove_computed_course_fields(payload: dict) -> dict:
     return payload
 
 
+def _lesson_without_playback_url(lesson: dict) -> dict:
+    lesson["has_video"] = bool(lesson.get("video_public_id") or lesson.get("video_url"))
+    lesson.pop("signed_url", None)
+    lesson.pop("video_url", None)
+    return lesson
+
+
 @router.get("/api/courses", response_model=List[CourseResponse])
 async def get_courses(
     category_id: Optional[str] = None,
@@ -133,7 +140,7 @@ async def get_course_by_slug(slug: str, db=Depends(get_db), user=Depends(get_opt
 
     lessons_by_section = defaultdict(list)
     for lesson in serialize_docs(lessons):
-        lessons_by_section[lesson.get("section_id")].append(lesson)
+        lessons_by_section[lesson.get("section_id")].append(_lesson_without_playback_url(lesson))
 
     for section in sections:
         section["lessons"] = lessons_by_section[section["_id"]]

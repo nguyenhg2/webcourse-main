@@ -16,7 +16,7 @@ import (
 
 var cloudinaryClient = &http.Client{Timeout: 30 * time.Second}
 
-func uploadBody(cfg *config.Config, file multipart.File, fileName string, folder string) (*bytes.Buffer, string, error) {
+func uploadBody(cfg *config.Config, file multipart.File, fileName string, folder string, deliveryType string) (*bytes.Buffer, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -34,8 +34,12 @@ func uploadBody(cfg *config.Config, file multipart.File, fileName string, folder
 		"api_key":      cfg.CloudinaryKey,
 		"timestamp":    timestamp,
 		"asset_folder": folder,
-		"signature":    signCloudinary(signatureText, cfg.CloudinarySecret),
 	}
+	if deliveryType != "" {
+		fields["type"] = deliveryType
+		signatureText += "&type=" + deliveryType
+	}
+	fields["signature"] = signCloudinary(signatureText, cfg.CloudinarySecret)
 
 	for key, value := range fields {
 		if err := writer.WriteField(key, value); err != nil {

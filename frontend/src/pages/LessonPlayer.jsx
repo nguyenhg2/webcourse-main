@@ -167,7 +167,7 @@ export default function LessonPlayer() {
   const totalLessons = lessons.length;
   const activeIndex = Math.max(lessons.findIndex((item) => item._id === lessonId), 0);
   const progressPercent = totalLessons ? Math.round(((activeIndex + 1) / totalLessons) * 100) : 0;
-  const videoUrl = lesson?.video_url || lesson?.signed_url;
+  const videoUrl = lesson?.signed_url;
   const currentCourseId = course?._id || lesson?.course_id;
   const hasCourseAccess = Boolean(currentCourseId && ownedCourseIds.has(currentCourseId));
 
