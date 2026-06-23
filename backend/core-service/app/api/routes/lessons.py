@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from bson import ObjectId
-from app.models.lessons import Lesson, LessonCommentCreate, LessonNoteCreate, UpdateLesson
+from app.models.lesson_interactions import LessonCommentCreate, LessonNoteCreate
+from app.models.lessons import Lesson, UpdateLesson
 from app.db.mongo import get_db, oid, serialize_doc, serialize_docs
 from app.core.deps import get_current_user, get_optional_user, require_role
 from app.services.cloudinary_urls import signed_video_url

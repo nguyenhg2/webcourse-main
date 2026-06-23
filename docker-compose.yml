@@ -38,8 +38,10 @@ services:
       - PAYMENT_SERVICE_URL=http://payment:8002
       - MEDIA_SERVICE_URL=http://media:8004
       - BLOG_SERVICE_URL=http://blog:8003
+      - REDIS_URL=redis://redis:6379
     restart: unless-stopped
     depends_on:
+      - redis
       - core
       - payment
       - media
