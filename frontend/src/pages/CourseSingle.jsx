@@ -451,7 +451,7 @@ export default function CourseSingle() {
               <img
                 src={course.thumbnail || "https://placehold.co/320x180"}
                 alt={course.title}
-                className="w-full rounded-lg"
+                className="aspect-video w-full rounded-lg bg-gray-50 object-contain p-2"
               />
               {!hasCourseAccess && (
                 <div className="flex items-center gap-3">

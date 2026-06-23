@@ -20,7 +20,7 @@ export default function CourseCard({ course, isOwned = false, isInCart = false, 
         <img
           src={course.thumbnail || "https://placehold.co/600x400"}
           alt={course.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-48 bg-gray-50 object-contain p-2"
         />
         <span className="absolute top-3 left-3 text-xs font-semibold px-3 py-1 rounded-full bg-white text-secondary shadow">
           {isOwned ? "Đã mua" : priceText}

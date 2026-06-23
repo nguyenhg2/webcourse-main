@@ -44,7 +44,7 @@ function OrderSummary({ course }) {
         <div className="flex flex-col gap-4 mb-5">
           {lines.map((item) => (
             <div key={item._id} className="flex gap-4">
-              {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="w-24 h-16 rounded-lg object-cover" />}
+              {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-16 w-24 rounded-lg bg-gray-50 object-contain p-1" />}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-secondary leading-5">{item.title}</p>
                 <p className="text-sm text-gray-500 mt-1">{formatPrice(item.price)}</p>

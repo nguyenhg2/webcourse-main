@@ -88,7 +88,7 @@ export default function Cart() {
             <div className="flex flex-col gap-4">
               {items.map((item) => (
                 <div key={item._id} className="flex gap-4 border border-gray-100 rounded-lg p-4">
-                  <img src={item.thumbnail || "https://placehold.co/160x90"} alt={item.title} className="w-36 h-24 rounded-lg object-cover" />
+                  <img src={item.thumbnail || "https://placehold.co/160x90"} alt={item.title} className="h-24 w-36 rounded-lg bg-gray-50 object-contain p-1.5" />
                   <div className="flex-1">
                     <h2 className="font-semibold text-secondary">{item.title}</h2>
                     <p className="text-sm text-gray-500 mt-1">{item.level || "beginner"}</p>

@@ -129,7 +129,7 @@ export default function InstructorStudents() {
               <tr key={course._id} className="hover:bg-gray-50">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
-                    <img src={course.thumbnail || "https://placehold.co/80x52?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={course.title} className="h-12 w-16 rounded-lg object-cover" />
+                    <img src={course.thumbnail || "https://placehold.co/80x52?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={course.title} className="h-12 w-16 rounded-lg bg-gray-50 object-contain p-1" />
                     <div>
                       <p className="font-semibold text-gray-900">{course.title}</p>
                       <p className="mt-1 text-xs text-gray-500">/{course.slug}</p>

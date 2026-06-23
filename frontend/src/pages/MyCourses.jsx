@@ -57,7 +57,7 @@ export default function MyCourses() {
   function CourseCard({ course, done }) {
     return (
       <div className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-        <img src={course.thumbnail || "https://placehold.co/600x400"} alt={course.title} className="w-full h-44 object-cover" />
+        <img src={course.thumbnail || "https://placehold.co/600x400"} alt={course.title} className="h-44 w-full bg-gray-50 object-contain p-2" />
         <div className="p-5 flex flex-col gap-3">
           <Link to={`/khoa-hoc/${course.slug}`} className="text-base font-semibold text-secondary hover:text-primary transition-colors">
             {course.title}

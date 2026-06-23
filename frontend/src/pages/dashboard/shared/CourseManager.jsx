@@ -53,7 +53,7 @@ function CourseCoverField({ value, uploading, onUrlChange, onFileChange }) {
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
       <div className="aspect-video overflow-hidden rounded-lg bg-white">
         {value ? (
-          <img src={value} alt="Ảnh bìa khóa học" className="h-full w-full object-cover" />
+          <img src={value} alt="Ảnh bìa khóa học" className="h-full w-full object-contain p-2" />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
             <FiUploadCloud size={28} />
@@ -807,7 +807,7 @@ export default function CourseManager() {
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             {selectedCourse ? (
               <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
-              <img src={selectedCourse.thumbnail || "https://placehold.co/160x96?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={selectedCourse.title} className="h-32 w-full rounded-lg object-cover xl:h-24 xl:w-40" />
+              <img src={selectedCourse.thumbnail || "https://placehold.co/160x96?text=Kh%C3%B3a+h%E1%BB%8Dc"} alt={selectedCourse.title} className="h-32 w-full rounded-lg bg-gray-50 object-contain p-2 xl:h-24 xl:w-40" />
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-500">{selectedCourse.description}</p>

@@ -19,7 +19,7 @@ export default function CourseListCard({ course, isOwned = false, isInCart = fal
       <img
         src={course.thumbnail || "https://placehold.co/600x400"}
         alt={course.title}
-        className="w-full md:w-[300px] h-56 object-cover shrink-0"
+        className="w-full h-56 shrink-0 bg-gray-50 object-contain p-2 md:w-[300px]"
       />
       <div className="flex-1 p-6 flex flex-col gap-3">
         <span className="text-xs font-medium text-primary bg-primary-light px-3 py-1 rounded-full self-start">

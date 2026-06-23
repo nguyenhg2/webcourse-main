@@ -19,7 +19,7 @@ export default function CourseGridCard({ course, isOwned = false, isInCart = fal
       <img
         src={course.thumbnail || "https://placehold.co/600x400"}
         alt={course.title}
-        className="w-full h-48 object-cover"
+        className="w-full h-48 bg-gray-50 object-contain p-2"
       />
       <div className="p-5 flex flex-col gap-3">
         <span className="text-xs font-medium text-primary bg-primary-light px-3 py-1 rounded-full self-start">
