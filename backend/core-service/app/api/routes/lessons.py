@@ -5,8 +5,18 @@ from bson import ObjectId
 from app.models.lessons import Lesson, LessonCommentCreate, LessonNoteCreate, UpdateLesson
 from app.db.mongo import get_db, oid, serialize_doc, serialize_docs
 from app.core.deps import get_current_user, get_optional_user, require_role
+from app.services.cloudinary_urls import signed_video_url
 
 router = APIRouter()
+
+
+def _lesson_playback_response(lesson: dict) -> dict:
+    doc = serialize_doc(lesson)
+    signed_url = signed_video_url(lesson)
+    doc["has_video"] = bool(lesson.get("video_public_id") or lesson.get("video_url"))
+    doc["signed_url"] = signed_url
+    doc.pop("video_url", None)
+    return doc
 
 
 async def _ensure_can_manage_course(db, course_id: str, user: dict):
@@ -115,7 +125,7 @@ async def get_lesson_content(lesson_id: str, db=Depends(get_db), current_user=De
         raise HTTPException(status_code=404, detail="Không tìm thấy bài học")
 
     if lesson.get("is_free_preview"):
-        return serialize_doc(lesson)
+        return _lesson_playback_response(lesson)
 
     if not current_user:
         raise HTTPException(status_code=401, detail="Bạn cần đăng nhập để xem bài học này")
@@ -124,7 +134,7 @@ async def get_lesson_content(lesson_id: str, db=Depends(get_db), current_user=De
     if ObjectId.is_valid(str(lesson.get("course_id", ""))):
         course = await db["courses"].find_one({"_id": oid(lesson["course_id"])})
     if current_user.get("role") == "admin" or (course and course.get("instructor_id") == current_user["_id"]):
-        return serialize_doc(lesson)
+        return _lesson_playback_response(lesson)
 
     enrollment = await db["enrollments"].find_one({
         "user_id": current_user["_id"],
@@ -134,7 +144,7 @@ async def get_lesson_content(lesson_id: str, db=Depends(get_db), current_user=De
     if not enrollment:
         raise HTTPException(status_code=403, detail="Bạn cần mua khóa học này để xem nội dung")
 
-    return serialize_doc(lesson)
+    return _lesson_playback_response(lesson)
 
 
 @router.get("/api/lessons/{lesson_id}/comments")

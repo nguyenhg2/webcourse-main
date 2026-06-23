@@ -25,7 +25,7 @@ func uploadImage(c *gin.Context, cfg *config.Config) {
 		folder = "codecamp/course-covers"
 	}
 
-	data, fileName, err := upload(c, cfg, "image", "image", folder)
+	data, fileName, err := upload(c, cfg, "image", "image", folder, "")
 	if err != nil {
 		writeError(c, err)
 		return
@@ -49,7 +49,7 @@ func uploadVideo(c *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	data, fileName, err := upload(c, cfg, "video", "video", folder)
+	data, fileName, err := upload(c, cfg, "video", "video", folder, "authenticated")
 	if err != nil {
 		writeError(c, err)
 		return
@@ -59,15 +59,17 @@ func uploadVideo(c *gin.Context, cfg *config.Config) {
 		"video_url":    data.SecureURL,
 		"public_id":    data.PublicID,
 		"asset_folder": folder,
+		"delivery_type": data.Type,
 		"duration":     data.Duration,
 		"bytes":        data.Bytes,
 		"format":       data.Format,
+		"version":      data.Version,
 		"name":         fileName,
 	})
 }
 
 func uploadFile(c *gin.Context, cfg *config.Config) {
-	data, fileName, err := upload(c, cfg, "file", "raw", attachmentFolder)
+	data, fileName, err := upload(c, cfg, "file", "raw", attachmentFolder, "")
 	if err != nil {
 		writeError(c, err)
 		return
@@ -121,7 +123,7 @@ func deleteVideo(c *gin.Context, cfg *config.Config) {
 	c.JSON(http.StatusOK, result)
 }
 
-func upload(c *gin.Context, cfg *config.Config, formField string, resourceType string, folder string) (cloudinaryUpload, string, error) {
+func upload(c *gin.Context, cfg *config.Config, formField string, resourceType string, folder string, deliveryType string) (cloudinaryUpload, string, error) {
 	if err := ensureCloudinaryConfig(cfg); err != nil {
 		return cloudinaryUpload{}, "", err
 	}
@@ -132,7 +134,7 @@ func upload(c *gin.Context, cfg *config.Config, formField string, resourceType s
 	}
 	defer file.Close()
 
-	body, contentType, err := uploadBody(cfg, file, header.Filename, folder)
+	body, contentType, err := uploadBody(cfg, file, header.Filename, folder, deliveryType)
 	if err != nil {
 		return cloudinaryUpload{}, "", err
 	}

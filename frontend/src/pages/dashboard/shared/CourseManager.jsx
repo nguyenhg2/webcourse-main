@@ -576,13 +576,15 @@ export default function CourseManager() {
 
     try {
       const upload = await uploadLessonVideoAPI(file, selectedCourseFolder);
-      const videoUrl = upload.video_url;
-      if (!videoUrl) throw new Error("Cloudinary không trả về video_url");
+      if (!upload.public_id) throw new Error("Cloudinary khong tra ve public_id");
 
       const updatedLesson = await updateLessonAPI(lesson._id, {
-        video_url: videoUrl,
+        video_url: upload.video_url || "",
         video_public_id: upload.public_id || "",
         video_asset_folder: upload.asset_folder || selectedCourseFolder,
+        video_delivery_type: upload.delivery_type || "authenticated",
+        video_format: upload.format || "",
+        video_version: upload.version || null,
         duration: Math.round(upload.duration || lesson.duration || 0),
       });
 
@@ -610,7 +612,7 @@ export default function CourseManager() {
   }
 
   async function deleteVideoForLesson(lesson) {
-    if (!lesson?._id || !lesson.video_url) return;
+    if (!lesson?._id || !(lesson.has_video || lesson.video_url || lesson.video_public_id)) return;
 
     setDeletingLessonVideoId(lesson._id);
     setMessage("");
@@ -623,6 +625,9 @@ export default function CourseManager() {
         video_url: "",
         video_public_id: "",
         video_asset_folder: selectedCourseFolder || lesson.video_asset_folder || "",
+        video_delivery_type: "",
+        video_format: "",
+        video_version: null,
       });
 
       setCourseDetail((current) => {
@@ -706,7 +711,7 @@ export default function CourseManager() {
   const sections = courseDetail?.sections || [];
   const lessons = sections.flatMap((section) => section.lessons || []);
   const lessonCount = lessons.length;
-  const videoCount = lessons.filter((lesson) => lesson.video_url).length;
+  const videoCount = lessons.filter((lesson) => lesson.has_video || lesson.video_url || lesson.video_public_id).length;
   const canSubmitForReview =
     user?.role === "instructor" &&
     selectedCourse &&
@@ -1019,6 +1024,7 @@ export default function CourseManager() {
                       {(section.lessons || []).map((lesson) => {
                         const isUploading = uploadingLessonId === lesson._id;
                         const isDeletingVideo = deletingLessonVideoId === lesson._id;
+                        const videoReady = Boolean(lesson.has_video || lesson.video_url || lesson.video_public_id);
                         return (
                           <div key={lesson._id} className="grid gap-4 rounded-lg border border-gray-100 p-4 lg:grid-cols-[1fr_300px]">
                             {editingLessonId === lesson._id ? (
@@ -1077,9 +1083,8 @@ export default function CourseManager() {
                                 <span>Thời lượng {formatDuration(lesson.duration)}</span>
                               </div>
                               <div className="mt-3 flex min-w-0 items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
-                                {lesson.video_url ? <FiCheckCircle className="shrink-0 text-green-600" size={16} /> : <FiFilm className="shrink-0 text-gray-400" size={16} />}
-                                <p className="truncate text-xs text-gray-600">{shortUrl(lesson.video_url)}</p>
-                                {lesson.video_url && <button type="button" onClick={() => copy(lesson.video_url)} className="ml-auto rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-primary" title="Sao chép URL"><FiCopy size={14} /></button>}
+                                {videoReady ? <FiCheckCircle className="shrink-0 text-green-600" size={16} /> : <FiFilm className="shrink-0 text-gray-400" size={16} />}
+                                <p className="truncate text-xs text-gray-600">{videoReady ? "Video da duoc bao ve" : "Chua co video"}</p>
                               </div>
                               {(lesson.attachments || []).length > 0 && (
                                 <div className="mt-3 rounded-lg border border-gray-100 bg-white">
@@ -1113,16 +1118,14 @@ export default function CourseManager() {
                               )}
                               <label className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white ${isUploading ? "cursor-wait bg-gray-400" : "cursor-pointer bg-primary hover:bg-orange-600"}`}>
                                 {isUploading ? <FiLoader className="animate-spin" /> : <FiUploadCloud size={16} />}
-                                {isUploading ? "Đang tải lên..." : lesson.video_url ? "Thay video" : "Tải video lên"}
+                                {isUploading ? "Đang tải lên..." : videoReady ? "Thay video" : "Tải video lên"}
                                 <input type="file" accept="video/*" disabled={isUploading || !canManage} onChange={(event) => {
                                   const file = event.target.files?.[0];
                                   uploadVideoForLesson(lesson, file);
                                   event.target.value = "";
                                 }} className="hidden" />
                               </label>
-
-                              {lesson.video_url && <a href={lesson.video_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary">Xem video</a>}
-                              {lesson.video_url && (
+                              {videoReady && (
                                 <button
                                   type="button"
                                   onClick={() => deleteVideoForLesson(lesson)}
@@ -1153,3 +1156,5 @@ export default function CourseManager() {
     </div>
   );
 }
+
+

@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     redis_url: str | None = Field(default="redis://localhost:6379", alias="REDIS_URL")
     jwt_secret: str = Field(default="dev-secret", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    cloudinary_cloud_name: str | None = Field(default=None, alias="CLOUDINARY_CLOUD_NAME")
+    cloudinary_api_key: str | None = Field(default=None, alias="CLOUDINARY_API_KEY")
+    cloudinary_api_secret: str | None = Field(default=None, alias="CLOUDINARY_API_SECRET")
+    cloudinary_signed_url_ttl_seconds: int = Field(default=600, alias="CLOUDINARY_SIGNED_URL_TTL_SECONDS")
     access_token_expire_minutes: int = Field(
         default=60 * 12, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
