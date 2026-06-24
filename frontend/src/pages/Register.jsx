@@ -34,10 +34,10 @@ export default function Register() {
 
     try {
       const user = await register(form.username, form.email, form.password);
-      if (user.role === 'student') {
-        navigate('/khoa-hoc-cua-toi');
+      if (user.role === "student") {
+        navigate("/khoa-hoc-cua-toi");
       } else {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (err) {
       const msg = err.response?.data?.detail || "Đăng ký thất bại";
@@ -45,7 +45,6 @@ export default function Register() {
     } finally {
       setSubmitting(false);
     }
-
   }
 
   return (
