@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { FiClock, FiUsers, FiBarChart, FiBookOpen, FiShoppingCart } from "react-icons/fi";
-import { courseImage } from "../../utils/courseImages";
+import { courseFallbackImage, courseImage, useFallbackImage } from "../../utils/courseImages";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -20,6 +20,7 @@ export default function CourseListCard({ course, isOwned = false, isInCart = fal
       <img
         src={courseImage(course)}
         alt={course.title}
+        onError={(event) => useFallbackImage(event, courseFallbackImage(course))}
         className="w-full h-56 shrink-0 bg-gray-50 object-contain p-2 md:w-[300px]"
       />
       <div className="flex-1 p-6 flex flex-col gap-3">

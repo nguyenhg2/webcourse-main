@@ -6,7 +6,7 @@ import { FiCreditCard, FiShield } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { createPaymentAPI, enrollCourseAPI, syncPaymentAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { courseImage } from "../utils/courseImages";
+import { courseFallbackImage, courseImage, useFallbackImage } from "../utils/courseImages";
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -45,7 +45,12 @@ function OrderSummary({ course }) {
         <div className="flex flex-col gap-4 mb-5">
           {lines.map((item) => (
             <div key={item._id} className="flex gap-4">
-              <img src={courseImage(item)} alt={item.title} className="h-16 w-24 rounded-lg bg-gray-50 object-contain p-1" />
+              <img
+                src={courseImage(item)}
+                alt={item.title}
+                onError={(event) => useFallbackImage(event, courseFallbackImage(item))}
+                className="h-16 w-24 rounded-lg bg-gray-50 object-contain p-1"
+              />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-secondary leading-5">{item.title}</p>
                 <p className="text-sm text-gray-500 mt-1">{formatPrice(item.price)}</p>

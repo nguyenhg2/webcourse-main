@@ -391,6 +391,7 @@ export default function LessonPlayer() {
                   ref={videoRef}
                   src={videoUrl}
                   controls
+                  controlsList="nodownload"
                   className="w-full h-full"
                   onTimeUpdate={handleVideoProgress}
                   onEnded={autoSaveCompleted}

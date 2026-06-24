@@ -16,7 +16,7 @@ import CommentList from "../components/ui/CommentList";
 import RatingStars from "../components/ui/RatingStars";
 import { addCartAPI, createReviewAPI, getCourseBySlugAPI, getCourseReviewsAPI, getMyCoursesAPI, getSiteContentSectionAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { courseImage } from "../utils/courseImages";
+import { courseFallbackImage, courseImage, useFallbackImage } from "../utils/courseImages";
 
 const LEVEL_MAP = {
   beginner: "Người mới",
@@ -442,6 +442,7 @@ export default function CourseSingle() {
               <img
                 src={courseImage(course)}
                 alt={course.title}
+                onError={(event) => useFallbackImage(event, courseFallbackImage(course))}
                 className="aspect-video w-full rounded-lg bg-gray-50 object-contain p-2"
               />
               {!hasCourseAccess && (

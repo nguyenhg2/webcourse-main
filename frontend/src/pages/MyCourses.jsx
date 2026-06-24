@@ -4,7 +4,7 @@ import { FiAward, FiBookOpen, FiClock, FiDownload, FiPlay } from "react-icons/fi
 import { useAuth } from "../context/AuthContext";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { createComplaintAPI, downloadCertificateAPI, getMyCoursesAPI } from "../services/api";
-import { courseImage } from "../utils/courseImages";
+import { courseFallbackImage, courseImage, useFallbackImage } from "../utils/courseImages";
 
 export default function MyCourses() {
   const { user } = useAuth();
@@ -58,7 +58,12 @@ export default function MyCourses() {
   function CourseCard({ course, done }) {
     return (
       <div className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-        <img src={courseImage(course)} alt={course.title} className="h-44 w-full bg-gray-50 object-contain p-2" />
+        <img
+          src={courseImage(course)}
+          alt={course.title}
+          onError={(event) => useFallbackImage(event, courseFallbackImage(course))}
+          className="h-44 w-full bg-gray-50 object-contain p-2"
+        />
         <div className="p-5 flex flex-col gap-3">
           <Link to={`/khoa-hoc/${course.slug}`} className="text-base font-semibold text-secondary hover:text-primary transition-colors">
             {course.title}

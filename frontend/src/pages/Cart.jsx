@@ -4,7 +4,7 @@ import { FiTrash2, FiShoppingCart, FiTag } from "react-icons/fi";
 import Breadcrumb from "../components/layout/Breadcrumb";
 import { getCartAPI, removeCartAPI, validateCouponAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { courseImage } from "../utils/courseImages";
+import { courseFallbackImage, courseImage, useFallbackImage } from "../utils/courseImages";
 
 function formatPrice(value) {
   return Number(value || 0).toLocaleString("vi-VN") + "đ";
@@ -89,7 +89,12 @@ export default function Cart() {
             <div className="flex flex-col gap-4">
               {items.map((item) => (
                 <div key={item._id} className="flex gap-4 border border-gray-100 rounded-lg p-4">
-                  <img src={courseImage(item)} alt={item.title} className="h-24 w-36 rounded-lg bg-gray-50 object-contain p-1.5" />
+                  <img
+                    src={courseImage(item)}
+                    alt={item.title}
+                    onError={(event) => useFallbackImage(event, courseFallbackImage(item))}
+                    className="h-24 w-36 rounded-lg bg-gray-50 object-contain p-1.5"
+                  />
                   <div className="flex-1">
                     <h2 className="font-semibold text-secondary">{item.title}</h2>
                     <p className="text-sm text-gray-500 mt-1">{item.level || "beginner"}</p>
