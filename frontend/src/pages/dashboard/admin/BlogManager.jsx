@@ -80,10 +80,10 @@ export default function BlogManager() {
     try {
       const upload = await uploadBlogImageAPI(file, imageFolder());
       const imageUrl = upload.image_url || upload.url;
-      if (!imageUrl) throw new Error("Cloudinary khÃ´ng tráº£ vá» URL áº£nh");
+      if (!imageUrl) throw new Error("Cloudinary không trả về URL ảnh");
       setForm((current) => ({ ...current, image: imageUrl }));
     } catch (err) {
-      alert(err.response?.data?.error || err.response?.data?.detail || err.message || "Táº£i áº£nh lÃªn tháº¥t báº¡i");
+      alert(err.response?.data?.error || err.response?.data?.detail || err.message || "Tải ảnh lên thất bại");
     } finally {
       setUploadingImage(false);
     }
@@ -128,7 +128,7 @@ export default function BlogManager() {
                     </span>
                   </td>
                   <td className="p-4 text-gray-500">
-                    {b.created_at ? new Date(b.created_at).toLocaleDateString("vi-VN") : "—"}
+                    {b.created_at ? new Date(b.created_at).toLocaleDateString("vi-VN") : "-"}
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
@@ -179,14 +179,14 @@ export default function BlogManager() {
                 </div>
               ))}
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <label className="block text-sm font-medium text-gray-700 mb-2">áº¢nh bÃ¬a</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh bìa</label>
                 <div className="aspect-video overflow-hidden rounded-lg bg-white">
-                  <img src={blogImage(form)} alt={form.title || "áº¢nh bÃ¬a bÃ i viáº¿t"} className="h-full w-full object-cover" />
+                  <img src={blogImage(form)} alt={form.title || "Ảnh bìa bài viết"} className="h-full w-full object-cover" />
                 </div>
                 <div className="mt-3">
                   <label className={`inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white ${uploadingImage ? "cursor-wait opacity-70" : "cursor-pointer hover:bg-orange-600"}`}>
                     {uploadingImage ? <FiLoader className="animate-spin" /> : <FiUploadCloud size={16} />}
-                    {uploadingImage ? "Äang táº£i áº£nh..." : "Chá»n áº£nh tá»« mÃ¡y"}
+                    {uploadingImage ? "Đang tải ảnh..." : "Chọn ảnh từ máy"}
                     <input
                       type="file"
                       accept="image/*"
