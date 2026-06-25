@@ -7,14 +7,13 @@ services:
     restart: unless-stopped
 
   core:
-    build: ./backend/core-service
+    build: ./backend/python/core-service
     container_name: webcourse-core
     ports:
       - "8001:8001"
     environment:
       - MONGODB_URI=${MONGODB_URI:?MONGODB_URI is required}
       - MONGODB_DB=${MONGODB_DB:-codecamp_core}
-      - PAYMENT_MONGODB_DB=${PAYMENT_MONGODB_DB:-codecamp_payment}
       - PAYMENT_SERVICE_URL=http://payment:8002
       - PAYMENT_INTERNAL_TOKEN=${PAYMENT_INTERNAL_TOKEN:-dev-internal-token}
       - REDIS_URL=redis://redis:6379
@@ -32,7 +31,7 @@ services:
       - redis
 
   api-gateway:
-    build: ./backend/api-gateway
+    build: ./backend/python/api-gateway
     container_name: webcourse-api-gateway
     ports:
       - "8000:8000"
@@ -75,7 +74,7 @@ services:
       - api-gateway
 
   blog:
-    build: ./backend/blog-service
+    build: ./backend/php/blog-service
     container_name: webcourse-blog
     ports:
       - "8003:8003"
@@ -95,7 +94,7 @@ services:
     restart: unless-stopped
 
   payment:
-    build: ./backend/payment-service
+    build: ./backend/go/payment-service
     container_name: webcourse-payment
     ports:
       - "8002:8002"
@@ -113,7 +112,7 @@ services:
       - redis
 
   media:
-    build: ./backend/media-service
+    build: ./backend/go/media-service
     container_name: webcourse-media
     ports:
       - "8004:8004"
