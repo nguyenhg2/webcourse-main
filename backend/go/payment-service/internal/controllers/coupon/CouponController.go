@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"payment-service/internal/models"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -33,7 +35,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, adminOnly gin.Handle
 	})
 
 	g.POST("", adminOnly, func(c *gin.Context) {
-		var req CreateRequest
+		var req models.CreateRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			jsonError(c, http.StatusBadRequest, err)
 			return
@@ -48,7 +50,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, adminOnly gin.Handle
 	})
 
 	g.PATCH("/:id/active", adminOnly, func(c *gin.Context) {
-		var req ActiveRequest
+		var req models.ActiveRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			jsonError(c, http.StatusBadRequest, err)
 			return
@@ -67,7 +69,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, adminOnly gin.Handle
 	})
 
 	g.POST("/validate", func(c *gin.Context) {
-		var req ValidateRequest
+		var req models.ValidateRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			jsonError(c, http.StatusBadRequest, err)
 			return
@@ -84,29 +86,29 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, adminOnly gin.Handle
 }
 
 func Discount(ctx context.Context, db *mongo.Database, code string, amount int64) (int64, bool) {
-	var coupon Coupon
+	var coupon models.Coupon
 	err := db.Collection("coupons").FindOne(ctx, bson.M{"code": NormalizeCode(code)}).Decode(&coupon)
-	if err != nil || !coupon.validFor(amount) {
+	if err != nil || !validFor(coupon, amount) {
 		return 0, false
 	}
-	return coupon.discountFor(amount), true
+	return discountFor(coupon, amount), true
 }
 
-func listCoupons(ctx context.Context, col *mongo.Collection) ([]Coupon, error) {
+func listCoupons(ctx context.Context, col *mongo.Collection) ([]models.Coupon, error) {
 	cursor, err := col.Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{Key: "active", Value: -1}, {Key: "code", Value: 1}}).SetLimit(500))
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var coupons []Coupon
+	var coupons []models.Coupon
 	if err := cursor.All(ctx, &coupons); err != nil {
 		return nil, err
 	}
 	return coupons, nil
 }
 
-func createCoupon(ctx context.Context, col *mongo.Collection, req CreateRequest) (*Coupon, error) {
+func createCoupon(ctx context.Context, col *mongo.Collection, req models.CreateRequest) (*models.Coupon, error) {
 	coupon, err := newCoupon(req)
 	if err != nil {
 		return nil, err
@@ -127,13 +129,13 @@ func createCoupon(ctx context.Context, col *mongo.Collection, req CreateRequest)
 	return coupon, nil
 }
 
-func setActive(ctx context.Context, col *mongo.Collection, id string, active bool) (*Coupon, error) {
+func setActive(ctx context.Context, col *mongo.Collection, id string, active bool) (*models.Coupon, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, errors.New("ID mã giảm giá không hợp lệ")
 	}
 
-	var coupon Coupon
+	var coupon models.Coupon
 	err = col.FindOneAndUpdate(
 		ctx,
 		bson.M{"_id": objectID},
@@ -146,7 +148,7 @@ func setActive(ctx context.Context, col *mongo.Collection, id string, active boo
 	return &coupon, nil
 }
 
-func newCoupon(req CreateRequest) (*Coupon, error) {
+func newCoupon(req models.CreateRequest) (*models.Coupon, error) {
 	couponType := normalizeType(req.Type)
 	code := NormalizeCode(req.Code)
 
@@ -169,7 +171,7 @@ func newCoupon(req CreateRequest) (*Coupon, error) {
 		req.Expiry = time.Now().Add(365 * 24 * time.Hour).Unix()
 	}
 
-	return &Coupon{Code: code, Type: couponType, Discount: req.Discount, Active: req.Active, Expiry: req.Expiry, MaxUses: req.MaxUses}, nil
+	return &models.Coupon{Code: code, Type: couponType, Discount: req.Discount, Active: req.Active, Expiry: req.Expiry, MaxUses: req.MaxUses}, nil
 }
 
 func NormalizeCode(code string) string {
@@ -187,13 +189,13 @@ func normalizeType(value string) string {
 	}
 }
 
-func (c Coupon) validFor(amount int64) bool {
+func validFor(c models.Coupon, amount int64) bool {
 	expired := c.Expiry > 0 && c.Expiry < time.Now().Unix()
 	usedUp := c.MaxUses > 0 && c.UsedCount >= c.MaxUses
 	return amount >= 0 && c.Active && !expired && !usedUp && c.Discount > 0 && normalizeType(c.Type) != ""
 }
 
-func (c Coupon) discountFor(amount int64) int64 {
+func discountFor(c models.Coupon, amount int64) int64 {
 	if amount <= 0 {
 		return 0
 	}

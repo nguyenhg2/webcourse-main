@@ -10,11 +10,12 @@ Go/Gin payment service for learning and classroom demo with Stripe PaymentIntent
 cmd/main.go              Starts the app and loads config
 internal/routes          ApiRoute.go registers HTTP routes
 internal/controllers     Domain controllers grouped by payment and coupon
+internal/models          PaymentModel.go and CouponModel.go request/database structs
 internal/middleware      JWT, role checks, CORS
 internal/config          Environment config
 ```
 
-Payment service keeps `payment` and `coupon` in separate controller folders because each domain has its own model, validation, and tests. This keeps changes small: payment edits stay in `controllers/payment`, coupon edits stay in `controllers/coupon`.
+Payment service keeps `payment` and `coupon` in separate controller folders. Shared request/database structs stay in `internal/models`, so controller files only need to focus on HTTP handling and simple business flow.
 
 ## Routes
 

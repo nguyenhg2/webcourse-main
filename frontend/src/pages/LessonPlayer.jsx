@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiDownload, FiLock, FiMessageCircle, FiPlay, FiTrash2 } from "react-icons/fi";
+import { FiArrowLeft, FiBookOpen, FiDownload, FiLock, FiMessageCircle, FiPlay, FiTrash2 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { createLessonCommentAPI, createLessonNoteAPI, deleteLessonNoteAPI, getCourseBySlugAPI, getLessonAPI, getLessonCommentsAPI, getLessonNotesAPI, getMyCoursesAPI, saveProgressAPI } from "../services/api";
 
@@ -9,6 +9,40 @@ function formatDuration(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+const COMPLETION_WATCH_PERCENT = 0.8;
+const MAX_COUNTABLE_PLAYBACK_RATE = 1.05;
+
+function createWatchStats(lessonId = "") {
+  return {
+    lessonId,
+    watchedSeconds: new Set(),
+    lastVideoTime: null,
+    lastWallTime: null,
+    completedSaved: false,
+  };
+}
+
+function validVideoDuration(video) {
+  const duration = Number(video?.duration || 0);
+  return Number.isFinite(duration) && duration > 0 ? duration : 0;
+}
+
+function addWatchedRange(stats, start, end, duration) {
+  if (!stats || !duration || end <= start) return;
+  const from = Math.max(0, Math.floor(start));
+  const to = Math.min(Math.ceil(end), Math.ceil(duration));
+  for (let second = from; second < to; second += 1) {
+    stats.watchedSeconds.add(second);
+  }
+}
+
+function watchedSummary(stats, duration) {
+  const safeDuration = Math.max(0, Math.ceil(duration || 0));
+  const watchedSeconds = Math.min(stats?.watchedSeconds?.size || 0, safeDuration);
+  const watchedPercent = safeDuration ? watchedSeconds / safeDuration : 0;
+  return { watchedSeconds, watchedPercent };
 }
 
 function displayLessonTitle(section, lesson) {
@@ -61,6 +95,7 @@ export default function LessonPlayer() {
   const playbackRefreshRef = useRef(false);
   const playbackRefreshTimerRef = useRef(null);
   const savedLessonsRef = useRef(new Set());
+  const watchStatsRef = useRef(createWatchStats());
 
   useEffect(() => {
     getCourseBySlugAPI(slug)
@@ -89,6 +124,7 @@ export default function LessonPlayer() {
     setLessonComments([]);
     setLessonNotes([]);
     setCurrentTime(0);
+    watchStatsRef.current = createWatchStats(lessonId || "");
     if (!/^[a-f\d]{24}$/i.test(lessonId || "")) {
       setLesson(null);
       setMessage("Bài học không hợp lệ");
@@ -195,8 +231,20 @@ export default function LessonPlayer() {
   const currentCourseId = course?._id || lesson?.course_id;
   const hasCourseAccess = Boolean(currentCourseId && ownedCourseIds.has(currentCourseId));
 
-  async function markCompleted() {
+  function resetWatchClock(video = videoRef.current) {
+    const stats = watchStatsRef.current;
+    stats.lastVideoTime = Number(video?.currentTime || 0);
+    stats.lastWallTime = performance.now();
+  }
+
+  async function saveWatchedCompletion(video = videoRef.current) {
     if (!lesson?._id || !lesson?.course_id) return;
+    if (savingProgress || savedLessonsRef.current.has(lesson._id)) return;
+
+    const duration = validVideoDuration(video) || Number(lesson.duration || 0);
+    const stats = watchStatsRef.current;
+    const summary = watchedSummary(stats, duration);
+    if (!duration || summary.watchedPercent < COMPLETION_WATCH_PERCENT) return;
 
     if (authLoading) {
       setMessage("Đang kiểm tra đăng nhập...");
@@ -220,7 +268,17 @@ export default function LessonPlayer() {
 
     setSavingProgress(true);
     try {
-      const result = await saveProgressAPI({ lesson_id: lesson._id, course_id: lesson.course_id, completed: true });
+      const result = await saveProgressAPI({
+        lesson_id: lesson._id,
+        course_id: lesson.course_id,
+        completed: true,
+        watched_seconds: summary.watchedSeconds,
+        video_duration: duration,
+        watched_percent: summary.watchedPercent,
+        playback_rate: Number(video?.playbackRate || 1),
+      });
+      savedLessonsRef.current.add(lesson._id);
+      stats.completedSaved = true;
       setMessage(result.certificate?.ready ? "Đã hoàn thành khóa học và tạo chứng chỉ PDF." : "Đã lưu tiến độ vào cơ sở dữ liệu");
     } catch (error) {
       const status = error.response?.status;
@@ -239,10 +297,8 @@ export default function LessonPlayer() {
     }
   }
 
-  function autoSaveCompleted() {
-    if (!lesson?._id || savedLessonsRef.current.has(lesson._id)) return;
-    savedLessonsRef.current.add(lesson._id);
-    markCompleted();
+  function autoSaveCompleted(event) {
+    saveWatchedCompletion(event?.currentTarget || videoRef.current);
   }
 
   async function refreshLessonPlayback({ silent = true } = {}) {
@@ -267,7 +323,7 @@ export default function LessonPlayer() {
       }, 0);
     } catch (error) {
       if (!silent) {
-        setMessage(error.response?.data?.detail || "Khong gia han duoc URL phat video. Vui long thu lai.");
+        setMessage(error.response?.data?.detail || "Không gia hạn được URL phát video. Vui lòng thử lại.");
       }
     } finally {
       playbackRefreshRef.current = false;
@@ -276,10 +332,62 @@ export default function LessonPlayer() {
 
   function handleVideoProgress(event) {
     const video = event.currentTarget;
-    setCurrentTime(Math.floor(video.currentTime || 0));
-    if (!video.duration || Number.isNaN(video.duration)) return;
-    if (video.currentTime / video.duration >= 0.9) {
-      autoSaveCompleted();
+    const duration = validVideoDuration(video);
+    const current = Number(video.currentTime || 0);
+    const now = performance.now();
+    const stats = watchStatsRef.current;
+
+    setCurrentTime(Math.floor(current));
+    if (!duration || !lesson?._id) return;
+    if (stats.lessonId !== lesson._id) {
+      watchStatsRef.current = createWatchStats(lesson._id);
+      resetWatchClock(video);
+      return;
+    }
+
+    const previousTime = stats.lastVideoTime;
+    const previousWallTime = stats.lastWallTime;
+    const playbackRate = Number(video.playbackRate || 1);
+
+    if (previousTime !== null && previousWallTime !== null) {
+      const videoDelta = current - previousTime;
+      const wallDelta = Math.max((now - previousWallTime) / 1000, 0);
+      const maxNaturalDelta = wallDelta * Math.max(playbackRate, 1) + 1.25;
+      const canCount =
+        !video.paused &&
+        playbackRate <= MAX_COUNTABLE_PLAYBACK_RATE &&
+        videoDelta > 0 &&
+        videoDelta <= maxNaturalDelta;
+
+      if (canCount) {
+        addWatchedRange(stats, previousTime, current, duration);
+      }
+    }
+
+    stats.lastVideoTime = current;
+    stats.lastWallTime = now;
+
+    const summary = watchedSummary(stats, duration);
+    if (!stats.completedSaved && summary.watchedPercent >= COMPLETION_WATCH_PERCENT) {
+      saveWatchedCompletion(video);
+    }
+  }
+
+  function handleVideoLoaded(event) {
+    const lessonKey = lesson?._id || lessonId || "";
+    watchStatsRef.current = createWatchStats(lessonKey);
+    resetWatchClock(event.currentTarget);
+  }
+
+  function handleVideoSeeked(event) {
+    setCurrentTime(Math.floor(event.currentTarget.currentTime || 0));
+    resetWatchClock(event.currentTarget);
+  }
+
+  function handlePlaybackRateChange(event) {
+    resetWatchClock(event.currentTarget);
+    if (Number(event.currentTarget.playbackRate || 1) > MAX_COUNTABLE_PLAYBACK_RATE) {
+      setMessage("Tua hoặc xem tốc độ cao vẫn được phép, nhưng không được tính vào tiến độ.");
     }
   }
 
@@ -393,8 +501,13 @@ export default function LessonPlayer() {
                   controls
                   controlsList="nodownload"
                   className="w-full h-full"
+                  onLoadedMetadata={handleVideoLoaded}
+                  onPlay={(event) => resetWatchClock(event.currentTarget)}
                   onTimeUpdate={handleVideoProgress}
                   onEnded={autoSaveCompleted}
+                  onSeeking={(event) => resetWatchClock(event.currentTarget)}
+                  onSeeked={handleVideoSeeked}
+                  onRateChange={handlePlaybackRateChange}
                   onError={() => refreshLessonPlayback({ silent: false })}
                 />
               ) : (
@@ -411,13 +524,6 @@ export default function LessonPlayer() {
                 </h1>
                 <p className={`text-sm ${muted} mt-2`}>Bài {activeIndex + 1} / {totalLessons || 1}</p>
               </div>
-              <button
-                onClick={markCompleted}
-                disabled={savingProgress || !lesson?._id || !lesson?.course_id}
-                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <FiCheckCircle size={16} /> {savingProgress ? "Đang lưu..." : "Hoàn thành"}
-              </button>
             </div>
             {message && <p className="text-sm text-success mt-4">{message}</p>}
 

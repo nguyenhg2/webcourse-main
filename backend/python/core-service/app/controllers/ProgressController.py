@@ -21,6 +21,28 @@ router = APIRouter()
 CERTIFICATE_GENERATOR_VERSION = 2
 CERTIFICATE_FONT_REGULAR = "CertificateDejaVu"
 CERTIFICATE_FONT_BOLD = "CertificateDejaVuBold"
+MIN_WATCHED_PERCENT = 0.8
+
+def _positive_number(value) -> float:
+    try:
+        number = float(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return number if number > 0 else 0
+
+def _validate_completion_watch_time(payload: ProgressUpdate, lesson: dict):
+    if not payload.completed:
+        return
+
+    duration = max(_positive_number(payload.video_duration), _positive_number(lesson.get("duration")))
+    watched_seconds = _positive_number(payload.watched_seconds)
+
+    if duration <= 0:
+        raise HTTPException(status_code=400, detail="Khong xac dinh duoc thoi luong video")
+
+    required_seconds = duration * MIN_WATCHED_PERCENT
+    if watched_seconds + 0.5 < required_seconds:
+        raise HTTPException(status_code=400, detail="Can xem toi thieu 80% thoi luong video de hoan thanh bai hoc")
 
 
 def _find_font_path(filename: str) -> str | None:
@@ -231,12 +253,17 @@ async def save_progress(
     if not lesson:
         raise HTTPException(status_code=404, detail="Không tìm thấy bài học")
 
+    _validate_completion_watch_time(payload, lesson)
+
     doc = {
         "user_id": user["_id"],
         "lesson_id": payload.lesson_id,
         "course_id": payload.course_id,
         "completed": payload.completed,
         "completed_at": payload.completed_at or datetime.now(timezone.utc).isoformat(),
+        "watched_seconds": _positive_number(payload.watched_seconds),
+        "video_duration": max(_positive_number(payload.video_duration), _positive_number(lesson.get("duration"))),
+        "watched_percent": _positive_number(payload.watched_percent),
     }
     await db["progress"].update_one(
         {"user_id": doc["user_id"], "lesson_id": doc["lesson_id"]},

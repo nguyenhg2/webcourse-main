@@ -11,6 +11,7 @@ import (
 
 	"payment-service/internal/controllers/coupon"
 	"payment-service/internal/middleware"
+	"payment-service/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -49,7 +50,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, stripeSecretKey stri
 }
 
 func (h handler) create(c *gin.Context) {
-	var req PaymentRequest
+	var req models.PaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonError(c, http.StatusBadRequest, err)
 		return
@@ -116,7 +117,7 @@ func (h handler) sync(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-func (h handler) createPayment(ctx context.Context, userID string, req PaymentRequest) (*PaymentResponse, error) {
+func (h handler) createPayment(ctx context.Context, userID string, req models.PaymentRequest) (*models.PaymentResponse, error) {
 	payment, err := newPayment(ctx, h.db, userID, req)
 	if err != nil {
 		return nil, err
@@ -144,7 +145,7 @@ func (h handler) createPayment(ctx context.Context, userID string, req PaymentRe
 	return paymentResponse(payment, clientSecret), nil
 }
 
-func newPayment(ctx context.Context, db *mongo.Database, userID string, req PaymentRequest) (*Payment, error) {
+func newPayment(ctx context.Context, db *mongo.Database, userID string, req models.PaymentRequest) (*models.Payment, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
 		return nil, errors.New("Không tìm thấy người dùng")
@@ -170,7 +171,7 @@ func newPayment(ctx context.Context, db *mongo.Database, userID string, req Paym
 	billing.Country = strings.ToUpper(strings.TrimSpace(billing.Country))
 
 	now := time.Now().Unix()
-	return &Payment{
+	return &models.Payment{
 		ID:             primitive.NewObjectID(),
 		UserID:         userID,
 		UserEmail:      strings.TrimSpace(req.UserEmail),
@@ -203,7 +204,7 @@ func discountFor(ctx context.Context, db *mongo.Database, code string, amount in
 	return discount, code, nil
 }
 
-func createStripeIntent(payment *Payment) (string, string, error) {
+func createStripeIntent(payment *models.Payment) (string, string, error) {
 	params := &stripe.PaymentIntentParams{
 		Amount:             stripe.Int64(payment.FinalAmount),
 		Currency:           stripe.String("vnd"),
@@ -225,7 +226,7 @@ func createStripeIntent(payment *Payment) (string, string, error) {
 	return intent.ID, intent.ClientSecret, nil
 }
 
-func (h handler) syncStripe(ctx context.Context, payment *Payment) (*PaymentResponse, error) {
+func (h handler) syncStripe(ctx context.Context, payment *models.Payment) (*models.PaymentResponse, error) {
 	if payment.Status == statusComplete {
 		return paymentResponse(payment, ""), nil
 	}
@@ -270,13 +271,13 @@ func getStripeIntent(stripePaymentID string) (*stripe.PaymentIntent, error) {
 	return paymentintent.Get(stripePaymentID, params)
 }
 
-func (h handler) find(ctx context.Context, id string) (*Payment, error) {
+func (h handler) find(ctx context.Context, id string) (*models.Payment, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 
-	var payment Payment
+	var payment models.Payment
 	err = h.payments.FindOne(ctx, bson.M{"_id": objectID}).Decode(&payment)
 	return &payment, err
 }
@@ -299,7 +300,7 @@ func (h handler) completeByStripeID(ctx context.Context, stripePaymentID string,
 		return err
 	}
 
-	var payment Payment
+	var payment models.Payment
 	if err := h.payments.FindOne(ctx, bson.M{"stripe_payment_id": stripePaymentID}).Decode(&payment); err != nil {
 		return err
 	}
@@ -315,7 +316,7 @@ func (h handler) markByStripeID(ctx context.Context, stripePaymentID, status str
 	return err
 }
 
-func (h handler) afterCompleted(ctx context.Context, payment *Payment) error {
+func (h handler) afterCompleted(ctx context.Context, payment *models.Payment) error {
 	if payment.CouponCode != "" {
 		if err := coupon.MarkUsed(ctx, h.db, payment.CouponCode); err != nil {
 			return err
@@ -332,7 +333,7 @@ func markPaymentByStripeID(ctx context.Context, col *mongo.Collection, stripePay
 	return handler{payments: col}.markByStripeID(ctx, stripePaymentID, status)
 }
 
-func publishPaymentSuccess(ctx context.Context, redisClient *redis.Client, payment *Payment) error {
+func publishPaymentSuccess(ctx context.Context, redisClient *redis.Client, payment *models.Payment) error {
 	if redisClient == nil {
 		return nil
 	}
@@ -347,22 +348,22 @@ func publishPaymentSuccess(ctx context.Context, redisClient *redis.Client, payme
 	return redisClient.Publish(ctx, paymentSuccessChannel, payload).Err()
 }
 
-func listPayments(ctx context.Context, col *mongo.Collection, filter bson.M) ([]*Payment, error) {
+func listPayments(ctx context.Context, col *mongo.Collection, filter bson.M) ([]*models.Payment, error) {
 	cursor, err := col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(500))
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var payments []*Payment
+	var payments []*models.Payment
 	if err := cursor.All(ctx, &payments); err != nil {
 		return nil, err
 	}
 	return payments, nil
 }
 
-func paymentResponse(payment *Payment, clientSecret string) *PaymentResponse {
-	return &PaymentResponse{
+func paymentResponse(payment *models.Payment, clientSecret string) *models.PaymentResponse {
+	return &models.PaymentResponse{
 		ClientSecret:    clientSecret,
 		PaymentID:       payment.ID.Hex(),
 		StripePaymentID: payment.StripePaymentID,

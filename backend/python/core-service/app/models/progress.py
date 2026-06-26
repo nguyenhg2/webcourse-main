@@ -13,3 +13,7 @@ class ProgressUpdate(BaseModel):
     course_id: str
     completed: bool = True
     completed_at: Optional[str] = None
+    watched_seconds: Optional[float] = None
+    video_duration: Optional[float] = None
+    watched_percent: Optional[float] = None
+    playback_rate: Optional[float] = None

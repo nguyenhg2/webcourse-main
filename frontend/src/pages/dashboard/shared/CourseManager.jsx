@@ -576,7 +576,7 @@ export default function CourseManager() {
 
     try {
       const upload = await uploadLessonVideoAPI(file, selectedCourseFolder);
-      if (!upload.public_id) throw new Error("Cloudinary khong tra ve public_id");
+      if (!upload.public_id) throw new Error("Cloudinary không trả về public_id");
 
       const updatedLesson = await updateLessonAPI(lesson._id, {
         video_url: upload.video_url || "",
@@ -1084,7 +1084,7 @@ export default function CourseManager() {
                               </div>
                               <div className="mt-3 flex min-w-0 items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
                                 {videoReady ? <FiCheckCircle className="shrink-0 text-green-600" size={16} /> : <FiFilm className="shrink-0 text-gray-400" size={16} />}
-                                <p className="truncate text-xs text-gray-600">{videoReady ? "Video da duoc bao ve" : "Chua co video"}</p>
+                                <p className="truncate text-xs text-gray-600">{videoReady ? "Video đã được bảo vệ" : "Chưa có video"}</p>
                               </div>
                               {(lesson.attachments || []).length > 0 && (
                                 <div className="mt-3 rounded-lg border border-gray-100 bg-white">
