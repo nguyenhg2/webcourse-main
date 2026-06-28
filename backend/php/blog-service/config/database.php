@@ -38,7 +38,7 @@ $readEnv = static function (string $name) use ($readRootEnv): ?string {
 };
 
 $mongoUri = $readEnv('MONGODB_URI');
-$mongoDb = $readEnv('BLOG_MONGODB_DB') ?: 'codecamp_php';
+$mongoDb = $readEnv('BLOG_MONGODB_DB') ?: 'webcourse_blog';
 
 if (!$mongoUri) {
     throw new RuntimeException('MONGODB_URI is required for the MongoDB Atlas connection.');

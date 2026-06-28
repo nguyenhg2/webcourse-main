@@ -131,16 +131,14 @@ async def my_courses(request: Request, db=Depends(get_db), user=Depends(get_curr
         {"course_id": {"$in": course_ids}},
         {"_id": 1, "course_id": 1, "title": 1, "order": 1},
     ).sort([("course_id", 1), ("order", 1), ("_id", 1)]).to_list(length=1000)
-    progress_query = db["progress"].aggregate([
+    progress_query = db["progress"].find(
         {
-            "$match": {
-                "user_id": user["_id"],
-                "course_id": {"$in": course_ids},
-                "completed": True,
-            }
+            "user_id": user["_id"],
+            "course_id": {"$in": course_ids},
+            "completed": True,
         },
-        {"$group": {"_id": "$course_id", "completed": {"$sum": 1}}},
-    ]).to_list(length=len(course_ids))
+        {"course_id": 1, "lesson_id": 1},
+    ).to_list(length=1000)
     stats_query = course_stats_map(db, course_ids)
 
     courses, lessons, progress_rows, stats = await asyncio.gather(courses_query, lessons_query, progress_query, stats_query)
@@ -152,7 +150,16 @@ async def my_courses(request: Request, db=Depends(get_db), user=Depends(get_curr
     lessons_by_course_id = defaultdict(list)
     for lesson in lessons:
         lessons_by_course_id[lesson.get("course_id")].append(lesson)
-    completed_by_course_id = {row["_id"]: row["completed"] for row in progress_rows}
+    valid_lesson_ids_by_course_id = defaultdict(set)
+    for lesson in lessons:
+        valid_lesson_ids_by_course_id[lesson.get("course_id")].add(str(lesson["_id"]))
+
+    completed_by_course_id = defaultdict(set)
+    for row in progress_rows:
+        course_id = row.get("course_id")
+        lesson_id = row.get("lesson_id")
+        if lesson_id in valid_lesson_ids_by_course_id.get(course_id, set()):
+            completed_by_course_id[course_id].add(lesson_id)
 
     items = []
     for course_id in course_ids:
@@ -162,7 +169,7 @@ async def my_courses(request: Request, db=Depends(get_db), user=Depends(get_curr
 
         course_lessons = lessons_by_course_id.get(course_id, [])
         total = len(course_lessons)
-        completed = min(completed_by_course_id.get(course_id, 0), total)
+        completed = min(len(completed_by_course_id.get(course_id, set())), total)
         progress = round(completed * 100 / total) if total else 0
         first_lesson = course_lessons[0] if course_lessons else None
         enrollment = enrollment_by_course_id[course_id]

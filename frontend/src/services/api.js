@@ -253,6 +253,10 @@ export function saveProgressAPI(payload) {
   return post(api, "/api/progress", payload);
 }
 
+export function getProgressAPI(courseId) {
+  return get(api, "/api/progress/" + courseId);
+}
+
 export function downloadCertificateAPI(courseId) {
   return api.get(`/api/certificate/${courseId}`, { responseType: "blob" }).then((res) => res.data);
 }
@@ -317,7 +321,7 @@ export function uploadBlogImageAPI(file, folder) {
 
 export function uploadVideoAPI(file, folder) {
   if (!folder) {
-    throw new Error("Vui lòng nhập thư mục Cloudinary");
+    throw new Error("Vui lòng nhập thư mục lưu trữ");
   }
 
   return uploadMediaAPI("/api/videos/upload", { video: file, folder });

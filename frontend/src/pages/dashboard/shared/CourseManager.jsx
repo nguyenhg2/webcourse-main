@@ -165,7 +165,7 @@ export default function CourseManager() {
   );
 
   const selectedCourseFolder = useMemo(() => {
-    const folder = courseDetail?.cloudinary_folder || selectedCourse?.cloudinary_folder;
+    const folder = courseDetail?.storage_folder || selectedCourse?.storage_folder;
     return folder || (selectedCourse?.slug ? courseFolderFromSlug(selectedCourse.slug) : "");
   }, [courseDetail, selectedCourse]);
 
@@ -221,7 +221,7 @@ export default function CourseManager() {
     setMessage("");
     try {
       const slug = courseForm.slug.trim() || slugify(title);
-      const cloudinaryFolder = courseForm.cloudinary_folder.trim() || courseFolderFromSlug(slug);
+      const storageFolder = courseForm.storage_folder.trim() || courseFolderFromSlug(slug);
       const created = await createCourseAPI({
         ...courseForm,
         title,
@@ -231,7 +231,7 @@ export default function CourseManager() {
         price: Number(courseForm.price || 0),
         instructor_id: user._id,
         status: user?.role === "instructor" ? "draft" : courseForm.status,
-        cloudinary_folder: cloudinaryFolder,
+        storage_folder: storageFolder,
       });
       setCourseForm({ ...emptyCourseForm, category_id: categories[0]?._id || "" });
       await loadCourses();
@@ -247,7 +247,7 @@ export default function CourseManager() {
   }
 
   function folderForCourseForm(form) {
-    return form.cloudinary_folder?.trim() || courseFolderFromSlug(form.slug || form.title || "course");
+    return form.storage_folder?.trim() || courseFolderFromSlug(form.slug || form.title || "course");
   }
 
   async function uploadCoverImage(target, file) {
@@ -261,12 +261,12 @@ export default function CourseManager() {
     try {
       const upload = await uploadCourseImageAPI(file, folder);
       const imageUrl = upload.image_url || upload.url;
-      if (!imageUrl) throw new Error("Cloudinary không trả về URL ảnh");
+      if (!imageUrl) throw new Error("R2 không trả về URL ảnh");
 
       const update = (current) => ({
         ...current,
         thumbnail: imageUrl,
-        cloudinary_folder: current.cloudinary_folder || folder,
+        storage_folder: current.storage_folder || folder,
       });
       if (target === "edit") {
         setEditingCourseForm(update);
@@ -296,7 +296,7 @@ export default function CourseManager() {
       category_id: selectedCourse.category_id || categories[0]?._id || "",
       level: selectedCourse.level || "beginner",
       status: selectedCourse.status || "draft",
-      cloudinary_folder: selectedCourse.cloudinary_folder || courseFolderFromSlug(selectedCourse.slug),
+      storage_folder: selectedCourse.storage_folder || courseFolderFromSlug(selectedCourse.slug),
     });
   }
 
@@ -462,8 +462,8 @@ export default function CourseManager() {
         course_id: selectedCourseId,
         title: form.title.trim(),
         video_url: form.video_url.trim(),
-        video_public_id: form.video_public_id || "",
-        video_asset_folder: form.video_asset_folder || selectedCourseFolder || "",
+        video_object_key: form.video_object_key || "",
+        video_storage_folder: form.video_storage_folder || selectedCourseFolder || "",
         content: form.content.trim(),
         duration: Number(form.duration || 0),
         is_free_preview: Boolean(form.is_free_preview),
@@ -515,8 +515,8 @@ export default function CourseManager() {
     setEditingLessonForm({
       title: lesson.title || "",
       video_url: lesson.video_url || "",
-      video_public_id: lesson.video_public_id || "",
-      video_asset_folder: lesson.video_asset_folder || selectedCourseFolder || "",
+      video_object_key: lesson.video_object_key || "",
+      video_storage_folder: lesson.video_storage_folder || selectedCourseFolder || "",
       content: lesson.content || "",
       duration: lesson.duration || 0,
       is_free_preview: Boolean(lesson.is_free_preview),
@@ -544,8 +544,8 @@ export default function CourseManager() {
       await updateLessonAPI(lessonId, {
         title: editingLessonForm.title.trim(),
         video_url: editingLessonForm.video_url.trim(),
-        video_public_id: editingLessonForm.video_public_id || "",
-        video_asset_folder: editingLessonForm.video_asset_folder || selectedCourseFolder || "",
+        video_object_key: editingLessonForm.video_object_key || "",
+        video_storage_folder: editingLessonForm.video_storage_folder || selectedCourseFolder || "",
         content: editingLessonForm.content.trim(),
         duration: Number(editingLessonForm.duration || 0),
         is_free_preview: Boolean(editingLessonForm.is_free_preview),
@@ -567,7 +567,7 @@ export default function CourseManager() {
     if (!file || !lesson?._id) return;
     if (!selectedCourseFolder) {
       setMessageType("error");
-      setMessage("Chưa có thư mục Cloudinary cho khóa học.");
+      setMessage("Chưa có thư mục lưu trữ cho khóa học.");
       return;
     }
 
@@ -576,12 +576,12 @@ export default function CourseManager() {
 
     try {
       const upload = await uploadLessonVideoAPI(file, selectedCourseFolder);
-      if (!upload.public_id) throw new Error("Cloudinary không trả về public_id");
+      if (!upload.object_key) throw new Error("R2 không trả về object_key");
 
       const updatedLesson = await updateLessonAPI(lesson._id, {
         video_url: upload.video_url || "",
-        video_public_id: upload.public_id || "",
-        video_asset_folder: upload.asset_folder || selectedCourseFolder,
+        video_object_key: upload.object_key || "",
+        video_storage_folder: upload.storage_folder || selectedCourseFolder,
         video_delivery_type: upload.delivery_type || "authenticated",
         video_format: upload.format || "",
         video_version: upload.version || null,
@@ -612,19 +612,19 @@ export default function CourseManager() {
   }
 
   async function deleteVideoForLesson(lesson) {
-    if (!lesson?._id || !(lesson.has_video || lesson.video_url || lesson.video_public_id)) return;
+    if (!lesson?._id || !(lesson.has_video || lesson.video_url || lesson.video_object_key)) return;
 
     setDeletingLessonVideoId(lesson._id);
     setMessage("");
     try {
-      if (lesson.video_public_id) {
-        await deleteVideoAPI({ public_id: lesson.video_public_id });
+      if (lesson.video_object_key) {
+        await deleteVideoAPI({ object_key: lesson.video_object_key });
       }
 
       const updatedLesson = await updateLessonAPI(lesson._id, {
         video_url: "",
-        video_public_id: "",
-        video_asset_folder: selectedCourseFolder || lesson.video_asset_folder || "",
+        video_object_key: "",
+        video_storage_folder: selectedCourseFolder || lesson.video_storage_folder || "",
         video_delivery_type: "",
         video_format: "",
         video_version: null,
@@ -644,7 +644,7 @@ export default function CourseManager() {
       });
 
       setMessageType("success");
-      setMessage("Đã xóa video khỏi Cloudinary và bài học.");
+      setMessage("Đã xóa video khỏi R2 và bài học.");
     } catch (err) {
       setMessageType("error");
       setMessage(err.response?.data?.error || err.response?.data?.detail || err.message || "Xóa video thất bại.");
@@ -711,7 +711,7 @@ export default function CourseManager() {
   const sections = courseDetail?.sections || [];
   const lessons = sections.flatMap((section) => section.lessons || []);
   const lessonCount = lessons.length;
-  const videoCount = lessons.filter((lesson) => lesson.has_video || lesson.video_url || lesson.video_public_id).length;
+  const videoCount = lessons.filter((lesson) => lesson.has_video || lesson.video_url || lesson.video_object_key).length;
   const canSubmitForReview =
     user?.role === "instructor" &&
     selectedCourse &&
@@ -1024,7 +1024,7 @@ export default function CourseManager() {
                       {(section.lessons || []).map((lesson) => {
                         const isUploading = uploadingLessonId === lesson._id;
                         const isDeletingVideo = deletingLessonVideoId === lesson._id;
-                        const videoReady = Boolean(lesson.has_video || lesson.video_url || lesson.video_public_id);
+                        const videoReady = Boolean(lesson.has_video || lesson.video_url || lesson.video_object_key);
                         return (
                           <div key={lesson._id} className="grid gap-4 rounded-lg border border-gray-100 p-4 lg:grid-cols-[1fr_300px]">
                             {editingLessonId === lesson._id ? (

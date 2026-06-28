@@ -41,11 +41,21 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	}
 }
 
+func RequireInternalToken(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if secret != "" && c.GetHeader("X-Internal-Token") != secret {
+			abort(c, http.StatusUnauthorized, "Internal token không hợp lệ")
+			return
+		}
+		c.Next()
+	}
+}
+
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, PATCH, DELETE")
-		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Internal-Token")
 
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)

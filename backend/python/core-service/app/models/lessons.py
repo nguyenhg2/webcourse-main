@@ -6,8 +6,8 @@ class Lesson(BaseModel):
     course_id: str
     title: str
     video_url: str
-    video_public_id: Optional[str] = None
-    video_asset_folder: Optional[str] = None
+    video_object_key: Optional[str] = None
+    video_storage_folder: Optional[str] = None
     video_delivery_type: Optional[str] = None
     video_format: Optional[str] = None
     video_version: Optional[int] = None
@@ -21,8 +21,8 @@ class Lesson(BaseModel):
 class UpdateLesson(BaseModel):
     title: Optional[str] = None
     video_url: Optional[str] = None
-    video_public_id: Optional[str] = None
-    video_asset_folder: Optional[str] = None
+    video_object_key: Optional[str] = None
+    video_storage_folder: Optional[str] = None
     video_delivery_type: Optional[str] = None
     video_format: Optional[str] = None
     video_version: Optional[int] = None

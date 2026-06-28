@@ -175,7 +175,7 @@ export default function CouponManager() {
                   <option value="fixed">Số tiền cố định</option>
                 </select>
                 <input name="discount" value={form.discount} onChange={handleFormChange} type="number" min="1" placeholder={form.type === "percentage" ? "Giá trị (%)" : "Giá trị (VNĐ)"} required className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
-                <input name="maxUses" value={form.maxUses} onChange={handleFormChange} type="number" min="0" placeholder="Gioi han luot dung" className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
+                <input name="maxUses" value={form.maxUses} onChange={handleFormChange} type="number" min="0" placeholder="Giới hạn lượt dùng" className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-medium text-gray-600">Ngày hết hạn</span>
                   <input name="expiry" value={form.expiry} onChange={handleFormChange} type="text" inputMode="numeric" placeholder="dd/mm/yyyy" className="px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-primary" />
@@ -221,7 +221,7 @@ export default function CouponManager() {
               <th className="text-left p-4">Mã</th>
               <th className="text-left p-4">Loại</th>
               <th className="text-left p-4">Giá trị</th>
-              <th className="text-left p-4">Luot dung</th>
+              <th className="text-left p-4">Lượt dùng</th>
               <th className="text-left p-4">Hết hạn</th>
               <th className="text-left p-4">Trạng thái</th>
               <th className="text-left p-4">Thao tác</th>

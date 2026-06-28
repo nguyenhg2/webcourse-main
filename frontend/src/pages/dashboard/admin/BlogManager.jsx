@@ -80,7 +80,7 @@ export default function BlogManager() {
     try {
       const upload = await uploadBlogImageAPI(file, imageFolder());
       const imageUrl = upload.image_url || upload.url;
-      if (!imageUrl) throw new Error("Cloudinary không trả về URL ảnh");
+      if (!imageUrl) throw new Error("R2 không trả về URL ảnh");
       setForm((current) => ({ ...current, image: imageUrl }));
     } catch (err) {
       alert(err.response?.data?.error || err.response?.data?.detail || err.message || "Tải ảnh lên thất bại");

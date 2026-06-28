@@ -19,6 +19,11 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	api.Use(middleware.JWTAuth(cfg.JWTSecret))
 
 	controllers.RegisterMediaRoutes(api.Group("", middleware.RequireRole("admin", "instructor")), cfg)
+	controllers.RegisterSignedURLRoute(api.Group(""), cfg)
+
+	internal := r.Group("/internal")
+	internal.Use(middleware.RequireInternalToken(cfg.InternalToken))
+	controllers.RegisterInternalMediaRoutes(internal, cfg)
 
 	return r
 }

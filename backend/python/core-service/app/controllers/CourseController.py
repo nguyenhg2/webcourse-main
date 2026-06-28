@@ -74,12 +74,25 @@ def _course_oid(course_id: str) -> ObjectId:
     return ObjectId(course_id)
 
 
-def _cloudinary_folder_for_course(payload: dict) -> str:
+def _storage_folder_for_course(payload: dict) -> str:
     slug = str(payload.get("slug") or payload.get("title") or "course").strip()
     slug = unicodedata.normalize("NFD", slug).encode("ascii", "ignore").decode("ascii").lower()
     slug = re.sub(r"[^a-z0-9-]+", "-", slug)
     slug = re.sub(r"-+", "-", slug).strip("-") or "course"
     return f"codecamp/courses/{slug}"
+
+def _with_storage_folder(course: dict | None) -> dict | None:
+    if not course:
+        return course
+    if not course.get("storage_folder"):
+        course["storage_folder"] = _storage_folder_for_course(course)
+    return course
+
+def _serialize_course(course: dict | None) -> dict | None:
+    return serialize_doc(_with_storage_folder(course))
+
+def _serialize_courses(courses: list[dict]) -> list[dict]:
+    return [_serialize_course(course) for course in courses]
 
 def _remove_computed_course_fields(payload: dict) -> dict:
     payload.pop("rating", None)
@@ -88,7 +101,7 @@ def _remove_computed_course_fields(payload: dict) -> dict:
 
 
 def _lesson_without_playback_url(lesson: dict) -> dict:
-    lesson["has_video"] = bool(lesson.get("video_public_id") or lesson.get("video_url"))
+    lesson["has_video"] = bool(lesson.get("video_object_key") or lesson.get("video_url"))
     lesson.pop("signed_url", None)
     lesson.pop("video_url", None)
     return lesson
@@ -110,7 +123,7 @@ async def get_courses(
         query["level"] = level
     courses = await db["courses"].find(query).to_list(length=100)
     await enrich_courses_stats(db, courses)
-    return serialize_docs(courses)
+    return _serialize_courses(courses)
 
 
 @router.get("/api/courses/slug/{slug}")
@@ -135,7 +148,7 @@ async def get_course_by_slug(slug: str, db=Depends(get_db), user=Depends(get_opt
         sections_query,
         lessons_query,
     )
-    course = serialize_doc(course)
+    course = _serialize_course(course)
     sections = serialize_docs(sections)
 
     lessons_by_section = defaultdict(list)
@@ -160,7 +173,7 @@ async def get_course(course_id: str, db=Depends(get_db), user=Depends(get_option
     if course.get("status") != "published" and not _can_view_unpublished(course, user):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy khóa học")
     await enrich_course_stats(db, course)
-    return serialize_doc(course)
+    return _serialize_course(course)
 
 
 @router.post("/api/courses", response_model=CourseResponse)
@@ -170,14 +183,14 @@ async def create_course(
     user=Depends(require_role("admin", "instructor")),
 ):
     new_course = _remove_computed_course_fields(payload.model_dump())
-    if not new_course.get("cloudinary_folder"):
-        new_course["cloudinary_folder"] = _cloudinary_folder_for_course(new_course)
+    if not new_course.get("storage_folder"):
+        new_course["storage_folder"] = _storage_folder_for_course(new_course)
     if user.get("role") == "instructor":
         new_course["instructor_id"] = user["_id"]
     new_course = _normalize_course_status(new_course, user)
     result = await db["courses"].insert_one(new_course)
     new_course = await db["courses"].find_one({"_id": result.inserted_id})
-    return serialize_doc(new_course)
+    return _serialize_course(new_course)
 
 
 @router.put("/api/courses/{course_id}", response_model=CourseResponse)
@@ -208,7 +221,7 @@ async def update_course(
             detail="Không tìm thấy khóa học",
         )
     updated_course = await db["courses"].find_one({"_id": course_oid})
-    return serialize_doc(updated_course)
+    return _serialize_course(updated_course)
 
 
 @router.patch("/api/courses/{course_id}/review", response_model=CourseResponse)
@@ -234,7 +247,7 @@ async def review_course(
     }
     await db["courses"].update_one({"_id": course_oid}, {"$set": update_data})
     updated_course = await db["courses"].find_one({"_id": course_oid})
-    return serialize_doc(updated_course)
+    return _serialize_course(updated_course)
 
 
 @router.patch("/api/courses/{course_id}/submit", response_model=CourseResponse)
@@ -269,7 +282,7 @@ async def submit_course_for_review(
         {"$set": {"status": "pending_review", "submitted_by": user["_id"]}},
     )
     updated_course = await db["courses"].find_one({"_id": course_oid})
-    return serialize_doc(updated_course)
+    return _serialize_course(updated_course)
 
 
 @router.delete("/api/courses/{course_id}")

@@ -25,7 +25,7 @@ func Load() *Config {
 
 	return &Config{
 		MongoURI:            requiredEnv("MONGODB_URI"),
-		PaymentDB:           getEnv("PAYMENT_MONGODB_DB", "codecamp_payment"),
+		PaymentDB:           getEnv("PAYMENT_MONGODB_DB", "webcourse_payment"),
 		JWTSecret:           getEnv("JWT_SECRET", "dev-secret"),
 		InternalToken:       getEnv("PAYMENT_INTERNAL_TOKEN", "dev-internal-token"),
 		StripeSecretKey:     requiredEnv("STRIPE_SECRET_KEY"),

@@ -22,6 +22,7 @@ CERTIFICATE_GENERATOR_VERSION = 2
 CERTIFICATE_FONT_REGULAR = "CertificateDejaVu"
 CERTIFICATE_FONT_BOLD = "CertificateDejaVuBold"
 MIN_WATCHED_PERCENT = 0.8
+MAX_ACCEPTED_PLAYBACK_RATE = 1.05
 
 def _positive_number(value) -> float:
     try:
@@ -36,9 +37,13 @@ def _validate_completion_watch_time(payload: ProgressUpdate, lesson: dict):
 
     duration = max(_positive_number(payload.video_duration), _positive_number(lesson.get("duration")))
     watched_seconds = _positive_number(payload.watched_seconds)
+    playback_rate = _positive_number(payload.playback_rate) or 1
 
     if duration <= 0:
         raise HTTPException(status_code=400, detail="Khong xac dinh duoc thoi luong video")
+
+    if playback_rate > MAX_ACCEPTED_PLAYBACK_RATE:
+        raise HTTPException(status_code=400, detail="Toc do xem cao khong duoc tinh hoan thanh bai hoc")
 
     required_seconds = duration * MIN_WATCHED_PERCENT
     if watched_seconds + 0.5 < required_seconds:
@@ -274,6 +279,15 @@ async def save_progress(
     result = dict(doc)
     if payload.completed:
         progress = await _get_course_progress(db, user["_id"], payload.course_id)
+        result.update(
+            {
+                "totalLessons": progress["totalLessons"],
+                "completedLessons": progress["completedLessons"],
+                "completedLessonIds": progress["completedLessonIds"],
+                "progress": progress["progress"],
+                "isCompleted": progress["isCompleted"],
+            }
+        )
         if progress["isCompleted"]:
             certificate = await _ensure_certificate(db, user, progress)
             result["certificate"] = {

@@ -78,7 +78,7 @@ function OrderSummary({ course }) {
           <div className="flex items-start gap-3">
             <FiShield className="text-primary mt-0.5 shrink-0" />
             <div>
-              <p className="font-semibold">Stripe test mode</p>
+              <p className="font-semibold">Chế độ thử nghiệm Stripe</p>
               <p className="text-gray-600 mt-1">Thẻ demo: 4242 4242 4242 4242</p>
               <p className="text-gray-500 mt-1">Ngày hết hạn bất kỳ trong tương lai, CVC bất kỳ.</p>
             </div>

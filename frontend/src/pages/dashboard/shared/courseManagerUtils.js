@@ -7,7 +7,7 @@ export const emptyCourseForm = {
   category_id: "",
   level: "beginner",
   status: "draft",
-  cloudinary_folder: "",
+  storage_folder: "",
 };
 
 const COURSE_VIDEO_ROOT = "codecamp/courses";
@@ -63,8 +63,8 @@ export function emptyLessonForm(nextOrder = 1) {
   return {
     title: "",
     video_url: "",
-    video_public_id: "",
-    video_asset_folder: "",
+    video_object_key: "",
+    video_storage_folder: "",
     content: "",
     duration: 0,
     is_free_preview: false,

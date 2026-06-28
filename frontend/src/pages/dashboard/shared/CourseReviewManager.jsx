@@ -132,7 +132,7 @@ export default function CourseReviewManager() {
 
   const sections = detail?.sections || [];
   const lessons = sections.flatMap((section) => section.lessons || []);
-  const missingVideoCount = lessons.filter((lesson) => !(lesson.has_video || lesson.video_url || lesson.video_public_id)).length;
+  const missingVideoCount = lessons.filter((lesson) => !(lesson.has_video || lesson.video_url || lesson.video_object_key)).length;
   const attachmentCount = lessons.reduce((sum, lesson) => sum + (lesson.attachments || []).length, 0);
   const canReviewSelected = selectedCourse && selectedCourse.status !== "published";
 
@@ -256,8 +256,8 @@ export default function CourseReviewManager() {
                               </div>
                               <p className="mt-1 text-xs text-gray-500">Thứ tự {lesson.order || "-"} · Thời lượng {formatDuration(lesson.duration)} · ID {lesson._id}</p>
                             </div>
-                            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${(lesson.has_video || lesson.video_public_id || lesson.video_url) ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
-                              {(lesson.has_video || lesson.video_public_id || lesson.video_url) ? "Co video" : "Thieu video"}
+                            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${(lesson.has_video || lesson.video_object_key || lesson.video_url) ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                              {(lesson.has_video || lesson.video_object_key || lesson.video_url) ? "Có video" : "Thiếu video"}
                             </span>
                           </div>
 
@@ -273,7 +273,7 @@ export default function CourseReviewManager() {
                             ) : (
                               <p className="mt-2 text-xs text-red-600">Bài học chưa có video.</p>
                             )}
-                            {lesson.video_public_id && <p className="mt-2 break-all text-xs text-gray-400">Cloudinary public id: {lesson.video_public_id}</p>}
+                            {lesson.video_object_key && <p className="mt-2 break-all text-xs text-gray-400">Object key: {lesson.video_object_key}</p>}
                           </div>
 
                           {(lesson.attachments || []).length > 0 && (

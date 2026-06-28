@@ -67,7 +67,7 @@ MONGODB_URI             required
 STRIPE_SECRET_KEY       required
 STRIPE_WEBHOOK_SECRET   optional in local dev, recommended in deploy
 REDIS_URL               required for payment.success events
-PAYMENT_MONGODB_DB      default codecamp_payment
+PAYMENT_MONGODB_DB      default webcourse_payment
 JWT_SECRET              default dev-secret
 PAYMENT_INTERNAL_TOKEN  default dev-internal-token
 PORT                    default 8002

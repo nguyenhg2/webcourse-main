@@ -8,11 +8,11 @@ from app.core.deps import get_current_user, get_optional_user, require_role
 from app.db.mongo import get_db, oid, serialize_doc, serialize_docs
 from app.models.lesson_interactions import LessonCommentCreate, LessonNoteCreate
 from app.models.lessons import Lesson, UpdateLesson
-from app.services.cloudinary_urls import PlaybackSigningError, signed_video_playback
+from app.services.media_urls import PlaybackSigningError, signed_video_playback
 
 router = APIRouter()
 
-SECURE_VIDEO_DELIVERY_TYPES = {"authenticated", "private"}
+SECURE_VIDEO_DELIVERY_TYPES = {"authenticated", "private", "r2_signed_url"}
 
 
 def _clean_optional_text(value):
@@ -22,16 +22,16 @@ def _clean_optional_text(value):
 
 
 def _normalize_video_security(payload: dict, existing: dict | None = None) -> dict:
-    if "video_public_id" in payload:
-        payload["video_public_id"] = _clean_optional_text(payload.get("video_public_id")) or ""
+    if "video_object_key" in payload:
+        payload["video_object_key"] = _clean_optional_text(payload.get("video_object_key")) or ""
     if "video_url" in payload:
         payload["video_url"] = _clean_optional_text(payload.get("video_url")) or ""
     if "video_delivery_type" in payload:
         payload["video_delivery_type"] = _clean_optional_text(payload.get("video_delivery_type")) or ""
 
-    effective_public_id = payload.get("video_public_id")
-    if effective_public_id is None and existing:
-        effective_public_id = existing.get("video_public_id")
+    effective_object_key = payload.get("video_object_key")
+    if effective_object_key is None and existing:
+        effective_object_key = existing.get("video_object_key")
 
     effective_video_url = payload.get("video_url")
     if effective_video_url is None and existing:
@@ -41,12 +41,12 @@ def _normalize_video_security(payload: dict, existing: dict | None = None) -> di
     if effective_delivery_type is None and existing:
         effective_delivery_type = existing.get("video_delivery_type")
 
-    if effective_public_id:
+    if effective_object_key:
         delivery_type = effective_delivery_type or "authenticated"
         if delivery_type not in SECURE_VIDEO_DELIVERY_TYPES:
             raise HTTPException(
                 status_code=400,
-                detail="Video phai dung delivery type authenticated hoac private",
+                detail="Video phải dùng delivery type bảo mật",
             )
         payload["video_delivery_type"] = delivery_type
         return payload
@@ -54,7 +54,7 @@ def _normalize_video_security(payload: dict, existing: dict | None = None) -> di
     if effective_video_url and not settings.allow_legacy_public_video_urls:
         raise HTTPException(
             status_code=400,
-            detail="Khong cho phep luu URL video public. Hay upload video qua media-service de tao video_public_id.",
+            detail="Khong cho phep luu URL video public. Hay upload video qua media-service de tao video_object_key.",
         )
 
     return payload
@@ -62,7 +62,7 @@ def _normalize_video_security(payload: dict, existing: dict | None = None) -> di
 
 async def _lesson_playback_response(lesson: dict, response: Response | None = None) -> dict:
     doc = serialize_doc(lesson)
-    doc["has_video"] = bool(lesson.get("video_public_id") or lesson.get("video_url"))
+    doc["has_video"] = bool(lesson.get("video_object_key") or lesson.get("video_url"))
     doc.pop("video_url", None)
 
     try:

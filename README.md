@@ -13,7 +13,7 @@ backend/
     api-gateway/        FastAPI: gateway gom API cho frontend
   go/
     payment-service/    Go: payment, coupon, webhook
-    media-service/      Go: Cloudinary upload/delete
+    media-service/      Go: Cloudflare R2 upload/delete/signed URL
   php/
     blog-service/       Laravel: blog, contact
 frontend/               React/Vite app
@@ -32,7 +32,7 @@ Mỗi service là một biên độc lập:
 ```text
 Core Service      sở hữu course, lesson, enrollment, user, complaint
 Payment Service   sở hữu payment, coupon
-Media Service     sở hữu upload/delete media qua Cloudinary
+Media Service     sở hữu upload/delete media và signed URL qua Cloudflare R2
 Blog Service      sở hữu blog, contact
 ```
 
@@ -98,16 +98,22 @@ Tạo file `.env` ở thư mục gốc:
 
 ```env
 MONGODB_URI=
-MONGODB_DB=codecamp_core
-PAYMENT_MONGODB_DB=codecamp_payment
-BLOG_MONGODB_DB=codecamp_php
+MONGODB_DB=webcourse_core
+PAYMENT_MONGODB_DB=webcourse_payment
+BLOG_MONGODB_DB=webcourse_blog
 JWT_SECRET=
 STRIPE_SECRET_KEY=
 VITE_STRIPE_PUBLISHABLE_KEY=
 
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
+MEDIA_INTERNAL_TOKEN=dev-internal-token
+MEDIA_SIGNED_URL_TTL_SECONDS=600
+
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_ENDPOINT=
+R2_PUBLIC_BASE_URL=
 ```
 
 Với Stripe local demo, chỉ dùng test key: `sk_test...` cho `STRIPE_SECRET_KEY` và `pk_test...` cho `VITE_STRIPE_PUBLISHABLE_KEY`. Có thể dùng thẻ test `4242 4242 4242 4242`, ngày hết hạn bất kỳ trong tương lai và CVC bất kỳ.

@@ -4,20 +4,15 @@ from pydantic import Field, field_validator
 
 class Settings(BaseSettings):
     mongo_url: str = Field(alias="MONGODB_URI")
-    mongo_db: str = Field(default="codecamp_core", alias="MONGODB_DB")
+    mongo_db: str = Field(default="webcourse_core", alias="MONGODB_DB")
     payment_service_url: str = Field(default="http://localhost:8002", alias="PAYMENT_SERVICE_URL")
     payment_internal_token: str = Field(default="dev-internal-token", alias="PAYMENT_INTERNAL_TOKEN")
+    media_service_url: str = Field(default="http://localhost:8004", alias="MEDIA_SERVICE_URL")
+    media_internal_token: str = Field(default="dev-internal-token", alias="MEDIA_INTERNAL_TOKEN")
+    media_signed_url_ttl_seconds: int = Field(default=600, alias="MEDIA_SIGNED_URL_TTL_SECONDS")
     redis_url: str | None = Field(default="redis://localhost:6379", alias="REDIS_URL")
     jwt_secret: str = Field(default="dev-secret", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    cloudinary_cloud_name: str | None = Field(default=None, alias="CLOUDINARY_CLOUD_NAME")
-    cloudinary_api_key: str | None = Field(default=None, alias="CLOUDINARY_API_KEY")
-    cloudinary_api_secret: str | None = Field(default=None, alias="CLOUDINARY_API_SECRET")
-    cloudinary_auth_token_key: str | None = Field(default=None, alias="CLOUDINARY_AUTH_TOKEN_KEY")
-    cloudinary_signed_url_ttl_seconds: int = Field(default=600, alias="CLOUDINARY_SIGNED_URL_TTL_SECONDS")
-    cloudinary_signed_url_cache_grace_seconds: int = Field(
-        default=60, alias="CLOUDINARY_SIGNED_URL_CACHE_GRACE_SECONDS"
-    )
     allow_legacy_public_video_urls: bool = Field(
         default=False, alias="ALLOW_LEGACY_PUBLIC_VIDEO_URLS"
     )

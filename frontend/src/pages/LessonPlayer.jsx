@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { FiArrowLeft, FiBookOpen, FiDownload, FiLock, FiMessageCircle, FiPlay, FiTrash2 } from "react-icons/fi";
+import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiDownload, FiLock, FiMessageCircle, FiPlay, FiTrash2 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import { createLessonCommentAPI, createLessonNoteAPI, deleteLessonNoteAPI, getCourseBySlugAPI, getLessonAPI, getLessonCommentsAPI, getLessonNotesAPI, getMyCoursesAPI, saveProgressAPI } from "../services/api";
+import { createLessonCommentAPI, createLessonNoteAPI, deleteLessonNoteAPI, getCourseBySlugAPI, getLessonAPI, getLessonCommentsAPI, getLessonNotesAPI, getMyCoursesAPI, getProgressAPI, saveProgressAPI } from "../services/api";
 
 function formatDuration(seconds) {
   if (!seconds) return "";
@@ -43,6 +43,11 @@ function watchedSummary(stats, duration) {
   const watchedSeconds = Math.min(stats?.watchedSeconds?.size || 0, safeDuration);
   const watchedPercent = safeDuration ? watchedSeconds / safeDuration : 0;
   return { watchedSeconds, watchedPercent };
+}
+
+function completedIdsInCurrentCourse(ids, lessons) {
+  const validIds = new Set((lessons || []).map((item) => item._id));
+  return Array.from(new Set(ids || [])).filter((id) => validIds.has(id));
 }
 
 function displayLessonTitle(section, lesson) {
@@ -91,6 +96,7 @@ export default function LessonPlayer() {
   const [savingProgress, setSavingProgress] = useState(false);
   const [ownedCourseIds, setOwnedCourseIds] = useState(new Set());
   const [ownershipLoaded, setOwnershipLoaded] = useState(false);
+  const [courseProgress, setCourseProgress] = useState({ progress: 0, completedLessons: 0, completedLessonIds: [] });
   const videoRef = useRef(null);
   const playbackRefreshRef = useRef(false);
   const playbackRefreshTimerRef = useRef(null);
@@ -226,10 +232,47 @@ export default function LessonPlayer() {
   );
   const totalLessons = lessons.length;
   const activeIndex = Math.max(lessons.findIndex((item) => item._id === lessonId), 0);
-  const progressPercent = totalLessons ? Math.round(((activeIndex + 1) / totalLessons) * 100) : 0;
   const videoUrl = lesson?.signed_url;
   const currentCourseId = course?._id || lesson?.course_id;
   const hasCourseAccess = Boolean(currentCourseId && ownedCourseIds.has(currentCourseId));
+  const completedLessonIdList = useMemo(
+    () => completedIdsInCurrentCourse(courseProgress.completedLessonIds, lessons),
+    [courseProgress.completedLessonIds, lessons]
+  );
+  const completedLessonIds = useMemo(() => new Set(completedLessonIdList), [completedLessonIdList]);
+  const completedLessons = completedLessonIdList.length;
+  const progressPercent = totalLessons ? Math.round((completedLessons * 100) / totalLessons) : 0;
+
+  useEffect(() => {
+    if (!user || !currentCourseId || !ownershipLoaded || !ownedCourseIds.has(currentCourseId)) {
+      setCourseProgress({ progress: 0, completedLessons: 0, completedLessonIds: [] });
+      savedLessonsRef.current = new Set();
+      return;
+    }
+
+    let cancelled = false;
+    getProgressAPI(currentCourseId)
+      .then((progress) => {
+        if (cancelled) return;
+        const completedIds = Array.isArray(progress.completedLessonIds) ? progress.completedLessonIds : [];
+        setCourseProgress({
+          progress: Number(progress.progress || 0),
+          completedLessons: Number(progress.completedLessons || completedIds.length || 0),
+          completedLessonIds: completedIds,
+        });
+        savedLessonsRef.current = new Set(completedIds);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCourseProgress({ progress: 0, completedLessons: 0, completedLessonIds: [] });
+          savedLessonsRef.current = new Set();
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, currentCourseId, ownershipLoaded, ownedCourseIds]);
 
   function resetWatchClock(video = videoRef.current) {
     const stats = watchStatsRef.current;
@@ -279,6 +322,28 @@ export default function LessonPlayer() {
       });
       savedLessonsRef.current.add(lesson._id);
       stats.completedSaved = true;
+      setCourseProgress((current) => {
+        if (Array.isArray(result.completedLessonIds)) {
+          return {
+            progress: Number(result.progress || 0),
+            completedLessons: Number(result.completedLessons || result.completedLessonIds.length || 0),
+            completedLessonIds: result.completedLessonIds,
+          };
+        }
+
+        const validLessonIds = new Set(lessons.map((item) => item._id));
+        if (validLessonIds.size && !validLessonIds.has(lesson._id)) return current;
+
+        const ids = new Set(current.completedLessonIds || []);
+        ids.add(lesson._id);
+        const completedIds = completedIdsInCurrentCourse(Array.from(ids), lessons);
+        const nextCompleted = completedIds.length;
+        return {
+          progress: totalLessons ? Math.round((nextCompleted * 100) / totalLessons) : current.progress || 0,
+          completedLessons: nextCompleted,
+          completedLessonIds: completedIds,
+        };
+      });
       setMessage(result.certificate?.ready ? "Đã hoàn thành khóa học và tạo chứng chỉ PDF." : "Đã lưu tiến độ vào cơ sở dữ liệu");
     } catch (error) {
       const status = error.response?.status;
@@ -544,7 +609,7 @@ export default function LessonPlayer() {
               {activeTab === "content" && (
                 <div className="space-y-5">
                   <p className={`${muted} whitespace-pre-line text-sm leading-7`}>
-                    {lesson?.content || "Nội dung bài học được lấy từ cơ sở dữ liệu. Video được phát từ đường dẫn Cloudinary của bài học hiện tại."}
+                    {lesson?.content || "Nội dung bài học được lấy từ cơ sở dữ liệu. Video được phát từ đường dẫn bảo mật của bài học hiện tại."}
                   </p>
                   {(lesson?.quiz || []).length > 0 && (
                     <div className="rounded-lg border border-gray-100 p-4">
@@ -670,7 +735,7 @@ export default function LessonPlayer() {
             <div className="w-full h-2 bg-gray-100 rounded-full mt-4">
               <div className="h-full bg-primary rounded-full" style={{ width: `${progressPercent}%` }} />
             </div>
-            <p className={`text-xs ${muted} mt-2`}>{progressPercent}% tiến độ hiện tại</p>
+            <p className={`text-xs ${muted} mt-2`}>{progressPercent}% hoàn thành ({completedLessons}/{totalLessons || 0} bài)</p>
           </div>
 
           <div className="max-h-[calc(100vh-180px)] overflow-y-auto">
@@ -680,13 +745,14 @@ export default function LessonPlayer() {
                 {(section.lessons || []).map((item) => {
                   const accessPending = Boolean(user && !ownershipLoaded);
                   const locked = !accessPending && !hasCourseAccess && !item.is_free_preview;
+                  const isCompleted = completedLessonIds.has(item._id);
                   return (
                     <Link
                       key={item._id}
                       to={`/khoa-hoc/${slug}/hoc/${item._id}`}
                       className={`flex items-center gap-3 px-5 py-3 text-sm hover:bg-primary-light ${item._id === lessonId ? "text-primary bg-primary-light" : muted}`}
                     >
-                      {locked ? <FiLock size={14} /> : <FiPlay size={14} />}
+                      {locked ? <FiLock size={14} /> : isCompleted ? <FiCheckCircle size={14} /> : <FiPlay size={14} />}
                       <span className="flex-1 truncate">{displayLessonTitle(section, item)}</span>
                       <span className="text-xs">{formatDuration(item.duration)}</span>
                     </Link>
