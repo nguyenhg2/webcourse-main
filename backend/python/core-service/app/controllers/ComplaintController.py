@@ -9,6 +9,8 @@ from app.db.mongo import get_db, oid, serialize_doc
 from app.services import payment_client
 
 router = APIRouter()
+ALLOWED_STATUSES = {"open", "pending", "resolved"}
+ALLOWED_PRIORITIES = {"low", "normal", "high"}
 
 
 class ComplaintCreate(BaseModel):
@@ -33,6 +35,15 @@ def _sanitize_user(user: dict | None) -> dict | None:
     return user
 
 
+async def _docs_by_id(db, collection: str, ids: list[str]) -> dict[str, dict]:
+    object_ids = [oid(item_id) for item_id in ids if ObjectId.is_valid(str(item_id or ""))]
+    if not object_ids:
+        return {}
+
+    docs = await db[collection].find({"_id": {"$in": object_ids}}).to_list(length=len(object_ids))
+    return {str(doc["_id"]): doc for doc in docs}
+
+
 async def _enrich_complaint(db, complaint: dict, request: Request) -> dict:
     item = serialize_doc(complaint)
 
@@ -54,6 +65,21 @@ async def _enrich_complaint(db, complaint: dict, request: Request) -> dict:
     return item
 
 
+async def _enrich_complaints(db, complaints: list[dict], request: Request) -> list[dict]:
+    items = [serialize_doc(complaint) for complaint in complaints]
+    students = await _docs_by_id(db, "users", [item.get("student_id") for item in items])
+    courses = await _docs_by_id(db, "courses", [item.get("course_id") for item in items])
+
+    for item in items:
+        item["student"] = _sanitize_user(students.get(item.get("student_id")))
+        item["course"] = serialize_doc(courses.get(item.get("course_id")))
+        item["payment"] = None
+        if ObjectId.is_valid(str(item.get("payment_id", ""))):
+            item["payment"] = await payment_client.get_payment(item["payment_id"], request)
+
+    return items
+
+
 @router.get("/api/complaints")
 async def get_complaints(
     request: Request,
@@ -70,7 +96,7 @@ async def get_complaints(
         raise HTTPException(status_code=403, detail="Không đủ quyền thực hiện")
 
     complaints = await db["complaints"].find(query).sort("created_at", -1).to_list(length=500)
-    return [await _enrich_complaint(db, complaint, request) for complaint in complaints]
+    return await _enrich_complaints(db, complaints, request)
 
 
 @router.post("/api/complaints")
@@ -113,13 +139,11 @@ async def update_complaint(
     if not ObjectId.is_valid(complaint_id):
         raise HTTPException(status_code=400, detail="complaint_id không hợp lệ")
 
-    allowed_statuses = {"open", "pending", "resolved"}
-    allowed_priorities = {"low", "normal", "high"}
     data = payload.model_dump(exclude_unset=True)
 
-    if "status" in data and data["status"] not in allowed_statuses:
+    if "status" in data and data["status"] not in ALLOWED_STATUSES:
         raise HTTPException(status_code=400, detail="Trạng thái khiếu nại không hợp lệ")
-    if "priority" in data and data["priority"] not in allowed_priorities:
+    if "priority" in data and data["priority"] not in ALLOWED_PRIORITIES:
         raise HTTPException(status_code=400, detail="Mức ưu tiên không hợp lệ")
 
     data["handled_by"] = user["_id"]

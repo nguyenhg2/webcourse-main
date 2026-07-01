@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.models.categories import Categories
 from app.core.deps import require_role
-from app.db.mongo import get_db, serialize_docs, serialize_doc, oid
+from app.db.mongo import get_db, serialize_docs, oid
 
 router = APIRouter()
 

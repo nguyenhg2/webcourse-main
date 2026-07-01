@@ -7,9 +7,32 @@ from app.models.reviews import ReviewCreate
 
 router = APIRouter()
 
+
+def _valid_id(value: str | None) -> bool:
+    return ObjectId.is_valid(str(value or ""))
+
+
+def _hide_private_user_fields(user: dict | None) -> dict | None:
+    user = serialize_doc(user)
+    if not user:
+        return None
+    user.pop("hashed_password", None)
+    user.pop("passwordHash", None)
+    return user
+
+
+async def _docs_by_id(db, collection: str, ids: list[str]) -> dict[str, dict]:
+    object_ids = [oid(item_id) for item_id in ids if _valid_id(item_id)]
+    if not object_ids:
+        return {}
+
+    docs = await db[collection].find({"_id": {"$in": object_ids}}).to_list(length=len(object_ids))
+    return {str(doc["_id"]): doc for doc in docs}
+
+
 @router.get("/api/courses/{course_id}/reviews")
 async def get_course_reviews(course_id: str, db=Depends(get_db)):
-    if not ObjectId.is_valid(course_id):
+    if not _valid_id(course_id):
         raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     course = await db["courses"].find_one({"_id": oid(course_id)})
@@ -28,21 +51,14 @@ async def get_course_reviews(course_id: str, db=Depends(get_db)):
 @router.get("/api/reviews")
 async def get_public_reviews(db=Depends(get_db)):
     reviews = await db["reviews"].find({}).sort("created_at", -1).to_list(length=6)
-    items = []
-    for review in reviews:
-        item = serialize_doc(review)
-        user = None
-        if ObjectId.is_valid(str(item.get("user_id", ""))):
-            user = await db["users"].find_one({"_id": oid(item["user_id"])})
-        course = None
-        if ObjectId.is_valid(str(item.get("course_id", ""))):
-            course = await db["courses"].find_one({"_id": oid(item["course_id"])})
-        item["user"] = serialize_doc(user) if user else None
-        if item["user"]:
-            item["user"].pop("hashed_password", None)
-            item["user"].pop("passwordHash", None)
-        item["course"] = serialize_doc(course) if course else None
-        items.append(item)
+    items = [serialize_doc(review) for review in reviews]
+    users = await _docs_by_id(db, "users", [item.get("user_id") for item in items])
+    courses = await _docs_by_id(db, "courses", [item.get("course_id") for item in items])
+
+    for item in items:
+        item["user"] = _hide_private_user_fields(users.get(item.get("user_id")))
+        item["course"] = serialize_doc(courses.get(item.get("course_id")))
+
     return items
 
 
@@ -52,7 +68,7 @@ async def create_review(
     db=Depends(get_db),
     user=Depends(get_current_user),
 ):
-    if not ObjectId.is_valid(payload.course_id):
+    if not _valid_id(payload.course_id):
         raise HTTPException(status_code=400, detail="course_id không hợp lệ")
 
     course = await db["courses"].find_one({"_id": oid(payload.course_id)})
@@ -99,7 +115,7 @@ async def delete_review(
     db=Depends(get_db),
     user=Depends(require_role("admin")),
 ):
-    if not ObjectId.is_valid(review_id):
+    if not _valid_id(review_id):
         raise HTTPException(status_code=400, detail="review_id không hợp lệ")
 
     result = await db["reviews"].delete_one({"_id": oid(review_id)})

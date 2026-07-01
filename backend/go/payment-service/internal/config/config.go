@@ -66,7 +66,7 @@ func loadEnvFiles(paths ...string) {
 
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok && strings.TrimSpace(value) != "" {
-		return value
+		return strings.TrimSpace(value)
 	}
 	return fallback
 }
@@ -76,5 +76,5 @@ func requiredEnv(key string) string {
 	if !ok || strings.TrimSpace(value) == "" {
 		log.Fatalf("%s là bắt buộc", key)
 	}
-	return value
+	return strings.TrimSpace(value)
 }

@@ -30,6 +30,7 @@ const (
 	statusFailed          = "failed"
 	statusCanceled        = "canceled"
 	paymentSuccessChannel = "payment.success"
+	paymentListLimit      = 500
 )
 
 type handler struct {
@@ -89,8 +90,7 @@ func (h handler) get(c *gin.Context) {
 		return
 	}
 
-	role := c.GetString("role")
-	if role != "admin" && role != "operator" && payment.UserID != c.GetString("user_id") {
+	if !canViewPayment(c, payment) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Không đủ quyền xem thanh toán này"})
 		return
 	}
@@ -164,12 +164,6 @@ func newPayment(ctx context.Context, db *mongo.Database, userID string, req mode
 		return nil, err
 	}
 
-	billing := req.BillingAddress
-	if strings.TrimSpace(billing.Email) == "" {
-		billing.Email = strings.TrimSpace(req.UserEmail)
-	}
-	billing.Country = strings.ToUpper(strings.TrimSpace(billing.Country))
-
 	now := time.Now().Unix()
 	return &models.Payment{
 		ID:             primitive.NewObjectID(),
@@ -186,10 +180,19 @@ func newPayment(ctx context.Context, db *mongo.Database, userID string, req mode
 		CardLast4:      last4(req.CardLast4),
 		CardBrand:      cardBrand(req.CardBrand),
 		Status:         statusComplete,
-		BillingAddress: billing,
+		BillingAddress: cleanBillingAddress(req),
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}, nil
+}
+
+func cleanBillingAddress(req models.PaymentRequest) models.BillingAddress {
+	billing := req.BillingAddress
+	if strings.TrimSpace(billing.Email) == "" {
+		billing.Email = strings.TrimSpace(req.UserEmail)
+	}
+	billing.Country = strings.ToUpper(strings.TrimSpace(billing.Country))
+	return billing
 }
 
 func discountFor(ctx context.Context, db *mongo.Database, code string, amount int64) (int64, string, error) {
@@ -349,7 +352,7 @@ func publishPaymentSuccess(ctx context.Context, redisClient *redis.Client, payme
 }
 
 func listPayments(ctx context.Context, col *mongo.Collection, filter bson.M) ([]*models.Payment, error) {
-	cursor, err := col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(500))
+	cursor, err := col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(paymentListLimit))
 	if err != nil {
 		return nil, err
 	}
@@ -373,16 +376,21 @@ func paymentResponse(payment *models.Payment, clientSecret string) *models.Payme
 }
 
 func cleanCourseIDs(ids []string) []string {
-	seen := map[string]bool{}
+	seen := map[string]struct{}{}
 	out := []string{}
 	for _, id := range ids {
 		id = strings.TrimSpace(id)
-		if id != "" && !seen[id] {
-			seen[id] = true
+		if _, exists := seen[id]; id != "" && !exists {
+			seen[id] = struct{}{}
 			out = append(out, id)
 		}
 	}
 	return out
+}
+
+func canViewPayment(c *gin.Context, payment *models.Payment) bool {
+	role := c.GetString("role")
+	return role == "admin" || role == "operator" || payment.UserID == c.GetString("user_id")
 }
 
 func last4(value string) string {

@@ -8,7 +8,7 @@ from .rate_limiter import limiter
 
 setup_logger()
 
-app=FastAPI(title="API Gateway")
+app = FastAPI(title="API Gateway")
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,11 +22,13 @@ app.add_middleware(
 async def gateway_middleware(request: Request, call_next):
     await limiter.check_rate_limit(request)
     logging.info(f"Incoming request: {request.method} {request.url.path}")
+
     response = await call_next(request)
     logging.info(f"Response status: {response.status_code}")
+
     return response
 
 app.include_router(api_router)
 
-if __name__=="__main__":
+if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)

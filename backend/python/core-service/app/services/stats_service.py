@@ -8,6 +8,19 @@ async def empty_list():
     return []
 
 
+def _sanitize_user(user: dict | None) -> dict | None:
+    user = serialize_doc(user)
+    if not user:
+        return None
+    user.pop("hashed_password", None)
+    user.pop("passwordHash", None)
+    return user
+
+
+def _valid_object_ids(values) -> list[ObjectId]:
+    return [oid(str(value)) for value in values if ObjectId.is_valid(str(value or ""))]
+
+
 async def course_rating(db, course_ids: list[str]) -> float:
     ids = [str(course_id) for course_id in course_ids if course_id]
     if not ids:
@@ -81,33 +94,21 @@ async def attach_course_relations(db, course: dict) -> dict:
     category_id = course.get("category_id")
     instructor_id = course.get("instructor_id")
 
-    if ObjectId.is_valid(str(category_id or "")):
-        category = await db["categories"].find_one({"_id": oid(str(category_id))})
-        if category:
-            course["category"] = serialize_doc(category)
+    category_query = db["categories"].find_one({"_id": oid(str(category_id))}) if ObjectId.is_valid(str(category_id or "")) else empty_list()
+    instructor_query = db["users"].find_one({"_id": oid(str(instructor_id))}) if ObjectId.is_valid(str(instructor_id or "")) else empty_list()
+    category, instructor = await asyncio.gather(category_query, instructor_query)
 
-    if ObjectId.is_valid(str(instructor_id or "")):
-        instructor = await db["users"].find_one({"_id": oid(str(instructor_id))})
-        if instructor:
-            instructor = serialize_doc(instructor)
-            instructor.pop("hashed_password", None)
-            instructor.pop("passwordHash", None)
-            course["instructor"] = instructor
+    if category:
+        course["category"] = serialize_doc(category)
+    if instructor:
+        course["instructor"] = _sanitize_user(instructor)
 
     return course
 
 
 async def attach_courses_relations(db, courses: list[dict]) -> list[dict]:
-    category_ids = {
-        oid(str(course.get("category_id")))
-        for course in courses
-        if ObjectId.is_valid(str(course.get("category_id") or ""))
-    }
-    instructor_ids = {
-        oid(str(course.get("instructor_id")))
-        for course in courses
-        if ObjectId.is_valid(str(course.get("instructor_id") or ""))
-    }
+    category_ids = _valid_object_ids(course.get("category_id") for course in courses)
+    instructor_ids = _valid_object_ids(course.get("instructor_id") for course in courses)
 
     categories_query = db["categories"].find({"_id": {"$in": list(category_ids)}}).to_list(length=len(category_ids)) if category_ids else empty_list()
     instructors_query = db["users"].find({"_id": {"$in": list(instructor_ids)}}).to_list(length=len(instructor_ids)) if instructor_ids else empty_list()
@@ -116,9 +117,7 @@ async def attach_courses_relations(db, courses: list[dict]) -> list[dict]:
     category_by_id = {str(item["_id"]): serialize_doc(item) for item in categories}
     instructor_by_id = {}
     for item in instructors:
-        user = serialize_doc(item)
-        user.pop("hashed_password", None)
-        user.pop("passwordHash", None)
+        user = _sanitize_user(item)
         instructor_by_id[user["_id"]] = user
 
     for course in courses:

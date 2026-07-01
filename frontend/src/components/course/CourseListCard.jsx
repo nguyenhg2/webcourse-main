@@ -1,19 +1,11 @@
 import { Link } from "react-router-dom";
 import { FiClock, FiUsers, FiBarChart, FiBookOpen, FiShoppingCart } from "react-icons/fi";
+import { cartButtonLabel, courseLevelLabel, coursePriceLabel } from "../../utils/courseDisplay";
 import { courseFallbackImage, courseImage, useFallbackImage } from "../../utils/courseImages";
 
-const LEVEL_MAP = {
-  beginner: "Người mới",
-  intermediate: "Trung cấp",
-  advanced: "Nâng cao",
-};
-
 export default function CourseListCard({ course, isOwned = false, isInCart = false, isAdding = false, onAddCart }) {
-  const levelText = LEVEL_MAP[course.level] || course.level;
-  const priceText =
-    course.price === 0
-      ? "Miễn phí"
-      : course.price.toLocaleString("vi-VN") + "đ";
+  const levelText = courseLevelLabel(course.level);
+  const priceText = coursePriceLabel(course.price);
 
   return (
     <div className="w-full rounded-xl border border-gray-100 flex flex-col md:flex-row overflow-hidden hover:shadow-md transition-shadow">
@@ -69,7 +61,7 @@ export default function CourseListCard({ course, isOwned = false, isInCart = fal
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 <FiShoppingCart size={16} />
-                {isAdding ? "Đang thêm..." : isInCart ? "Đã có trong giỏ" : "Thêm vào giỏ"}
+                {cartButtonLabel(isAdding, isInCart)}
               </button>
             )}
             <Link

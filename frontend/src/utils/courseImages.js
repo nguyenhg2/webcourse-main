@@ -40,36 +40,20 @@ function usableImage(value) {
   return src;
 }
 
-function textForCourse(course = {}) {
-  return [
-    course.title,
-    course.slug,
-    course.category?.name,
-    course.category_name,
-    course.level,
-    course.description,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-function textForBlog(post = {}) {
-  return [
-    post.title,
-    post.slug,
-    post.category?.name,
-    post.category_name,
-    post.excerpt,
-    post.content,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
 function stableIndex(value = "", list) {
   return Array.from(String(value)).reduce((sum, char) => sum + char.charCodeAt(0), 0) % list.length;
+}
+
+function textFrom(values) {
+  return values.filter(Boolean).join(" ").toLowerCase();
+}
+
+function imageByKeyword(text, images) {
+  return images.find((item) => item.keys.some((key) => text.includes(key)))?.src;
+}
+
+function fallbackImage(seed, fallbacks) {
+  return fallbacks[stableIndex(seed, fallbacks)];
 }
 
 export function courseImage(course = {}) {
@@ -80,11 +64,18 @@ export function courseImage(course = {}) {
 }
 
 export function courseFallbackImage(course = {}) {
-  const text = textForCourse(course);
-  const matched = COURSE_IMAGES.find((item) => item.keys.some((key) => text.includes(key)));
-  if (matched) return matched.src;
+  const text = textFrom([
+    course.title,
+    course.slug,
+    course.category?.name,
+    course.category_name,
+    course.level,
+    course.description,
+  ]);
+  const matched = imageByKeyword(text, COURSE_IMAGES);
+  if (matched) return matched;
 
-  return COURSE_FALLBACKS[stableIndex(course._id || course.id || course.slug || course.title, COURSE_FALLBACKS)];
+  return fallbackImage(course._id || course.id || course.slug || course.title, COURSE_FALLBACKS);
 }
 
 export function useFallbackImage(event, fallback) {
@@ -96,9 +87,16 @@ export function blogImage(post = {}) {
   const existing = usableImage(post.image || post.thumbnail);
   if (existing) return existing;
 
-  const text = textForBlog(post);
-  const matched = BLOG_IMAGES.find((item) => item.keys.some((key) => text.includes(key)));
-  if (matched) return matched.src;
+  const text = textFrom([
+    post.title,
+    post.slug,
+    post.category?.name,
+    post.category_name,
+    post.excerpt,
+    post.content,
+  ]);
+  const matched = imageByKeyword(text, BLOG_IMAGES);
+  if (matched) return matched;
 
-  return BLOG_FALLBACKS[stableIndex(post._id || post.id || post.slug || post.title, BLOG_FALLBACKS)];
+  return fallbackImage(post._id || post.id || post.slug || post.title, BLOG_FALLBACKS);
 }

@@ -1,14 +1,18 @@
+import asyncio
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Request
+
 from app.models.users import LoginRequest, RegisterRequest, TokenResponse, UserUpdate
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.db.mongo import get_db, oid, serialize_doc
-from datetime import datetime, timedelta, timezone
 from app.core.deps import get_current_user as get_current_user_dependency
 from app.core.config import settings
 from app.services import payment_client
 from app.services.stats_service import course_rating
 
-router=APIRouter()
+router = APIRouter()
+INVALID_LOGIN_MESSAGE = "Email hoặc mật khẩu không đúng"
 
 
 def _sanitize_user(user: dict | None) -> dict | None:
@@ -52,14 +56,17 @@ async def _build_profile_stats(db, user: dict, request: Request) -> dict:
     role = user.get("role", "student")
 
     if role == "student":
-        enrolled_courses = await db["enrollments"].count_documents(
-            {"user_id": user_id, "payment_id": {"$exists": True}}
-        )
-        completed_courses = await _count_completed_courses(db, user_id)
-        progress_docs = await db["progress"].find(
+        enrollments_query = db["enrollments"].count_documents({"user_id": user_id, "payment_id": {"$exists": True}})
+        completed_query = _count_completed_courses(db, user_id)
+        progress_query = db["progress"].find(
             {"user_id": user_id, "completed": True},
             {"completed_at": 1},
         ).to_list(length=1000)
+        enrolled_courses, completed_courses, progress_docs = await asyncio.gather(
+            enrollments_query,
+            completed_query,
+            progress_query,
+        )
         learned_days = {
             str(doc.get("completed_at", ""))[:10]
             for doc in progress_docs
@@ -104,49 +111,52 @@ async def _build_profile_stats(db, user: dict, request: Request) -> dict:
 
 @router.post("/api/auth/register")
 async def register(payload: RegisterRequest, db=Depends(get_db)):
-    user_email=payload.email
-    if (await db.users.find_one({"email": user_email})):
+    user_email = payload.email
+    if await db.users.find_one({"email": user_email}):
         raise HTTPException(status_code=400, detail="Email đã được đăng ký")
-    hashed_pwd=get_password_hash(payload.password)
-    user_doc={
+
+    user_doc = {
         "name": payload.name,
         "email": user_email,
-        "hashed_password": hashed_pwd,
+        "hashed_password": get_password_hash(payload.password),
         "role": "student",
         "avatar": payload.avatar or None,
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(timezone.utc),
     }
     await db.users.insert_one(user_doc)
     return {"message": "Đăng ký thành công"}
 
+
 @router.post("/api/auth/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db=Depends(get_db)):
-    user=await db.users.find_one({"email": payload.email})
+    user = await db.users.find_one({"email": payload.email})
     if not user:
-        raise HTTPException(status_code=400, detail="Email hoặc mật khẩu không đúng")
+        raise HTTPException(status_code=400, detail=INVALID_LOGIN_MESSAGE)
     if user.get("is_active") is False:
         raise HTTPException(status_code=403, detail="Tài khoản đã bị khóa")
     if not verify_password(payload.password, user["hashed_password"]):
-        raise HTTPException(status_code=400, detail="Email hoặc mật khẩu không đúng")
+        raise HTTPException(status_code=400, detail=INVALID_LOGIN_MESSAGE)
     
     expected_role = payload.expected_role.value if payload.expected_role else None
     if expected_role and user.get("role") != expected_role:
         raise HTTPException(status_code=403, detail="Tài khoản không đúng vai trò đăng nhập")
 
-    user=serialize_doc(user)
-    token=create_access_token(
+    user = serialize_doc(user)
+    token = create_access_token(
         {
             "user_id": user["_id"],
             "email": user["email"],
-            "role": user["role"]
+            "role": user["role"],
         },
         expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
     )
     return TokenResponse(access_token=token, expires_in=settings.access_token_expire_minutes * 60)
 
+
 @router.get("/api/auth/me")
 async def get_current_user(user=Depends(get_current_user_dependency)):
     return user
+
 
 @router.get("/api/auth/profile")
 async def get_profile(request: Request, db=Depends(get_db), user=Depends(get_current_user_dependency)):
@@ -154,6 +164,7 @@ async def get_profile(request: Request, db=Depends(get_db), user=Depends(get_cur
         "user": user,
         "stats": await _build_profile_stats(db, user, request),
     }
+
 
 @router.put("/api/auth/me")
 async def update_current_user(payload: UserUpdate, db=Depends(get_db), user=Depends(get_current_user_dependency)):

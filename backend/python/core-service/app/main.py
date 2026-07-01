@@ -25,6 +25,22 @@ from .subscribers.payment_subscriber import start_payment_success_listener, stop
 
 app = FastAPI(title="CodeCamp Core Service")
 logger = logging.getLogger(__name__)
+controllers = [
+    auth_controller,
+    course_controller,
+    category_controller,
+    section_controller,
+    lesson_controller,
+    enrollment_controller,
+    roadmap_controller,
+    review_controller,
+    progress_controller,
+    cart_controller,
+    admin_controller,
+    checkout_controller,
+    complaint_controller,
+    site_content_controller,
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,20 +50,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_controller.router)
-app.include_router(course_controller.router)
-app.include_router(category_controller.router)
-app.include_router(section_controller.router)
-app.include_router(lesson_controller.router)
-app.include_router(enrollment_controller.router)
-app.include_router(roadmap_controller.router)
-app.include_router(review_controller.router)
-app.include_router(progress_controller.router)
-app.include_router(cart_controller.router)
-app.include_router(admin_controller.router)
-app.include_router(checkout_controller.router)
-app.include_router(complaint_controller.router)
-app.include_router(site_content_controller.router)
+for controller in controllers:
+    app.include_router(controller.router)
 
 
 @app.get("/health")

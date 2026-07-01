@@ -16,13 +16,8 @@ import CommentList from "../components/ui/CommentList";
 import RatingStars from "../components/ui/RatingStars";
 import { addCartAPI, createReviewAPI, getCourseBySlugAPI, getCourseReviewsAPI, getMyCoursesAPI, getSiteContentSectionAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { courseLevelLabel, coursePriceLabel } from "../utils/courseDisplay";
 import { courseFallbackImage, courseImage, useFallbackImage } from "../utils/courseImages";
-
-const LEVEL_MAP = {
-  beginner: "Người mới",
-  intermediate: "Trung cấp",
-  advanced: "Nâng cao",
-};
 
 function formatDuration(seconds) {
   if (!seconds) return "";
@@ -166,11 +161,8 @@ export default function CourseSingle() {
     );
   }
 
-  const levelText = LEVEL_MAP[course.level] || course.level;
-  const priceText =
-    course.price === 0
-      ? "Miễn phí"
-      : course.price.toLocaleString("vi-VN") + "đ";
+  const levelText = courseLevelLabel(course.level);
+  const priceText = coursePriceLabel(course.price);
 
   const totalLessons = course.sections
     ? course.sections.reduce(

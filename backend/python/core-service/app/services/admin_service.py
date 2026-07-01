@@ -231,44 +231,45 @@ async def student_dashboard(db, user: dict) -> dict:
     enrollments = await db["enrollments"].find(
         {"user_id": user["_id"], "payment_id": {"$exists": True}}
     ).to_list(length=500)
+    course_ids = [
+        enrollment.get("course_id")
+        for enrollment in enrollments
+        if ObjectId.is_valid(str(enrollment.get("course_id") or ""))
+    ]
+    if not course_ids:
+        return {"stats": {"courses": 0, "completed": 0, "progress": 0, "lessons": 0}, "items": []}
 
-    items = []
-    progress_values = []
-    completed_courses = 0
-    completed_lessons_total = 0
+    courses_query = db["courses"].find({"_id": {"$in": [oid(course_id) for course_id in course_ids]}}).to_list(length=len(course_ids))
+    lessons_query = db["lessons"].find({"course_id": {"$in": course_ids}}).to_list(length=5000)
+    progress_query = db["progress"].aggregate([
+        {"$match": {"user_id": user["_id"], "course_id": {"$in": course_ids}, "completed": True}},
+        {"$group": {"_id": "$course_id", "completed_lessons": {"$sum": 1}}},
+    ]).to_list(length=len(course_ids))
+    courses, lessons, progress_rows = await asyncio.gather(courses_query, lessons_query, progress_query)
 
-    for enrollment in enrollments:
-        course_id = enrollment.get("course_id")
-        if not ObjectId.is_valid(course_id):
-            continue
+    course_by_id = {str(course["_id"]): serialize_doc(course) for course in courses}
+    lessons_by_course: dict[str, list[dict]] = {}
+    for lesson in lessons:
+        lessons_by_course.setdefault(lesson.get("course_id"), []).append(lesson)
+    completed_by_course = {row["_id"]: int(row.get("completed_lessons") or 0) for row in progress_rows}
 
-        course = await db["courses"].find_one({"_id": oid(course_id)})
+    items, progress_values = [], []
+    completed_courses = completed_lessons_total = 0
+    for course_id in course_ids:
+        course = course_by_id.get(course_id)
         if not course:
             continue
 
-        lessons = await db["lessons"].find({"course_id": course_id}).to_list(length=500)
-        lesson_ids = [str(lesson["_id"]) for lesson in lessons]
-        completed_lessons = (
-            await db["progress"].count_documents(
-                {
-                    "user_id": user["_id"],
-                    "course_id": course_id,
-                    "lesson_id": {"$in": lesson_ids},
-                    "completed": True,
-                }
-            )
-            if lesson_ids
-            else 0
-        )
-        progress = round(completed_lessons * 100 / len(lesson_ids)) if lesson_ids else 0
+        total_lessons = len(lessons_by_course.get(course_id, []))
+        completed_lessons = completed_by_course.get(course_id, 0)
+        progress = round(completed_lessons * 100 / total_lessons) if total_lessons else 0
         progress_values.append(progress)
         completed_lessons_total += completed_lessons
         if progress >= 100:
             completed_courses += 1
 
-        item = serialize_doc(course)
-        item["progress"] = progress
-        items.append(item)
+        course["progress"] = progress
+        items.append(course)
 
     return {
         "stats": {

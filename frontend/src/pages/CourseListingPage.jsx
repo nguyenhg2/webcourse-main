@@ -40,12 +40,17 @@ export default function CourseListingPage() {
       return;
     }
 
-    getMyCoursesAPI()
-      .then((items) => setOwnedCourseIds(new Set(items.map((item) => item._id))))
-      .catch(() => setOwnedCourseIds(new Set()));
-    getCartAPI()
-      .then((data) => setCartCourseIds(new Set((data.items || []).map((item) => item._id))))
-      .catch(() => setCartCourseIds(new Set()));
+    async function loadStudentCourses() {
+      const [myCourses, cart] = await Promise.all([
+        getMyCoursesAPI().catch(() => []),
+        getCartAPI().catch(() => ({ items: [] })),
+      ]);
+
+      setOwnedCourseIds(new Set(myCourses.map((item) => item._id)));
+      setCartCourseIds(new Set((cart.items || []).map((item) => item._id)));
+    }
+
+    loadStudentCourses();
   }, [user]);
 
   async function handleAddCart(course) {

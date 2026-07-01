@@ -41,18 +41,9 @@ func uploadImage(c *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"image_url":      data.URL,
-		"url":            data.URL,
-		"object_key":     data.ObjectKey,
-		"storage_folder": data.StorageFolder,
-		"bytes":          data.Bytes,
-		"format":         data.Format,
-		"content_type":   data.ContentType,
-		"name":           data.OriginalName,
-		"expires_at":     data.ExpiresAt,
-		"storage":        "cloudflare_r2",
-	})
+	response := mediaResponse(data)
+	response["image_url"] = data.URL
+	c.JSON(http.StatusOK, response)
 }
 
 func uploadVideo(c *gin.Context, cfg *config.Config) {
@@ -68,19 +59,10 @@ func uploadVideo(c *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"video_url":      data.URL,
-		"url":            data.URL,
-		"object_key":     data.ObjectKey,
-		"storage_folder": data.StorageFolder,
-		"delivery_type":  "r2_signed_url",
-		"bytes":          data.Bytes,
-		"format":         data.Format,
-		"content_type":   data.ContentType,
-		"name":           data.OriginalName,
-		"expires_at":     data.ExpiresAt,
-		"storage":        "cloudflare_r2",
-	})
+	response := mediaResponse(data)
+	response["video_url"] = data.URL
+	response["delivery_type"] = "r2_signed_url"
+	c.JSON(http.StatusOK, response)
 }
 
 func uploadFile(c *gin.Context, cfg *config.Config) {
@@ -90,17 +72,7 @@ func uploadFile(c *gin.Context, cfg *config.Config) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"name":           data.OriginalName,
-		"url":            data.URL,
-		"object_key":     data.ObjectKey,
-		"storage_folder": data.StorageFolder,
-		"bytes":          data.Bytes,
-		"format":         data.Format,
-		"content_type":   data.ContentType,
-		"expires_at":     data.ExpiresAt,
-		"storage":        "cloudflare_r2",
-	})
+	c.JSON(http.StatusOK, mediaResponse(data))
 }
 
 func deleteMedia(c *gin.Context, cfg *config.Config) {
@@ -157,6 +129,20 @@ func upload(c *gin.Context, cfg *config.Config, formField string, folder string)
 	defer file.Close()
 
 	return services.UploadFile(c.Request.Context(), cfg, file, header, folder)
+}
+
+func mediaResponse(data models.MediaObject) gin.H {
+	return gin.H{
+		"name":           data.OriginalName,
+		"url":            data.URL,
+		"object_key":     data.ObjectKey,
+		"storage_folder": data.StorageFolder,
+		"bytes":          data.Bytes,
+		"format":         data.Format,
+		"content_type":   data.ContentType,
+		"expires_at":     data.ExpiresAt,
+		"storage":        "cloudflare_r2",
+	}
 }
 
 func objectKeyFromRequest(objectKey string) string {

@@ -20,6 +20,8 @@ const (
 	couponTypeFixed      = "fixed"
 	couponTypePercent    = "percent"
 	couponTypePercentage = "percentage"
+	couponListLimit      = 500
+	defaultCouponDays    = 365
 )
 
 func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, adminOnly gin.HandlerFunc) {
@@ -76,12 +78,7 @@ func RegisterRoutes(g *gin.RouterGroup, db *mongo.Database, adminOnly gin.Handle
 		}
 
 		discount, ok := Discount(c.Request.Context(), db, req.Code, req.Amount)
-		c.JSON(http.StatusOK, gin.H{
-			"valid":           ok,
-			"discount":        discount,
-			"discount_amount": discount,
-			"final_amount":    positive(req.Amount - discount),
-		})
+		c.JSON(http.StatusOK, validateResponse(req.Amount, discount, ok))
 	})
 }
 
@@ -95,7 +92,7 @@ func Discount(ctx context.Context, db *mongo.Database, code string, amount int64
 }
 
 func listCoupons(ctx context.Context, col *mongo.Collection) ([]models.Coupon, error) {
-	cursor, err := col.Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{Key: "active", Value: -1}, {Key: "code", Value: 1}}).SetLimit(500))
+	cursor, err := col.Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{Key: "active", Value: -1}, {Key: "code", Value: 1}}).SetLimit(couponListLimit))
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +110,11 @@ func createCoupon(ctx context.Context, col *mongo.Collection, req models.CreateR
 	if err != nil {
 		return nil, err
 	}
-	if count, err := col.CountDocuments(ctx, bson.M{"code": coupon.Code}); err != nil {
+	exists, err := couponExists(ctx, col, coupon.Code)
+	if err != nil {
 		return nil, err
-	} else if count > 0 {
+	}
+	if exists {
 		return nil, errors.New("Mã giảm giá đã tồn tại")
 	}
 
@@ -168,10 +167,24 @@ func newCoupon(req models.CreateRequest) (*models.Coupon, error) {
 		return nil, errors.New("max_uses phải lớn hơn hoặc bằng 0")
 	}
 	if req.Expiry <= 0 {
-		req.Expiry = time.Now().Add(365 * 24 * time.Hour).Unix()
+		req.Expiry = time.Now().Add(defaultCouponDays * 24 * time.Hour).Unix()
 	}
 
 	return &models.Coupon{Code: code, Type: couponType, Discount: req.Discount, Active: req.Active, Expiry: req.Expiry, MaxUses: req.MaxUses}, nil
+}
+
+func couponExists(ctx context.Context, col *mongo.Collection, code string) (bool, error) {
+	count, err := col.CountDocuments(ctx, bson.M{"code": code})
+	return count > 0, err
+}
+
+func validateResponse(amount int64, discount int64, valid bool) gin.H {
+	return gin.H{
+		"valid":           valid,
+		"discount":        discount,
+		"discount_amount": discount,
+		"final_amount":    positive(amount - discount),
+	}
 }
 
 func NormalizeCode(code string) string {

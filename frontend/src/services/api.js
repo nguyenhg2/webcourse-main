@@ -1,9 +1,11 @@
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/core";
-const PAYMENT_API_BASE = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:8000/payment";
-const MEDIA_API_BASE = import.meta.env.VITE_MEDIA_API_URL || "http://localhost:8000/media";
-const BLOG_API_BASE = import.meta.env.VITE_BLOG_API_URL || "http://localhost:8000/blog";
+const API_BASES = {
+  core: import.meta.env.VITE_API_URL || "http://localhost:8000/core",
+  payment: import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:8000/payment",
+  media: import.meta.env.VITE_MEDIA_API_URL || "http://localhost:8000/media",
+  blog: import.meta.env.VITE_BLOG_API_URL || "http://localhost:8000/blog",
+};
 
 function createClient(baseURL) {
   const client = axios.create({ baseURL });
@@ -44,11 +46,18 @@ function clearGetCache() {
   getCache.clear();
 }
 
+function mutate(request) {
+  return responseData(request).then((data) => {
+    clearGetCache();
+    return data;
+  });
+}
+
 const get = (client, url, config) => responseData(client.get(url, config));
-const post = (client, url, data, config) => responseData(client.post(url, data, config)).then((data) => { clearGetCache(); return data; });
-const put = (client, url, data, config) => responseData(client.put(url, data, config)).then((data) => { clearGetCache(); return data; });
-const patch = (client, url, data, config) => responseData(client.patch(url, data, config)).then((data) => { clearGetCache(); return data; });
-const remove = (client, url, config) => responseData(client.delete(url, config)).then((data) => { clearGetCache(); return data; });
+const post = (client, url, data, config) => mutate(client.post(url, data, config));
+const put = (client, url, data, config) => mutate(client.put(url, data, config));
+const patch = (client, url, data, config) => mutate(client.patch(url, data, config));
+const remove = (client, url, config) => mutate(client.delete(url, config));
 
 function makeFormData(fields) {
   const formData = new FormData();
@@ -60,10 +69,10 @@ function makeFormData(fields) {
   return formData;
 }
 
-const api = createClient(API_BASE);
-const paymentApi = createClient(PAYMENT_API_BASE);
-const mediaApi = createClient(MEDIA_API_BASE);
-const blogApi = createClient(BLOG_API_BASE);
+const api = createClient(API_BASES.core);
+const paymentApi = createClient(API_BASES.payment);
+const mediaApi = createClient(API_BASES.media);
+const blogApi = createClient(API_BASES.blog);
 
 // Auth
 export function loginAPI(email, password, expectedRole) {

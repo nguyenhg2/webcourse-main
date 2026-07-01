@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -75,24 +76,14 @@ func loadEnvFiles(paths ...string) {
 
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok && strings.TrimSpace(value) != "" {
-		return value
+		return strings.TrimSpace(value)
 	}
 	return fallback
 }
 
 func getEnvInt(key string, fallback int) int {
-	value := strings.TrimSpace(getEnv(key, ""))
-	if value == "" {
-		return fallback
-	}
-	number := 0
-	for _, char := range value {
-		if char < '0' || char > '9' {
-			return fallback
-		}
-		number = number*10 + int(char-'0')
-	}
-	if number <= 0 {
+	number, err := strconv.Atoi(getEnv(key, ""))
+	if err != nil || number <= 0 {
 		return fallback
 	}
 	return number

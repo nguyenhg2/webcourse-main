@@ -23,6 +23,8 @@ import (
 
 var safeNamePattern = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
+const defaultUploadFolder = "codecamp/uploads"
+
 func EnsureR2Config(cfg *config.Config) error {
 	if cfg.R2Endpoint == "" || cfg.R2AccessKeyID == "" || cfg.R2SecretAccessKey == "" || cfg.R2Bucket == "" {
 		return models.APIError{Status: http.StatusInternalServerError, Message: "Thiếu cấu hình Cloudflare R2"}
@@ -37,12 +39,8 @@ func UploadFile(ctx context.Context, cfg *config.Config, file multipart.File, he
 
 	folder = cleanFolder(folder)
 	key := objectKey(folder, header.Filename)
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	contentType := fileContentType(header)
 
-	client := r2Client(cfg)
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(cfg.R2Bucket),
 		Key:         aws.String(key),
@@ -53,7 +51,7 @@ func UploadFile(ctx context.Context, cfg *config.Config, file multipart.File, he
 		input.ContentLength = aws.Int64(header.Size)
 	}
 
-	if _, err := client.PutObject(ctx, input); err != nil {
+	if _, err := r2Client(cfg).PutObject(ctx, input); err != nil {
 		return models.MediaObject{}, models.APIError{Status: http.StatusBadGateway, Message: err.Error()}
 	}
 
@@ -78,12 +76,12 @@ func DeleteObject(ctx context.Context, cfg *config.Config, key string) error {
 	if err := EnsureR2Config(cfg); err != nil {
 		return err
 	}
-	key = strings.Trim(strings.TrimSpace(key), "/")
-	if key == "" {
-		return models.APIError{Status: http.StatusBadRequest, Message: "object_key là bắt buộc"}
+	key, err := cleanObjectKey(key)
+	if err != nil {
+		return err
 	}
 
-	_, err := r2Client(cfg).DeleteObject(ctx, &s3.DeleteObjectInput{
+	_, err = r2Client(cfg).DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(cfg.R2Bucket),
 		Key:    aws.String(key),
 	})
@@ -97,22 +95,12 @@ func SignedURL(ctx context.Context, cfg *config.Config, key string, expiresIn in
 	if err := EnsureR2Config(cfg); err != nil {
 		return "", 0, err
 	}
-	key = strings.Trim(strings.TrimSpace(key), "/")
-	if key == "" {
-		return "", 0, models.APIError{Status: http.StatusBadRequest, Message: "object_key là bắt buộc"}
+	key, err := cleanObjectKey(key)
+	if err != nil {
+		return "", 0, err
 	}
 
-	ttl := time.Duration(cfg.R2SignedURLTTL) * time.Second
-	if expiresIn > 0 {
-		ttl = time.Duration(expiresIn) * time.Second
-	}
-	if ttl < time.Minute {
-		ttl = time.Minute
-	}
-	if ttl > 7*24*time.Hour {
-		ttl = 7 * 24 * time.Hour
-	}
-
+	ttl := signedURLTTL(cfg, expiresIn)
 	presigner := s3.NewPresignClient(r2Client(cfg))
 	result, err := presigner.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(cfg.R2Bucket),
@@ -124,6 +112,37 @@ func SignedURL(ctx context.Context, cfg *config.Config, key string, expiresIn in
 		return "", 0, models.APIError{Status: http.StatusBadGateway, Message: err.Error()}
 	}
 	return result.URL, time.Now().Add(ttl).Unix(), nil
+}
+
+func fileContentType(header *multipart.FileHeader) string {
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		return "application/octet-stream"
+	}
+	return contentType
+}
+
+func cleanObjectKey(key string) (string, error) {
+	key = strings.Trim(strings.TrimSpace(key), "/")
+	if key == "" {
+		return "", models.APIError{Status: http.StatusBadRequest, Message: "object_key là bắt buộc"}
+	}
+	return key, nil
+}
+
+func signedURLTTL(cfg *config.Config, expiresIn int64) time.Duration {
+	ttl := time.Duration(cfg.R2SignedURLTTL) * time.Second
+	if expiresIn > 0 {
+		ttl = time.Duration(expiresIn) * time.Second
+	}
+
+	if ttl < time.Minute {
+		return time.Minute
+	}
+	if ttl > 7*24*time.Hour {
+		return 7 * 24 * time.Hour
+	}
+	return ttl
 }
 
 func r2Client(cfg *config.Config) *s3.Client {
@@ -140,7 +159,7 @@ func r2Client(cfg *config.Config) *s3.Client {
 func cleanFolder(folder string) string {
 	folder = strings.Trim(strings.TrimSpace(folder), "/")
 	if folder == "" {
-		return "codecamp/uploads"
+		return defaultUploadFolder
 	}
 	parts := strings.Split(folder, "/")
 	cleaned := make([]string, 0, len(parts))
@@ -151,7 +170,7 @@ func cleanFolder(folder string) string {
 		}
 	}
 	if len(cleaned) == 0 {
-		return "codecamp/uploads"
+		return defaultUploadFolder
 	}
 	return strings.Join(cleaned, "/")
 }
@@ -163,7 +182,9 @@ func objectKey(folder string, filename string) string {
 	if name == "" {
 		name = "file"
 	}
-	return path.Join(folder, time.Now().Format("20060102"), time.Now().Format("150405")+"-"+randomHex(4)+"-"+name+ext)
+
+	now := time.Now()
+	return path.Join(folder, now.Format("20060102"), now.Format("150405")+"-"+randomHex(4)+"-"+name+ext)
 }
 
 func safeName(value string) string {

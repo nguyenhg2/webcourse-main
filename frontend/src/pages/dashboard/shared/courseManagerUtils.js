@@ -11,6 +11,8 @@ export const emptyCourseForm = {
 };
 
 const COURSE_VIDEO_ROOT = "codecamp/courses";
+const DEFAULT_ATTACHMENT_NAME = "Tài liệu";
+const LESSON_TITLE_PREFIX = /^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*[-–—:]?\s*/i;
 
 export const ATTACHMENT_ACCEPT =
   ".pdf,.zip,.rar,.7z,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.json,.js,.jsx,.ts,.tsx,.html,.css,.py,.java,.c,.cpp,.cs";
@@ -78,22 +80,27 @@ export function parseAttachments(value) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => {
-      const [name, ...urlParts] = line.split("|").map((part) => part.trim());
-      const url = urlParts.join("|").trim();
-      return url ? { name: name || "Tài liệu", url } : { name: "Tài liệu", url: name };
-    })
+    .map(parseAttachmentLine)
     .filter((item) => item.url);
+}
+
+function parseAttachmentLine(line) {
+  const [name, ...urlParts] = line.split("|").map((part) => part.trim());
+  const url = urlParts.join("|").trim();
+
+  return url
+    ? { name: name || DEFAULT_ATTACHMENT_NAME, url }
+    : { name: DEFAULT_ATTACHMENT_NAME, url: name };
 }
 
 export function formatAttachments(attachments) {
   return (attachments || [])
-    .map((item) => `${item.name || "Tài liệu"} | ${item.url || ""}`)
+    .map((item) => `${item.name || DEFAULT_ATTACHMENT_NAME} | ${item.url || ""}`)
     .join("\n");
 }
 
 export function appendAttachmentLine(current, attachment) {
-  const line = `${attachment.name || "Tài liệu"} | ${attachment.url}`;
+  const line = `${attachment.name || DEFAULT_ATTACHMENT_NAME} | ${attachment.url}`;
   return [current, line].filter(Boolean).join("\n");
 }
 
@@ -101,8 +108,7 @@ export function displayLessonTitle(section, lesson) {
   const sectionOrder = Number(section?.order || 1);
   const lessonOrder = Number(lesson?.order || 1);
   const cleanTitle = String(lesson?.title || "")
-    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*[-–—:]\s*/i, "")
-    .replace(/^(Bài|Bai|Lesson)\s+\d+(?:\.\d+)+\s*/i, "")
+    .replace(LESSON_TITLE_PREFIX, "")
     .trim();
 
   return cleanTitle

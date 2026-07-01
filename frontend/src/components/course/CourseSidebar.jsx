@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCategoriesAPI } from "../../services/api";
+import { COURSE_LEVELS } from "../../utils/courseDisplay";
 import RatingStars from "../ui/RatingStars";
-
-const LEVELS = [
-  { name: "beginner", label: "Người mới" },
-  { name: "intermediate", label: "Trung cấp" },
-  { name: "advanced", label: "Nâng cao" },
-];
 
 const RATINGS = [5, 4, 3, 2, 1];
 
@@ -92,7 +87,7 @@ export default function CourseSidebar({
         <h4 className="font-heading text-secondary text-lg font-semibold">Cấp độ</h4>
 
         <div className="flex flex-col gap-2.5">
-          {LEVELS.map((level) => (
+          {COURSE_LEVELS.map((level) => (
             <FilterCheckbox
               key={level.name}
               label={level.label}
